@@ -335,6 +335,16 @@
         padding: 18px;
     }
     .highscore-card.hs-empty .trophy { font-size: 36px; opacity: 0.4; display:block; margin-bottom:8px; }
+    .hs-status {
+        font-size: 11px;
+        color: #9a8340;
+        margin-top: 8px;
+        text-align: right;
+    }
+    .highscore-card.hs-empty .hs-status {
+        text-align: center;
+        color: #999;
+    }
     @keyframes hs-pop {
         0% { transform: scale(0.94); opacity: 0; }
         100% { transform: scale(1); opacity: 1; }
@@ -474,6 +484,27 @@
     <div id="wrongList"></div>
     <button id="restartBtn">Neue Runde</button>
 </div>
+
+<!-- Firebase: zentrale Bestenliste -->
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyD3bKI2sIgCTtyV4P07jHCWg5ezLHVNPHY",
+    authDomain: "flaggenquiz-1cbf5.firebaseapp.com",
+    projectId: "flaggenquiz-1cbf5",
+    storageBucket: "flaggenquiz-1cbf5.firebasestorage.app",
+    messagingSenderId: "574905138607",
+    appId: "1:574905138607:web:ac004ebf5528733837035a"
+};
+let firestoreDb = null;
+try {
+    firebase.initializeApp(firebaseConfig);
+    firestoreDb = firebase.firestore();
+} catch (e) {
+    console.warn("Firebase konnte nicht initialisiert werden, Highscore läuft nur lokal.", e);
+}
+</script>
 
 <script>
 const countries = [
@@ -906,7 +937,7 @@ function updateLengthHint() {
     }
 }
 
-function getTopList(key) {
+function getLocalTopList(key) {
     try {
         const raw = localStorage.getItem(key);
         if (!raw) return [];
@@ -922,16 +953,60 @@ function getTopList(key) {
     }
 }
 
+function saveLocalTopList(key, list) {
+    try {
+        localStorage.setItem(key, JSON.stringify(list));
+    } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
+}
+
+// Lädt die Top-3-Liste zentral aus Firestore. Schlägt das fehl (offline, blockiert, o.ä.),
+// wird automatisch auf die lokal zwischengespeicherte Liste zurückgegriffen.
+async function fetchTopList(key) {
+    if (!firestoreDb) return { list: getLocalTopList(key), online: false };
+    try {
+        const doc = await firestoreDb.collection("highscores").doc(key).get();
+        const entries = doc.exists && Array.isArray(doc.data().entries) ? doc.data().entries : [];
+        saveLocalTopList(key, entries); // als Offline-Cache mitführen
+        return { list: entries, online: true };
+    } catch (e) {
+        console.warn("Zentrale Bestenliste nicht erreichbar, nutze lokalen Stand.", e);
+        return { list: getLocalTopList(key), online: false };
+    }
+}
+
+// Speichert die Top-3-Liste zentral in Firestore, mit lokalem Fallback bei Fehlern.
+async function saveTopList(key, list) {
+    saveLocalTopList(key, list); // immer auch lokal sichern
+    if (!firestoreDb) return false;
+    try {
+        await firestoreDb.collection("highscores").doc(key).set({ entries: list });
+        return true;
+    } catch (e) {
+        console.warn("Highscore konnte nicht zentral gespeichert werden, nur lokal gesichert.", e);
+        return false;
+    }
+}
+
 function continentLabel() {
     if (settings.continents.length === continents.length) return "alle Kontinente";
     return settings.continents.join(", ");
 }
 
-function updateHighscoreDisplay() {
+async function updateHighscoreDisplay() {
     const key = highscoreKey();
-    const list = getTopList(key);
     const modeLabel = settings.mode === "mc" ? "Multiple Choice" : "Texteingabe";
     const subtitle = `${settings.length} Flaggen · ${continentLabel()} · ${modeLabel}`;
+
+    highscoreDisplay.innerHTML = `
+        <div class="highscore-card hs-empty">
+            <span class="trophy">🏆</span>
+            <div>Bestenliste wird geladen …</div>
+        </div>`;
+
+    const { list, online } = await fetchTopList(key);
+    const statusLine = online
+        ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
+        : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
 
     if (list.length === 0) {
         highscoreDisplay.innerHTML = `
@@ -939,6 +1014,7 @@ function updateHighscoreDisplay() {
                 <span class="trophy">🏆</span>
                 <div class="hs-card-title" style="margin-bottom:4px;">Noch kein Highscore</div>
                 <div>${subtitle}<br>Sei der Erste!</div>
+                <div class="hs-status">${statusLine}</div>
             </div>`;
         return;
     }
@@ -955,6 +1031,7 @@ function updateHighscoreDisplay() {
         <div class="highscore-card">
             <div class="hs-card-title">🏆 Bestenliste — ${subtitle}</div>
             ${rowsHtml}
+            <div class="hs-status">${statusLine}</div>
         </div>`;
 }
 
@@ -1208,35 +1285,38 @@ function highscoreKey() {
     return "flagquiz_highscore_" + continentPart + "_" + settings.length + "_" + settings.mode;
 }
 
-function showEndScreen() {
+async function showEndScreen() {
     game.style.display = "none";
     titleBlock.style.display = "block";
     endScreen.style.display = "block";
 
     finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+    highscoreLine.innerHTML = "Bestenliste wird aktualisiert …";
 
     const playerName = (nicknameInput.value.trim() || "Anonym");
     const key = highscoreKey();
-    let list = getTopList(key);
+    const { list: currentList } = await fetchTopList(key);
+    let list = currentList.slice();
     const newEntry = { name: playerName, score: score, __new: true };
     list.push(newEntry);
     list.sort((a, b) => b.score - a.score);
     list = list.slice(0, 3);
     const rank = list.findIndex(e => e.__new);
     list.forEach(e => delete e.__new);
-    localStorage.setItem(key, JSON.stringify(list));
+    const savedOnline = await saveTopList(key, list);
+    const onlineNote = savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
 
     if (rank === 0) {
-        highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>';
+        highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>' + onlineNote;
     } else if (rank === 1) {
-        highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht.";
+        highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht." + onlineNote;
     } else if (rank === 2) {
-        highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!";
+        highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!" + onlineNote;
     } else {
         const bronze = list[list.length - 1];
-        highscoreLine.innerHTML = bronze
+        highscoreLine.innerHTML = (bronze
             ? "Knapp kein Platz in den Top 3 — Bronze liegt bei " + bronze.score + " Punkten."
-            : "Kein Platz in den Top 3.";
+            : "Kein Platz in den Top 3.") + onlineNote;
     }
 
     if (wrongAnswers.length === 0) {
