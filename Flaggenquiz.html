@@ -275,7 +275,7 @@
     }
 
     #highscoreDisplay {
-        margin: 4px 0 18px 0;
+        margin: 18px 0 4px 0;
     }
     .highscore-card {
         position: relative;
@@ -342,24 +342,56 @@
 
     /* ---------- Anpassungen für kleine Bildschirme (Smartphones) ---------- */
     @media (max-width: 480px) {
-        body { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+        body {
+            padding-left: max(12px, env(safe-area-inset-left));
+            padding-right: max(12px, env(safe-area-inset-right));
+            padding-top: max(10px, env(safe-area-inset-top));
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+        }
         h1 { font-size: 1.9em; }
         #settings { padding: 22px 16px; }
         #endScreen { padding: 18px 16px; }
         .setting-block { margin-bottom: 18px; padding-bottom: 14px; }
         #startBtn { width: 100%; padding: 14px 0; font-size: 17px; }
-        button { padding: 12px 16px; }
+        button { padding: 12px 16px; margin: 6px; }
         .option-btn { padding: 10px 12px; font-size: 14px; }
         #counter { font-size: 16px; }
         #endBtn { font-size: 13px; padding: 8px 10px; }
         #score { font-size: 19px; }
         #solution { font-size: 19px; }
         .mc-btn { padding: 14px; font-size: 16px; }
+
+        /* ---- Spielfläche kompakter: kein Scrollen während des Spiels ---- */
+        #gameHeader { margin-bottom: 4px; }
+        #settingsSummary { padding: 4px 8px; margin-bottom: 6px; font-size: 12px; }
+        #progressBarOuter { margin-bottom: 6px; height: 8px; }
+        #score { margin-bottom: 4px; }
+        #flag { width: min(210px, 52vw); margin: 8px auto; }
+        #timeBonusBarOuter { width: min(210px, 52vw); margin: 6px auto 0 auto; }
+        #textInputArea input#answer { padding: 6px; margin-bottom: 2px; }
+        #textInputArea button#solveBtn { margin: 6px; }
+        #tipBtn { margin: 6px; }
+        #tip { min-height: 14px; margin-top: 4px; font-size: 14px; }
+        #nextBtn { margin: 6px; }
+        #points { font-size: 14px; margin-top: 4px; }
+        #timeBonusInfo { font-size: 12px; margin-top: 2px; }
+        #emoji { height: 36px; font-size: 32px; margin-top: 4px; }
+        #solution { margin-top: 4px; }
+        .mc-btn { padding: 10px; margin: 4px 0; }
+    }
+
+    /* Sehr niedrige Bildschirme (z. B. iPhone SE): noch etwas kompakter */
+    @media (max-width: 480px) and (max-height: 700px) {
+        #flag { width: min(170px, 42vw); margin: 4px auto; }
+        #timeBonusBarOuter { width: min(170px, 42vw); }
+        #emoji { height: 26px; font-size: 24px; margin-top: 2px; }
+        #tip { min-height: 10px; }
+        button { margin: 4px; }
     }
 
     /* Touch-Geräte: keine Hover-Effekte, dafür etwas mehr Tap-Fläche */
     @media (hover: none) and (pointer: coarse) {
-        button, .option-btn, .mc-btn { min-height: 44px; }
+        button, .option-btn, .mc-btn { min-height: 40px; }
         #endBtn:hover { background: none; }
         #startBtn:hover { background: #4caf50; }
     }
@@ -367,8 +399,10 @@
 </head>
 <body>
 
-<h1>🌍 Flaggenquiz</h1>
-<div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
+<div id="titleBlock">
+    <h1>🌍 Flaggenquiz</h1>
+    <div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
+</div>
 
 <div id="settings">
     <div class="setting-block" id="nicknameBlock">
@@ -395,10 +429,10 @@
         </div>
     </div>
 
-    <div id="highscoreDisplay"></div>
-
     <br>
     <button id="startBtn">Start</button>
+
+    <div id="highscoreDisplay"></div>
 </div>
 
 <div id="game">
@@ -746,6 +780,7 @@ let flagStartTime = 0;
 // ---------- Elemente ----------
 
 const settingsDiv = document.getElementById("settings");
+const titleBlock = document.getElementById("titleBlock");
 const nicknameInput = document.getElementById("nickname");
 const highscoreDisplay = document.getElementById("highscoreDisplay");
 const continentButtons = document.getElementById("continentButtons");
@@ -949,6 +984,7 @@ startBtn.onclick = function () {
 
     settingsDiv.style.display = "none";
     endScreen.style.display = "none";
+    titleBlock.style.display = "none";
     game.style.display = "block";
     loadFlag();
 };
@@ -1174,6 +1210,7 @@ function highscoreKey() {
 
 function showEndScreen() {
     game.style.display = "none";
+    titleBlock.style.display = "block";
     endScreen.style.display = "block";
 
     finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
@@ -1219,6 +1256,7 @@ endBtn.onclick = function () {
     stopTimeBonusBar();
     game.style.display = "none";
     endScreen.style.display = "none";
+    titleBlock.style.display = "block";
     settingsDiv.style.display = "block";
     updateLengthHint();
     updateHighscoreDisplay();
