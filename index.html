@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Flaggenquiz</title>
+
+<!-- PWA / Homescreen-Unterstützung -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1565c0">
+<link rel="icon" href="icon-192.png">
+
+<!-- iOS-spezifisch: "Zum Home-Bildschirm hinzufügen" -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flaggenquiz">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<style>
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(135deg, #e3f2fd 0%, #f0f0f0 60%);
+        text-align: center;
+        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        min-height: 100vh;
+        margin: 0;
+        box-sizing: border-box;
+    }
+    h1 {
+        margin-bottom: 4px;
+        font-size: 2.4em;
+    }
+    #subtitle {
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 15px;
+    }
+
+    #settings, #game, #endScreen {
+        display: none;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+    #settings {
+        background: #fff;
+        border-radius: 14px;
+        padding: 30px 25px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    .setting-block {
+        margin: 0 0 22px 0;
+        text-align: left;
+        display: block;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #eee;
+    }
+    .setting-block:last-of-type {
+        border-bottom: none;
+        margin-bottom: 10px;
+    }
+    .setting-block label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+        font-size: 15px;
+    }
+    .option-btn {
+        padding: 8px 14px;
+        margin: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 2px solid #999;
+        background: #fff;
+        border-radius: 6px;
+        transition: all 0.15s ease;
+    }
+    .option-btn.selected {
+        background: #1976d2;
+        color: #fff;
+        border-color: #1976d2;
+    }
+    .hint-small { color: #777; font-size: 13px; margin-top: 4px; }
+
+    #startBtn {
+        background: #4caf50;
+        color: #fff;
+        border: none;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px 40px;
+        border-radius: 8px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    #startBtn:hover {
+        background: #43a047;
+    }
+
+    #flag {
+        width: min(320px, 90vw);
+        aspect-ratio: 320 / 213;
+        margin: 20px auto;
+        border: 2px solid #333;
+        position: relative;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+        background-color: #ddd;
+    }
+    #flagError {
+        display: none;
+        position: absolute;
+        inset: 0;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: #900;
+        font-weight: bold;
+        padding: 10px;
+        text-align: center;
+    }
+    #game { display: none; }
+
+    #gameHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+    }
+    #settingsSummary {
+        font-size: 13px;
+        color: #666;
+        background: #eef4fb;
+        border-radius: 6px;
+        padding: 6px 10px;
+        margin-bottom: 12px;
+    }
+    #endBtn {
+        background: none;
+        border: 1px solid #999;
+        color: #555;
+        padding: 6px 12px;
+        margin: 0;
+        font-size: 14px;
+        border-radius: 6px;
+    }
+    #endBtn:hover {
+        background: #eee;
+    }
+    #counter {
+        font-size: 18px;
+        font-weight: bold;
+        flex: 1;
+        text-align: center;
+    }
+
+    #progressBarOuter {
+        width: 100%;
+        height: 10px;
+        background: #ddd;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+    #progressBarInner {
+        height: 100%;
+        width: 0%;
+        background: #4caf50;
+        transition: width 0.3s ease;
+    }
+
+    #timeBonusBarOuter {
+        width: min(320px, 90vw);
+        margin: 8px auto 0 auto;
+        height: 6px;
+        background: #ddd;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    #timeBonusBarInner {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #64b5f6, #1565c0);
+        transition: width 0.1s linear;
+    }
+
+    #tip {
+        margin-top: 10px;
+        font-weight: bold;
+        color: #444;
+        min-height: 20px;
+    }
+    #emoji {
+        font-size: 60px;
+        margin-top: 10px;
+        height: 70px;
+    }
+    #solution {
+        font-size: 22px;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    #points {
+        font-size: 18px;
+        margin-top: 10px;
+        color: #222;
+        font-weight: bold;
+    }
+    #timeBonusInfo {
+        font-size: 14px;
+        color: #666;
+        margin-top: 4px;
+    }
+    button {
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    #score {
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    #mcOptions {
+        display: none;
+        margin-top: 15px;
+    }
+    .mc-btn {
+        display: block;
+        width: 100%;
+        margin: 6px 0;
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 6px;
+        border: 2px solid #999;
+        background: #fff;
+        cursor: pointer;
+    }
+    .mc-btn.correct { background: #b6f2b6; border-color: #2e7d32; }
+    .mc-btn.wrong { background: #f7b6b6; border-color: #c62828; }
+    .mc-btn.eliminated { opacity: 0.35; text-decoration: line-through; }
+    .mc-btn:disabled { cursor: default; }
+
+    #endScreen {
+        background: #fff;
+        border-radius: 10px;
+        padding: 25px;
+        border: 2px solid #333;
+    }
+    #endScreen h2 { margin-top: 0; }
+    #wrongList {
+        text-align: left;
+        max-height: 220px;
+        overflow-y: auto;
+        margin: 15px 0;
+        padding: 10px;
+        background: #f7f7f7;
+        border-radius: 6px;
+    }
+    #wrongList div { padding: 3px 0; border-bottom: 1px solid #eee; }
+    #highscoreLine { font-size: 18px; margin: 10px 0; }
+    #newHighscoreBadge {
+        display: inline-block;
+        background: #ffd54f;
+        padding: 4px 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+
+    #highscoreDisplay {
+        margin: 4px 0 18px 0;
+    }
+    .highscore-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        padding: 16px 18px;
+        background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+        border: 2px solid #ffca28;
+        box-shadow: 0 4px 14px rgba(255, 193, 7, 0.35);
+        text-align: left;
+        animation: hs-pop 0.35s ease;
+    }
+    .highscore-card .hs-card-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #8a6d1a;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .hs-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+    }
+    .hs-row + .hs-row {
+        border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .hs-medal {
+        font-size: 24px;
+        width: 30px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .hs-row-name {
+        flex: 1;
+        font-weight: bold;
+        color: #4a3a00;
+        font-size: 15px;
+    }
+    .hs-row-score {
+        font-weight: bold;
+        color: #6b5416;
+        font-size: 15px;
+        white-space: nowrap;
+    }
+    .hs-row.rank-1 .hs-row-name { color: #7a5c00; font-size: 16px; }
+    .hs-row.rank-2 { opacity: 0.92; }
+    .hs-row.rank-3 { opacity: 0.85; }
+    .highscore-card.hs-empty {
+        background: #f5f5f5;
+        border-color: #ddd;
+        box-shadow: none;
+        color: #888;
+        text-align: center;
+        padding: 18px;
+    }
+    .highscore-card.hs-empty .trophy { font-size: 36px; opacity: 0.4; display:block; margin-bottom:8px; }
+    @keyframes hs-pop {
+        0% { transform: scale(0.94); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ---------- Anpassungen für kleine Bildschirme (Smartphones) ---------- */
+    @media (max-width: 480px) {
+        body { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+        h1 { font-size: 1.9em; }
+        #settings { padding: 22px 16px; }
+        #endScreen { padding: 18px 16px; }
+        .setting-block { margin-bottom: 18px; padding-bottom: 14px; }
+        #startBtn { width: 100%; padding: 14px 0; font-size: 17px; }
+        button { padding: 12px 16px; }
+        .option-btn { padding: 10px 12px; font-size: 14px; }
+        #counter { font-size: 16px; }
+        #endBtn { font-size: 13px; padding: 8px 10px; }
+        #score { font-size: 19px; }
+        #solution { font-size: 19px; }
+        .mc-btn { padding: 14px; font-size: 16px; }
+    }
+
+    /* Touch-Geräte: keine Hover-Effekte, dafür etwas mehr Tap-Fläche */
+    @media (hover: none) and (pointer: coarse) {
+        button, .option-btn, .mc-btn { min-height: 44px; }
+        #endBtn:hover { background: none; }
+        #startBtn:hover { background: #4caf50; }
+    }
+</style>
+</head>
+<body>
+
+<h1>🌍 Flaggenquiz</h1>
+<div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
+
+<div id="settings">
+    <div class="setting-block" id="nicknameBlock">
+        <label for="nickname">Dein Name</label>
+        <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20" style="font-size:16px;padding:8px 10px;width:100%;box-sizing:border-box;border:2px solid #ccc;border-radius:6px;">
+    </div>
+
+    <div class="setting-block" id="continentBlock">
+        <label>Kontinent <span style="font-weight:normal;color:#888;">(Mehrfachauswahl möglich)</span></label>
+        <div id="continentButtons"></div>
+    </div>
+
+    <div class="setting-block" id="lengthBlock">
+        <label>Anzahl Flaggen</label>
+        <div id="lengthButtons"></div>
+        <div class="hint-small" id="lengthHint"></div>
+    </div>
+
+    <div class="setting-block" id="modeBlock">
+        <label>Antwortmodus</label>
+        <div id="modeButtons">
+            <button class="option-btn selected" data-mode="text">Text eingeben</button>
+            <button class="option-btn" data-mode="mc">Multiple Choice</button>
+        </div>
+    </div>
+
+    <div id="highscoreDisplay"></div>
+
+    <br>
+    <button id="startBtn">Start</button>
+</div>
+
+<div id="game">
+    <div id="gameHeader">
+        <button id="endBtn">← Hauptmenü</button>
+        <div id="counter"></div>
+        <div style="width:110px;"></div>
+    </div>
+    <div id="settingsSummary"></div>
+    <div id="progressBarOuter"><div id="progressBarInner"></div></div>
+    <div id="score">Punkte: 0</div>
+    <div id="flag"><div id="flagError"></div></div>
+    <div id="timeBonusBarOuter"><div id="timeBonusBarInner"></div></div>
+
+    <div id="textInputArea">
+        <input type="text" id="answer" placeholder="Land eingeben" style="font-size:18px;padding:5px;width:min(300px, 90vw);box-sizing:border-box;" autocomplete="off">
+        <br>
+        <button id="solveBtn">Lösen</button>
+    </div>
+
+    <div id="mcOptions"></div>
+
+    <button id="tipBtn">Tipp anzeigen</button>
+    <div id="tip"></div>
+
+    <button id="nextBtn" style="display:none;">Nächste</button>
+
+    <div id="points"></div>
+    <div id="timeBonusInfo"></div>
+    <div id="emoji"></div>
+    <div id="solution"></div>
+</div>
+
+<div id="endScreen">
+    <h2>Runde beendet!</h2>
+    <div id="finalScoreLine" style="font-size:22px;font-weight:bold;"></div>
+    <div id="highscoreLine"></div>
+    <div id="wrongListTitle" style="font-weight:bold;margin-top:15px;"></div>
+    <div id="wrongList"></div>
+    <button id="restartBtn">Neue Runde</button>
+</div>
+
+<script>
+const countries = [
+    { name: "Deutschland", iso: "de", continent: "Europa" },
+    { name: "Frankreich", iso: "fr", continent: "Europa" },
+    { name: "Italien", iso: "it", continent: "Europa" },
+    { name: "Spanien", iso: "es", continent: "Europa" },
+    { name: "Portugal", iso: "pt", continent: "Europa" },
+    { name: "Schweiz", iso: "ch", continent: "Europa" },
+    { name: "Österreich", iso: "at", continent: "Europa" },
+    { name: "Belgien", iso: "be", continent: "Europa" },
+    { name: "Niederlande", iso: "nl", continent: "Europa" },
+    { name: "Polen", iso: "pl", continent: "Europa" },
+
+    { name: "USA", iso: "us", continent: "Nordamerika" },
+    { name: "Kanada", iso: "ca", continent: "Nordamerika" },
+    { name: "Mexiko", iso: "mx", continent: "Nordamerika" },
+
+    { name: "Brasilien", iso: "br", continent: "Südamerika" },
+    { name: "Argentinien", iso: "ar", continent: "Südamerika" },
+    { name: "Chile", iso: "cl", continent: "Südamerika" },
+
+    { name: "Japan", iso: "jp", continent: "Asien" },
+    { name: "China", iso: "cn", continent: "Asien" },
+    { name: "Indien", iso: "in", continent: "Asien" },
+
+    { name: "Australien", iso: "au", continent: "Ozeanien" },
+    { name: "Neuseeland", iso: "nz", continent: "Ozeanien" },
+
+    { name: "Ägypten", iso: "eg", continent: "Afrika" },
+    { name: "Südafrika", iso: "za", continent: "Afrika" },
+    { name: "Nigeria", iso: "ng", continent: "Afrika" },
+
+    { name: "Dänemark", iso: "dk", continent: "Europa" },
+    { name: "Schweden", iso: "se", continent: "Europa" },
+    { name: "Norwegen", iso: "no", continent: "Europa" },
+    { name: "Finnland", iso: "fi", continent: "Europa" },
+    { name: "Island", iso: "is", continent: "Europa" },
+    { name: "Irland", iso: "ie", continent: "Europa" },
+    { name: "Tschechien", iso: "cz", continent: "Europa" },
+    { name: "Slowakei", iso: "sk", continent: "Europa" },
+    { name: "Ungarn", iso: "hu", continent: "Europa" },
+    { name: "Rumänien", iso: "ro", continent: "Europa" },
+    { name: "Bulgarien", iso: "bg", continent: "Europa" },
+    { name: "Kroatien", iso: "hr", continent: "Europa" },
+    { name: "Serbien", iso: "rs", continent: "Europa" },
+    { name: "Bosnien", iso: "ba", continent: "Europa" },
+    { name: "Slowenien", iso: "si", continent: "Europa" },
+    { name: "Albanien", iso: "al", continent: "Europa" },
+    { name: "Nordmazedonien", iso: "mk", continent: "Europa" },
+    { name: "Griechenland", iso: "gr", continent: "Europa" },
+    { name: "Türkei", iso: "tr", continent: "Europa" },
+
+    { name: "Russland", iso: "ru", continent: "Asien" },
+    { name: "Südkorea", iso: "kr", continent: "Asien" },
+    { name: "Nordkorea", iso: "kp", continent: "Asien" },
+    { name: "Thailand", iso: "th", continent: "Asien" },
+    { name: "Vietnam", iso: "vn", continent: "Asien" },
+    { name: "Malaysia", iso: "my", continent: "Asien" },
+    { name: "Singapur", iso: "sg", continent: "Asien" },
+    { name: "Indonesien", iso: "id", continent: "Asien" },
+    { name: "Philippinen", iso: "ph", continent: "Asien" },
+    { name: "Pakistan", iso: "pk", continent: "Asien" },
+    { name: "Bangladesch", iso: "bd", continent: "Asien" },
+    { name: "Sri Lanka", iso: "lk", continent: "Asien" },
+    { name: "Nepal", iso: "np", continent: "Asien" },
+    { name: "Mongolei", iso: "mn", continent: "Asien" },
+
+    { name: "Marokko", iso: "ma", continent: "Afrika" },
+    { name: "Tunesien", iso: "tn", continent: "Afrika" },
+    { name: "Libyen", iso: "ly", continent: "Afrika" },
+    { name: "Sudan", iso: "sd", continent: "Afrika" },
+    { name: "Äthiopien", iso: "et", continent: "Afrika" },
+    { name: "Somalia", iso: "so", continent: "Afrika" },
+    { name: "Ghana", iso: "gh", continent: "Afrika" },
+    { name: "Elfenbeinküste", iso: "ci", continent: "Afrika" },
+    { name: "Senegal", iso: "sn", continent: "Afrika" },
+    { name: "Kenia", iso: "ke", continent: "Afrika" },
+    { name: "Tansania", iso: "tz", continent: "Afrika" },
+    { name: "Uganda", iso: "ug", continent: "Afrika" },
+    { name: "Demokratische Republik Kongo", iso: "cd", continent: "Afrika" },
+
+    { name: "Kolumbien", iso: "co", continent: "Südamerika" },
+    { name: "Peru", iso: "pe", continent: "Südamerika" },
+    { name: "Ecuador", iso: "ec", continent: "Südamerika" },
+    { name: "Venezuela", iso: "ve", continent: "Südamerika" },
+    { name: "Bolivien", iso: "bo", continent: "Südamerika" },
+    { name: "Paraguay", iso: "py", continent: "Südamerika" },
+    { name: "Uruguay", iso: "uy", continent: "Südamerika" },
+
+    { name: "Costa Rica", iso: "cr", continent: "Nordamerika" },
+    { name: "Panama", iso: "pa", continent: "Nordamerika" },
+    { name: "Guatemala", iso: "gt", continent: "Nordamerika" },
+    { name: "Honduras", iso: "hn", continent: "Nordamerika" },
+    { name: "El Salvador", iso: "sv", continent: "Nordamerika" },
+    { name: "Nicaragua", iso: "ni", continent: "Nordamerika" },
+    { name: "Jamaika", iso: "jm", continent: "Nordamerika" },
+    { name: "Kuba", iso: "cu", continent: "Nordamerika" },
+
+    { name: "Fidschi", iso: "fj", continent: "Ozeanien" },
+    { name: "Papua-Neuguinea", iso: "pg", continent: "Ozeanien" },
+    { name: "Samoa", iso: "ws", continent: "Ozeanien" },
+    { name: "Tonga", iso: "to", continent: "Ozeanien" },
+
+    // --- Europa: weitere Länder ---
+    { name: "Andorra", iso: "ad", continent: "Europa" },
+    { name: "Belarus", iso: "by", continent: "Europa" },
+    { name: "Zypern", iso: "cy", continent: "Europa" },
+    { name: "Estland", iso: "ee", continent: "Europa" },
+    { name: "Lettland", iso: "lv", continent: "Europa" },
+    { name: "Litauen", iso: "lt", continent: "Europa" },
+    { name: "Liechtenstein", iso: "li", continent: "Europa" },
+    { name: "Luxemburg", iso: "lu", continent: "Europa" },
+    { name: "Malta", iso: "mt", continent: "Europa" },
+    { name: "Monaco", iso: "mc", continent: "Europa" },
+    { name: "Moldau", iso: "md", continent: "Europa" },
+    { name: "Montenegro", iso: "me", continent: "Europa" },
+    { name: "San Marino", iso: "sm", continent: "Europa" },
+    { name: "Vatikanstadt", iso: "va", continent: "Europa" },
+    { name: "Ukraine", iso: "ua", continent: "Europa" },
+    { name: "Kosovo", iso: "xk", continent: "Europa" },
+
+    // --- Asien: weitere Länder ---
+    { name: "Afghanistan", iso: "af", continent: "Asien" },
+    { name: "Armenien", iso: "am", continent: "Asien" },
+    { name: "Aserbaidschan", iso: "az", continent: "Asien" },
+    { name: "Bahrain", iso: "bh", continent: "Asien" },
+    { name: "Brunei", iso: "bn", continent: "Asien" },
+    { name: "Bhutan", iso: "bt", continent: "Asien" },
+    { name: "Georgien", iso: "ge", continent: "Asien" },
+    { name: "Israel", iso: "il", continent: "Asien" },
+    { name: "Irak", iso: "iq", continent: "Asien" },
+    { name: "Iran", iso: "ir", continent: "Asien" },
+    { name: "Jordanien", iso: "jo", continent: "Asien" },
+    { name: "Kirgisistan", iso: "kg", continent: "Asien" },
+    { name: "Kambodscha", iso: "kh", continent: "Asien" },
+    { name: "Kuwait", iso: "kw", continent: "Asien" },
+    { name: "Kasachstan", iso: "kz", continent: "Asien" },
+    { name: "Laos", iso: "la", continent: "Asien" },
+    { name: "Libanon", iso: "lb", continent: "Asien" },
+    { name: "Myanmar", iso: "mm", continent: "Asien" },
+    { name: "Oman", iso: "om", continent: "Asien" },
+    { name: "Palästina", iso: "ps", continent: "Asien" },
+    { name: "Katar", iso: "qa", continent: "Asien" },
+    { name: "Saudi-Arabien", iso: "sa", continent: "Asien" },
+    { name: "Syrien", iso: "sy", continent: "Asien" },
+    { name: "Tadschikistan", iso: "tj", continent: "Asien" },
+    { name: "Osttimor", iso: "tl", continent: "Asien" },
+    { name: "Turkmenistan", iso: "tm", continent: "Asien" },
+    { name: "Taiwan", iso: "tw", continent: "Asien" },
+    { name: "Usbekistan", iso: "uz", continent: "Asien" },
+    { name: "Vereinigte Arabische Emirate", iso: "ae", continent: "Asien" },
+    { name: "Jemen", iso: "ye", continent: "Asien" },
+
+    // --- Afrika: weitere Länder ---
+    { name: "Angola", iso: "ao", continent: "Afrika" },
+    { name: "Burkina Faso", iso: "bf", continent: "Afrika" },
+    { name: "Burundi", iso: "bi", continent: "Afrika" },
+    { name: "Benin", iso: "bj", continent: "Afrika" },
+    { name: "Botswana", iso: "bw", continent: "Afrika" },
+    { name: "Zentralafrikanische Republik", iso: "cf", continent: "Afrika" },
+    { name: "Republik Kongo", iso: "cg", continent: "Afrika" },
+    { name: "Kamerun", iso: "cm", continent: "Afrika" },
+    { name: "Kap Verde", iso: "cv", continent: "Afrika" },
+    { name: "Dschibuti", iso: "dj", continent: "Afrika" },
+    { name: "Algerien", iso: "dz", continent: "Afrika" },
+    { name: "Gabun", iso: "ga", continent: "Afrika" },
+    { name: "Gambia", iso: "gm", continent: "Afrika" },
+    { name: "Guinea", iso: "gn", continent: "Afrika" },
+    { name: "Äquatorialguinea", iso: "gq", continent: "Afrika" },
+    { name: "Guinea-Bissau", iso: "gw", continent: "Afrika" },
+    { name: "Komoren", iso: "km", continent: "Afrika" },
+    { name: "Liberia", iso: "lr", continent: "Afrika" },
+    { name: "Lesotho", iso: "ls", continent: "Afrika" },
+    { name: "Madagaskar", iso: "mg", continent: "Afrika" },
+    { name: "Mali", iso: "ml", continent: "Afrika" },
+    { name: "Mauretanien", iso: "mr", continent: "Afrika" },
+    { name: "Mauritius", iso: "mu", continent: "Afrika" },
+    { name: "Malawi", iso: "mw", continent: "Afrika" },
+    { name: "Mosambik", iso: "mz", continent: "Afrika" },
+    { name: "Namibia", iso: "na", continent: "Afrika" },
+    { name: "Niger", iso: "ne", continent: "Afrika" },
+    { name: "Ruanda", iso: "rw", continent: "Afrika" },
+    { name: "Seychellen", iso: "sc", continent: "Afrika" },
+    { name: "Sierra Leone", iso: "sl", continent: "Afrika" },
+    { name: "Südsudan", iso: "ss", continent: "Afrika" },
+    { name: "São Tomé und Príncipe", iso: "st", continent: "Afrika" },
+    { name: "Eswatini", iso: "sz", continent: "Afrika" },
+    { name: "Tschad", iso: "td", continent: "Afrika" },
+    { name: "Togo", iso: "tg", continent: "Afrika" },
+    { name: "Sambia", iso: "zm", continent: "Afrika" },
+    { name: "Simbabwe", iso: "zw", continent: "Afrika" },
+    { name: "Eritrea", iso: "er", continent: "Afrika" },
+
+    // --- Nordamerika/Karibik: weitere Länder ---
+    { name: "Antigua und Barbuda", iso: "ag", continent: "Nordamerika" },
+    { name: "Barbados", iso: "bb", continent: "Nordamerika" },
+    { name: "Bahamas", iso: "bs", continent: "Nordamerika" },
+    { name: "Belize", iso: "bz", continent: "Nordamerika" },
+    { name: "Dominica", iso: "dm", continent: "Nordamerika" },
+    { name: "Dominikanische Republik", iso: "do", continent: "Nordamerika" },
+    { name: "Grenada", iso: "gd", continent: "Nordamerika" },
+    { name: "Haiti", iso: "ht", continent: "Nordamerika" },
+    { name: "St. Kitts und Nevis", iso: "kn", continent: "Nordamerika" },
+    { name: "St. Lucia", iso: "lc", continent: "Nordamerika" },
+    { name: "Trinidad und Tobago", iso: "tt", continent: "Nordamerika" },
+    { name: "St. Vincent und die Grenadinen", iso: "vc", continent: "Nordamerika" },
+
+    // --- Südamerika: weitere Länder ---
+    { name: "Guyana", iso: "gy", continent: "Südamerika" },
+    { name: "Suriname", iso: "sr", continent: "Südamerika" },
+
+    // --- Ozeanien: weitere Länder ---
+    { name: "Kiribati", iso: "ki", continent: "Ozeanien" },
+    { name: "Mikronesien", iso: "fm", continent: "Ozeanien" },
+    { name: "Marshallinseln", iso: "mh", continent: "Ozeanien" },
+    { name: "Nauru", iso: "nr", continent: "Ozeanien" },
+    { name: "Palau", iso: "pw", continent: "Ozeanien" },
+    { name: "Salomonen", iso: "sb", continent: "Ozeanien" },
+    { name: "Tuvalu", iso: "tv", continent: "Ozeanien" },
+    { name: "Vanuatu", iso: "vu", continent: "Ozeanien" }
+];
+
+// ---------- Hilfsfunktionen ----------
+
+function shuffle(array) {
+    const a = array.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function normalize(str) {
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, " ");
+}
+
+function levenshtein(a, b) {
+    const dp = [];
+    for (let i = 0; i <= a.length; i++) dp.push([i]);
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            dp[i][j] = a[i - 1] === b[j - 1]
+                ? dp[i - 1][j - 1]
+                : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+        }
+    }
+    return dp[a.length][b.length];
+}
+
+function checkAnswer(userRaw, correctName) {
+    const user = normalize(userRaw);
+    const correct = normalize(correctName);
+    if (!user) return { correct: false, fuzzy: false };
+    if (user === correct) return { correct: true, fuzzy: false };
+    const threshold = correct.length >= 5 ? 1 : 0;
+    if (levenshtein(user, correct) <= threshold) return { correct: true, fuzzy: true };
+    return { correct: false, fuzzy: false };
+}
+
+function playTone(freq, dur, type) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type || "sine";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        osc.start();
+        osc.stop(ctx.currentTime + dur);
+    } catch (e) { /* Audio nicht verfügbar, ignorieren */ }
+}
+function playCorrectSound() {
+    playTone(880, 0.15, "sine");
+    setTimeout(() => playTone(1200, 0.2, "sine"), 100);
+}
+function playWrongSound() {
+    playTone(180, 0.35, "sawtooth");
+}
+
+// ---------- State ----------
+
+const continents = [...new Set(countries.map(c => c.continent))];
+
+let settings = { continents: [...continents], length: 20, mode: "text" };
+let list = [];
+let index = 0;
+let score = 0;
+let tipCount = 0;
+let maxFlags = 20;
+let wrongAnswers = [];
+let flagStartTime = 0;
+
+// ---------- Elemente ----------
+
+const settingsDiv = document.getElementById("settings");
+const nicknameInput = document.getElementById("nickname");
+const highscoreDisplay = document.getElementById("highscoreDisplay");
+const continentButtons = document.getElementById("continentButtons");
+const lengthButtons = document.getElementById("lengthButtons");
+const lengthHint = document.getElementById("lengthHint");
+const modeButtons = document.getElementById("modeButtons");
+const startBtn = document.getElementById("startBtn");
+
+const game = document.getElementById("game");
+const flagDiv = document.getElementById("flag");
+const answer = document.getElementById("answer");
+const textInputArea = document.getElementById("textInputArea");
+const mcOptionsDiv = document.getElementById("mcOptions");
+const tipBtn = document.getElementById("tipBtn");
+const tipDiv = document.getElementById("tip");
+const solveBtn = document.getElementById("solveBtn");
+const nextBtn = document.getElementById("nextBtn");
+const scoreDiv = document.getElementById("score");
+const emojiDiv = document.getElementById("emoji");
+const solutionDiv = document.getElementById("solution");
+const pointsDiv = document.getElementById("points");
+const timeBonusInfo = document.getElementById("timeBonusInfo");
+const timeBonusBarInner = document.getElementById("timeBonusBarInner");
+const counterDiv = document.getElementById("counter");
+const progressBarInner = document.getElementById("progressBarInner");
+const endBtn = document.getElementById("endBtn");
+
+const endScreen = document.getElementById("endScreen");
+const finalScoreLine = document.getElementById("finalScoreLine");
+const highscoreLine = document.getElementById("highscoreLine");
+const wrongListTitle = document.getElementById("wrongListTitle");
+const wrongListDiv = document.getElementById("wrongList");
+const restartBtn = document.getElementById("restartBtn");
+
+// ---------- Settings-Screen aufbauen ----------
+
+function buildSettingsScreen() {
+    continentButtons.innerHTML = "";
+    const allBtn = document.createElement("button");
+    allBtn.className = "option-btn selected";
+    allBtn.textContent = "Alle";
+    allBtn.dataset.continent = "all";
+    continentButtons.appendChild(allBtn);
+
+    continents.forEach(cont => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn selected";
+        btn.textContent = cont;
+        btn.dataset.continent = cont;
+        continentButtons.appendChild(btn);
+    });
+
+    function refreshContinentButtonStyles() {
+        continentButtons.querySelectorAll(".option-btn[data-continent]:not([data-continent='all'])").forEach(b => {
+            b.classList.toggle("selected", settings.continents.includes(b.dataset.continent));
+        });
+        allBtn.classList.toggle("selected", settings.continents.length === continents.length);
+    }
+
+    allBtn.onclick = () => {
+        settings.continents = [...continents];
+        refreshContinentButtonStyles();
+        updateLengthHint();
+        updateHighscoreDisplay();
+    };
+
+    continentButtons.querySelectorAll(".option-btn[data-continent]:not([data-continent='all'])").forEach(btn => {
+        btn.onclick = () => {
+            const cont = btn.dataset.continent;
+            if (settings.continents.includes(cont)) {
+                // Abwählen, aber mindestens ein Kontinent muss ausgewählt bleiben
+                if (settings.continents.length > 1) {
+                    settings.continents = settings.continents.filter(c => c !== cont);
+                }
+            } else {
+                settings.continents = [...settings.continents, cont];
+            }
+            refreshContinentButtonStyles();
+            updateLengthHint();
+            updateHighscoreDisplay();
+        };
+    });
+
+    lengthButtons.innerHTML = "";
+    [10, 20, 30, 50].forEach((n, i) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn" + (n === 20 ? " selected" : "");
+        btn.textContent = n;
+        btn.dataset.length = n;
+        btn.onclick = () => {
+            lengthButtons.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            settings.length = n;
+            updateLengthHint();
+            updateHighscoreDisplay();
+        };
+        lengthButtons.appendChild(btn);
+    });
+
+    modeButtons.querySelectorAll(".option-btn").forEach(btn => {
+        btn.onclick = () => {
+            modeButtons.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            settings.mode = btn.dataset.mode;
+            updateHighscoreDisplay();
+        };
+    });
+
+    updateLengthHint();
+    updateHighscoreDisplay();
+}
+
+function getFilteredCountries() {
+    return countries.filter(c => settings.continents.includes(c.continent));
+}
+
+function updateLengthHint() {
+    const available = getFilteredCountries().length;
+    if (settings.length > available) {
+        lengthHint.textContent = `Hinweis: Bei dieser Kontinent-Auswahl gibt es nur ${available} Flaggen — die Runde wird entsprechend kürzer.`;
+    } else {
+        lengthHint.textContent = "";
+    }
+}
+
+function getTopList(key) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+        // Fallback für das alte Einzel-Highscore-Format aus einer früheren Version
+        if (parsed && typeof parsed === "object" && "score" in parsed) {
+            return [{ name: parsed.name || "Anonym", score: parsed.score }];
+        }
+        return [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function continentLabel() {
+    if (settings.continents.length === continents.length) return "alle Kontinente";
+    return settings.continents.join(", ");
+}
+
+function updateHighscoreDisplay() {
+    const key = highscoreKey();
+    const list = getTopList(key);
+    const modeLabel = settings.mode === "mc" ? "Multiple Choice" : "Texteingabe";
+    const subtitle = `${settings.length} Flaggen · ${continentLabel()} · ${modeLabel}`;
+
+    if (list.length === 0) {
+        highscoreDisplay.innerHTML = `
+            <div class="highscore-card hs-empty">
+                <span class="trophy">🏆</span>
+                <div class="hs-card-title" style="margin-bottom:4px;">Noch kein Highscore</div>
+                <div>${subtitle}<br>Sei der Erste!</div>
+            </div>`;
+        return;
+    }
+
+    const medals = ["🥇", "🥈", "🥉"];
+    const rowsHtml = list.slice(0, 3).map((entry, i) => `
+        <div class="hs-row rank-${i + 1}">
+            <div class="hs-medal">${medals[i]}</div>
+            <div class="hs-row-name">${escapeHtml(entry.name || "Anonym")}</div>
+            <div class="hs-row-score">${entry.score} Pkt.</div>
+        </div>`).join("");
+
+    highscoreDisplay.innerHTML = `
+        <div class="highscore-card">
+            <div class="hs-card-title">🏆 Bestenliste — ${subtitle}</div>
+            ${rowsHtml}
+        </div>`;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ---------- Start ----------
+
+startBtn.onclick = function () {
+    const filtered = getFilteredCountries();
+    maxFlags = Math.min(settings.length, filtered.length);
+    list = shuffle(filtered).slice(0, maxFlags);
+    index = 0;
+    score = 0;
+    wrongAnswers = [];
+    scoreDiv.innerHTML = "Punkte: 0";
+
+    textInputArea.style.display = settings.mode === "text" ? "block" : "none";
+    mcOptionsDiv.style.display = settings.mode === "mc" ? "block" : "none";
+
+    const modeLabel = settings.mode === "mc" ? "Multiple Choice" : "Texteingabe";
+    document.getElementById("settingsSummary").innerHTML =
+        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel;
+
+    settingsDiv.style.display = "none";
+    endScreen.style.display = "none";
+    game.style.display = "block";
+    loadFlag();
+};
+
+// ---------- Punkteberechnung ----------
+
+function calculatePoints(country, tips) {
+    const isEurope = country.continent === "Europa";
+    let base = isEurope ? 8 : 16;
+    if (tips === 0) return base;
+    if (tips === 1) return base / 2;
+    return base / 4;
+}
+
+const TIME_BONUS_WINDOW_MS = 15000; // muss zu den Schwellen in calculateTimeBonus passen
+let timeBonusIntervalId = null;
+
+function calculateTimeBonus(elapsedSeconds) {
+    if (elapsedSeconds <= 3) return 5;
+    if (elapsedSeconds <= 6) return 4;
+    if (elapsedSeconds <= 9) return 3;
+    if (elapsedSeconds <= 12) return 2;
+    if (elapsedSeconds <= 15) return 1;
+    return 0;
+}
+
+function startTimeBonusBar() {
+    clearInterval(timeBonusIntervalId);
+    timeBonusBarInner.style.transition = "none";
+    timeBonusBarInner.style.width = "100%";
+    // Erzwingt Neuberechnung, damit die Transition beim nächsten Tick wieder greift
+    void timeBonusBarInner.offsetWidth;
+    timeBonusBarInner.style.transition = "width 0.1s linear";
+
+    timeBonusIntervalId = setInterval(() => {
+        const elapsedMs = Date.now() - flagStartTime;
+        const pct = Math.max(0, 100 - (elapsedMs / TIME_BONUS_WINDOW_MS * 100));
+        timeBonusBarInner.style.width = pct + "%";
+        if (pct <= 0) clearInterval(timeBonusIntervalId);
+    }, 100);
+}
+
+function stopTimeBonusBar() {
+    clearInterval(timeBonusIntervalId);
+}
+
+// ---------- Flagge laden ----------
+
+function loadFlag() {
+    tipCount = 0;
+    tipDiv.innerHTML = "";
+    solutionDiv.innerHTML = "";
+    emojiDiv.innerHTML = "";
+    timeBonusInfo.innerHTML = "";
+    nextBtn.style.display = "none";
+    answer.value = "";
+    tipBtn.disabled = false;
+
+    if (settings.mode === "text") {
+        solveBtn.style.display = "inline-block";
+        solveBtn.disabled = false;
+        answer.disabled = false;
+        answer.focus();
+    }
+
+    const c = list[index];
+    const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
+
+    const flagError = document.getElementById("flagError");
+    flagError.style.display = "none";
+    flagError.textContent = "";
+    flagDiv.style.backgroundImage = "url('" + flagUrl + "')";
+
+    // Unauffälliger Test, ob das Bild tatsächlich lädt (ändert die Anzeige nicht, außer bei Fehler)
+    const testImg = new Image();
+    testImg.onerror = function () {
+        flagError.textContent = "Flagge konnte nicht geladen werden";
+        flagError.style.display = "flex";
+    };
+    testImg.src = flagUrl;
+
+    counterDiv.innerHTML = "Flagge " + (index + 1) + " von " + maxFlags;
+    progressBarInner.style.width = (index / maxFlags * 100) + "%";
+    pointsDiv.innerHTML = "Punkte bei richtiger Antwort: " + calculatePoints(c, 0);
+
+    if (settings.mode === "mc") {
+        buildMcOptions(c);
+    }
+
+    flagStartTime = Date.now();
+    startTimeBonusBar();
+}
+
+function buildMcOptions(correctCountry) {
+    const wrongPool = countries.filter(c => c.name !== correctCountry.name);
+    const distractors = shuffle(wrongPool).slice(0, 3);
+    const options = shuffle([correctCountry, ...distractors]);
+
+    mcOptionsDiv.innerHTML = "";
+    options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "mc-btn";
+        btn.textContent = opt.name;
+        btn.onclick = () => submitAnswer(opt.name, correctCountry);
+        mcOptionsDiv.appendChild(btn);
+    });
+}
+
+// ---------- Tipp ----------
+
+tipBtn.onclick = function () {
+    const c = list[index];
+    tipCount++;
+
+    if (settings.mode === "mc") {
+        removeWrongMcOption(c);
+        if (tipCount === 1) {
+            tipDiv.innerHTML = "Eine falsche Antwort wurde entfernt.";
+        } else if (tipCount === 2) {
+            tipDiv.innerHTML = "Noch eine falsche Antwort wurde entfernt.";
+            tipBtn.disabled = true;
+        }
+    } else {
+        const singleContinent = settings.continents.length === 1;
+        if (tipCount === 1) {
+            if (singleContinent) {
+                const letterCount = c.name.replace(/[^A-Za-zÀ-ÿ]/g, "").length;
+                tipDiv.innerHTML = "Anzahl Buchstaben: " + letterCount;
+            } else {
+                tipDiv.innerHTML = "Kontinent: " + c.continent;
+            }
+        } else if (tipCount === 2) {
+            tipDiv.innerHTML += "<br>Erster Buchstabe: " + c.name.charAt(0);
+            tipBtn.disabled = true;
+        }
+    }
+
+    pointsDiv.innerHTML = "Punkte bei richtiger Antwort: " + calculatePoints(c, tipCount);
+};
+
+function removeWrongMcOption(correctCountry) {
+    const buttons = Array.from(mcOptionsDiv.querySelectorAll(".mc-btn:not(:disabled)"));
+    const wrongButtons = buttons.filter(b => normalize(b.textContent) !== normalize(correctCountry.name));
+    if (wrongButtons.length === 0) return;
+    const target = wrongButtons[Math.floor(Math.random() * wrongButtons.length)];
+    target.disabled = true;
+    target.classList.add("eliminated");
+}
+
+// ---------- Antwort einreichen ----------
+
+function submitAnswer(userInput, forcedCountry) {
+    stopTimeBonusBar();
+    const c = forcedCountry || list[index];
+    const elapsed = (Date.now() - flagStartTime) / 1000;
+    const result = checkAnswer(userInput, c.name);
+
+    if (settings.mode === "text") {
+        solveBtn.style.display = "none";
+        answer.disabled = true;
+    } else {
+        mcOptionsDiv.querySelectorAll(".mc-btn").forEach(btn => {
+            btn.disabled = true;
+            if (normalize(btn.textContent) === normalize(c.name)) {
+                btn.classList.add("correct");
+            } else if (normalize(btn.textContent) === normalize(userInput) && !result.correct) {
+                btn.classList.add("wrong");
+            }
+        });
+    }
+    tipBtn.disabled = true;
+
+    if (result.correct) {
+        const basePoints = calculatePoints(c, tipCount);
+        const bonus = calculateTimeBonus(elapsed);
+        score += basePoints + bonus;
+        emojiDiv.innerHTML = "😀";
+        solutionDiv.innerHTML = result.fuzzy
+            ? "Richtig (kleiner Tippfehler toleriert)! +" + basePoints + " Punkte"
+            : "Richtig! +" + basePoints + " Punkte";
+        timeBonusInfo.innerHTML = bonus > 0 ? "Zeitbonus: +" + bonus + " Punkte" : "";
+        playCorrectSound();
+    } else {
+        wrongAnswers.push({ name: c.name, given: userInput || "(keine Antwort)" });
+        emojiDiv.innerHTML = "😢";
+        solutionDiv.innerHTML = "Richtig wäre: " + c.name;
+        timeBonusInfo.innerHTML = "";
+        playWrongSound();
+    }
+
+    scoreDiv.innerHTML = "Punkte: " + score;
+    nextBtn.style.display = "inline-block";
+}
+
+solveBtn.onclick = function () {
+    submitAnswer(answer.value.trim());
+};
+
+answer.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && solveBtn.style.display !== "none") {
+        e.preventDefault();
+        solveBtn.click();
+    }
+});
+
+// ---------- Nächste Flagge / Rundenende ----------
+
+nextBtn.onclick = function () {
+    index++;
+    if (index >= maxFlags) {
+        showEndScreen();
+        return;
+    }
+    loadFlag();
+};
+
+function highscoreKey() {
+    const continentPart = settings.continents.length === continents.length
+        ? "all"
+        : [...settings.continents].sort().join("+");
+    return "flagquiz_highscore_" + continentPart + "_" + settings.length + "_" + settings.mode;
+}
+
+function showEndScreen() {
+    game.style.display = "none";
+    endScreen.style.display = "block";
+
+    finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+
+    const playerName = (nicknameInput.value.trim() || "Anonym");
+    const key = highscoreKey();
+    let list = getTopList(key);
+    const newEntry = { name: playerName, score: score, __new: true };
+    list.push(newEntry);
+    list.sort((a, b) => b.score - a.score);
+    list = list.slice(0, 3);
+    const rank = list.findIndex(e => e.__new);
+    list.forEach(e => delete e.__new);
+    localStorage.setItem(key, JSON.stringify(list));
+
+    if (rank === 0) {
+        highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>';
+    } else if (rank === 1) {
+        highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht.";
+    } else if (rank === 2) {
+        highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!";
+    } else {
+        const bronze = list[list.length - 1];
+        highscoreLine.innerHTML = bronze
+            ? "Knapp kein Platz in den Top 3 — Bronze liegt bei " + bronze.score + " Punkten."
+            : "Kein Platz in den Top 3.";
+    }
+
+    if (wrongAnswers.length === 0) {
+        wrongListTitle.innerHTML = "Alles richtig — stark! 🎉";
+        wrongListDiv.innerHTML = "";
+    } else {
+        wrongListTitle.innerHTML = "Zum Üben — diese Länder waren falsch:";
+        wrongListDiv.innerHTML = wrongAnswers
+            .map(w => `<div><strong>${w.name}</strong> — deine Antwort: ${w.given}</div>`)
+            .join("");
+    }
+}
+
+endBtn.onclick = function () {
+    const sure = confirm("Möchtest du das Quiz wirklich beenden? Dein aktueller Fortschritt in dieser Runde geht verloren.");
+    if (!sure) return;
+    stopTimeBonusBar();
+    game.style.display = "none";
+    endScreen.style.display = "none";
+    settingsDiv.style.display = "block";
+    updateLengthHint();
+    updateHighscoreDisplay();
+};
+
+restartBtn.onclick = function () {
+    endScreen.style.display = "none";
+    settingsDiv.style.display = "block";
+    updateLengthHint();
+    updateHighscoreDisplay();
+};
+
+// ---------- Init ----------
+
+nicknameInput.value = localStorage.getItem("flagquiz_nickname") || "";
+nicknameInput.addEventListener("input", function () {
+    localStorage.setItem("flagquiz_nickname", nicknameInput.value.trim());
+});
+
+buildSettingsScreen();
+settingsDiv.style.display = "block";
+
+// ---------- PWA: Service Worker registrieren ----------
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch(() => {
+            // Registrierung schlägt z. B. fehl, wenn die Datei per file:// statt über einen Webserver geöffnet wird — kein Problem, das Spiel läuft trotzdem normal weiter.
+        });
+    });
+}
+</script>
+
+</body>
+</html>
