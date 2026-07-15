@@ -296,6 +296,11 @@
         font-weight: bold;
         margin-bottom: 10px;
     }
+    .hs-row-list {
+        max-height: 340px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
     .hs-row {
         display: flex;
         align-items: center;
@@ -306,10 +311,17 @@
         border-top: 1px solid rgba(0,0,0,0.06);
     }
     .hs-medal {
-        font-size: 24px;
-        width: 30px;
+        font-size: 18px;
+        font-weight: bold;
+        width: 34px;
         text-align: center;
         flex-shrink: 0;
+        color: #6b5416;
+    }
+    .hs-row.rank-1 .hs-medal,
+    .hs-row.rank-2 .hs-medal,
+    .hs-row.rank-3 .hs-medal {
+        font-size: 24px;
     }
     .hs-row-name {
         flex: 1;
@@ -434,8 +446,8 @@
     <div class="setting-block" id="modeBlock">
         <label>Antwortmodus</label>
         <div id="modeButtons">
-            <button class="option-btn selected" data-mode="text">Text eingeben</button>
-            <button class="option-btn" data-mode="mc">Multiple Choice</button>
+            <button class="option-btn selected" data-mode="mc">Multiple Choice</button>
+            <button class="option-btn" data-mode="text">Text eingeben</button>
         </div>
     </div>
 
@@ -799,7 +811,7 @@ function playWrongSound() {
 
 const continents = [...new Set(countries.map(c => c.continent))];
 
-let settings = { continents: [...continents], length: 20, mode: "text" };
+let settings = { continents: [...continents], length: 20, mode: "mc" };
 let list = [];
 let index = 0;
 let score = 0;
@@ -1020,9 +1032,9 @@ async function updateHighscoreDisplay() {
     }
 
     const medals = ["🥇", "🥈", "🥉"];
-    const rowsHtml = list.slice(0, 3).map((entry, i) => `
+    const rowsHtml = list.slice(0, 50).map((entry, i) => `
         <div class="hs-row rank-${i + 1}">
-            <div class="hs-medal">${medals[i]}</div>
+            <div class="hs-medal">${i < 3 ? medals[i] : (i + 1) + "."}</div>
             <div class="hs-row-name">${escapeHtml(entry.name || "Anonym")}</div>
             <div class="hs-row-score">${entry.score} Pkt.</div>
         </div>`).join("");
@@ -1030,7 +1042,7 @@ async function updateHighscoreDisplay() {
     highscoreDisplay.innerHTML = `
         <div class="highscore-card">
             <div class="hs-card-title">🏆 Bestenliste — ${subtitle}</div>
-            ${rowsHtml}
+            <div class="hs-row-list">${rowsHtml}</div>
             <div class="hs-status">${statusLine}</div>
         </div>`;
 }
@@ -1300,7 +1312,7 @@ async function showEndScreen() {
     const newEntry = { name: playerName, score: score, __new: true };
     list.push(newEntry);
     list.sort((a, b) => b.score - a.score);
-    list = list.slice(0, 3);
+    list = list.slice(0, 50);
     const rank = list.findIndex(e => e.__new);
     list.forEach(e => delete e.__new);
     const savedOnline = await saveTopList(key, list);
@@ -1312,11 +1324,13 @@ async function showEndScreen() {
         highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht." + onlineNote;
     } else if (rank === 2) {
         highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!" + onlineNote;
+    } else if (rank >= 3) {
+        highscoreLine.innerHTML = "🏅 Platz " + (rank + 1) + " von " + list.length + " in der Bestenliste erreicht!" + onlineNote;
     } else {
-        const bronze = list[list.length - 1];
-        highscoreLine.innerHTML = (bronze
-            ? "Knapp kein Platz in den Top 3 — Bronze liegt bei " + bronze.score + " Punkten."
-            : "Kein Platz in den Top 3.") + onlineNote;
+        const last = list[list.length - 1];
+        highscoreLine.innerHTML = (last
+            ? "Knapp kein Platz in den Top 50 — Platz 50 liegt bei " + last.score + " Punkten."
+            : "Kein Platz in den Top 50.") + onlineNote;
     }
 
     if (wrongAnswers.length === 0) {
