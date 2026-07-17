@@ -104,9 +104,10 @@
         border: 2px solid #333;
         position: relative;
         overflow: hidden;
-        background-size: cover;
+        background-size: contain;
+        background-repeat: no-repeat;
         background-position: center;
-        background-color: #ddd;
+        background-color: #f5f5f5;
     }
     #flagError {
         display: none;
@@ -1307,6 +1308,20 @@ function escapeHtml(str) {
 }
 
 // ---------- Persönliche Lernstatistik (nur lokal auf diesem Gerät) ----------
+// ---------- Geräte-ID (zur Wiedererkennung für "nur Bestwert zählt") ----------
+const DEVICE_ID_KEY = "flagquiz_device_id";
+
+function getDeviceId() {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+        id = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "dev-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        try { localStorage.setItem(DEVICE_ID_KEY, id); } catch (e) { /* ignorieren */ }
+    }
+    return id;
+}
+
 const STATS_KEY = "flagquiz_stats";
 
 function loadStats() {
@@ -1643,19 +1658,49 @@ async function showEndScreen() {
 
         const rawName = nicknameInput.value.trim();
         const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
+        const deviceId = getDeviceId();
         const key = highscoreKey();
         const { list: currentList } = await fetchTopList(key);
         let list = currentList.slice();
-        const newEntry = { name: playerName, score: score, __new: true };
-        list.push(newEntry);
+
+        // Bestehenden Eintrag zuerst über die Geräte-ID suchen, sonst über den Namen (Fallback)
+        let existingIdx = list.findIndex(e => e.deviceId === deviceId);
+        if (existingIdx === -1) {
+            existingIdx = list.findIndex(e => normalize(e.name || "") === normalize(playerName));
+        }
+
+        let didUpdate = false;
+        if (existingIdx !== -1) {
+            if (score > list[existingIdx].score) {
+                list.splice(existingIdx, 1);
+                list.push({ name: playerName, score: score, deviceId: deviceId, __new: true });
+                didUpdate = true;
+            }
+            // sonst: bestehender, mindestens gleich guter Eintrag bleibt unverändert stehen
+        } else {
+            list.push({ name: playerName, score: score, deviceId: deviceId, __new: true });
+            didUpdate = true;
+        }
+
         list.sort((a, b) => b.score - a.score);
         list = list.slice(0, 50);
-        const rank = list.findIndex(e => e.__new);
+        const newRankIdx = list.findIndex(e => e.__new);
         list.forEach(e => delete e.__new);
-        const savedOnline = await saveTopList(key, list);
+
+        let rank, savedOnline = true;
+        if (didUpdate) {
+            savedOnline = await saveTopList(key, list);
+            rank = newRankIdx;
+        } else {
+            rank = existingIdx; // Liste war bereits sortiert, Rang bleibt unverändert gültig
+        }
         const onlineNote = savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
 
-        if (rank === 0) {
+        if (!didUpdate) {
+            const medal = rank === 0 ? "🥇 " : rank === 1 ? "🥈 " : rank === 2 ? "🥉 " : "";
+            highscoreLine.innerHTML = medal + "Dein bisheriger Bestwert (Platz " + (rank + 1) + ", " +
+                list[rank].score + " Punkte) ist bereits mindestens genauso gut — Eintrag bleibt unverändert." + onlineNote;
+        } else if (rank === 0) {
             highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>' + onlineNote;
         } else if (rank === 1) {
             highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht." + onlineNote;
