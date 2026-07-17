@@ -1,9 +1,12 @@
-// Einfacher Service Worker: cached die App-Hülle (HTML, Icons) für Offline-Start.
-// Die Flaggenbilder selbst kommen weiterhin live von flagcdn.com und benötigen eine Internetverbindung.
+// Service Worker: cached die App-Hülle (HTML, Icons) NUR als Offline-Rückfallebene.
+// Strategie: "Network First" - bei bestehender Internetverbindung wird IMMER die aktuellste
+// Version vom Server geladen. Der Cache wird nur genutzt, wenn das Netzwerk nicht erreichbar ist.
+// (Vorherige Version nutzte "Cache First" - dadurch kamen Updates immer erst mit Verzögerung an.)
 
-const CACHE_NAME = "flaggenquiz-cache-v1";
+const CACHE_NAME = "flaggenquiz-cache-v2";
 const APP_SHELL = [
     "./Flaggenquiz.html",
+    "./index.html",
     "./manifest.json",
     "./icon-192.png",
     "./icon-512.png",
@@ -29,24 +32,22 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
     const url = new URL(event.request.url);
 
-    // Flaggenbilder von flagcdn.com immer live aus dem Netz laden, nicht cachen
+    // Flaggenbilder von flagcdn.com immer normal aus dem Netz laden, nicht über den Service Worker
     if (url.hostname.includes("flagcdn.com")) {
         return;
     }
 
-    // App-Hülle: zuerst aus dem Cache, im Hintergrund aktualisieren
+    // App-Hülle: IMMER zuerst versuchen, die aktuelle Version aus dem Netz zu laden.
+    // Nur bei echtem Verbindungsfehler (offline) wird auf den letzten gecachten Stand zurückgegriffen.
     event.respondWith(
-        caches.match(event.request).then((cached) => {
-            const networkFetch = fetch(event.request)
-                .then((response) => {
-                    if (response && response.status === 200) {
-                        const clone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                    }
-                    return response;
-                })
-                .catch(() => cached);
-            return cached || networkFetch;
-        })
+        fetch(event.request)
+            .then((response) => {
+                if (response && response.status === 200) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                }
+                return response;
+            })
+            .catch(() => caches.match(event.request))
     );
 });
