@@ -247,6 +247,62 @@
     .mc-btn.eliminated { opacity: 0.35; text-decoration: line-through; }
     .mc-btn:disabled { cursor: default; }
 
+    /* ---------- Modals: Statistik & Datenschutz ---------- */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .modal-overlay.open {
+        display: flex;
+    }
+    .modal-card {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        padding: 26px;
+        max-width: 440px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .modal-card h2 { margin-top: 0; }
+    .modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: #eee;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+    }
+    #learningModeToggle.selected {
+        background: #4caf50;
+        color: #fff;
+        border-color: #4caf50;
+    }
+    .stats-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #eee;
+    }
+    .stats-row .stats-name { font-weight: bold; }
+    .stats-row .stats-ratio { color: #666; }
+
     #endScreen {
         background: #fff;
         border-radius: 10px;
@@ -430,11 +486,13 @@
     <div class="setting-block" id="nicknameBlock">
         <label for="nickname">Dein Name</label>
         <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20" style="font-size:16px;padding:8px 10px;width:100%;box-sizing:border-box;border:2px solid #ccc;border-radius:6px;">
+        <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
     </div>
 
     <div class="setting-block" id="continentBlock">
         <label>Kontinent <span style="font-weight:normal;color:#888;">(Mehrfachauswahl möglich)</span></label>
         <div id="continentButtons"></div>
+        <div id="continentSummary" class="hint-small" style="color:#555;font-weight:bold;margin-top:6px;"></div>
     </div>
 
     <div class="setting-block" id="lengthBlock">
@@ -451,10 +509,51 @@
         </div>
     </div>
 
+    <div class="setting-block" id="learningModeBlock">
+        <label>Modus</label>
+        <button class="option-btn" id="learningModeToggle">🎓 Lernmodus: Aus</button>
+        <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.</div>
+        <div style="margin-top:10px;">
+            <a href="#" id="statsLink" style="font-size:14px;color:#1976d2;text-decoration:none;">📊 Meine Statistik ansehen</a>
+        </div>
+    </div>
+
     <br>
     <button id="startBtn">Start</button>
 
     <div id="highscoreDisplay"></div>
+
+    <div style="text-align:center;margin-top:10px;">
+        <a href="#" id="privacyLink" style="font-size:12px;color:#999;text-decoration:underline;">🔒 Datenschutz</a>
+    </div>
+</div>
+
+<!-- Lautstärke-Umschalter, auf allen Bildschirmen sichtbar -->
+<button id="muteBtn" title="Sound an/aus" style="position:fixed;top:14px;right:14px;z-index:50;background:#fff;border:2px solid #ccc;border-radius:50%;width:42px;height:42px;font-size:18px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,0.15);">🔊</button>
+
+<!-- Statistik-Modal -->
+<div id="statsModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="modal-close" id="statsCloseBtn">✕</button>
+        <h2>📊 Meine Statistik</h2>
+        <div id="statsContent"></div>
+        <button id="statsResetBtn" style="margin-top:14px;background:#eee;font-size:13px;padding:8px 14px;">Statistik zurücksetzen</button>
+    </div>
+</div>
+
+<!-- Datenschutz-Modal -->
+<div id="privacyModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="modal-close" id="privacyCloseBtn">✕</button>
+        <h2>🔒 Datenschutz</h2>
+        <p style="text-align:left;font-size:14px;line-height:1.5;">
+            Wenn du eine Runde beendest, werden dein eingetragener <strong>Spielername</strong> und deine
+            erreichte <strong>Punktzahl</strong> in der zentralen, für alle Spieler:innen sichtbaren
+            Bestenliste gespeichert. Weitere personenbezogene Daten werden nicht erhoben.
+            Alle übrigen Angaben (z. B. bevorzugte Einstellungen oder deine persönliche Lernstatistik)
+            bleiben ausschließlich auf deinem eigenen Gerät gespeichert und werden nicht übertragen.
+        </p>
+    </div>
 </div>
 
 <div id="game">
@@ -760,6 +859,67 @@ function normalize(str) {
         .replace(/\s+/g, " ");
 }
 
+// ---------- Namensfilter (Jugendschutz) ----------
+// Liste bewusst nicht abschließend/öffentlich diskutiert - dient nur der technischen Filterung.
+const BLOCKED_TERMS = [
+    // Deutsch: Vulgär- und Kraftausdrücke, sexuelle Begriffe
+    "fick","ficke","fickt","fotze","hure","nutte","schlampe","wichser","wichs",
+    "arsch","arschloch","schwanz","penis","vagina","sex","porno","scheisse","scheiße",
+    "scheiss","kacke","hurensohn","hurentochter","bastard","drecksau","fresse","hackfresse",
+
+    // Deutsch: diskriminierend / extremistisch
+    "nazi","hitler","neger","behindert","spast","mongo","missgeburt","schwuchtel",
+    "kanake","bimbo",
+
+    // Deutsch: allgemeine Beleidigungen / aktueller Jugendslang
+    "idiot","vollidiot","vollpfosten","spacken","opfer","asi","asozial","npc",
+
+    // Englisch
+    "fuck","shit","bitch","asshole","dick","cock","pussy","cunt","whore","slut",
+    "nigger","faggot","retard","rape","porn",
+
+    // Türkisch (lateinisch geschrieben, wie üblich getippt)
+    "amk","siktir","orospu","piç","yavsak","yavşak","salak","manyak","kahpe","gavat",
+
+    // Arabisch (lateinisch transkribiert)
+    "sharmuta","charmuta","kahba","khara","kalb","zeb","kos","manyak",
+
+    // Arabisch (Originalschrift, gängigste Beleidigungen)
+    "شرموطة","كسمك","خرا","كلب","ابن الكلب","قحبة"
+];
+
+function normalizeForFilter(str) {
+    return normalize(str)
+        .replace(/0/g, "o").replace(/1/g, "i").replace(/3/g, "e")
+        .replace(/4/g, "a").replace(/5/g, "s").replace(/7/g, "t")
+        .replace(/@/g, "a").replace(/\$/g, "s")
+        .replace(/[^a-z\u0600-\u06FF]/g, "");
+}
+
+function containsBlockedContent(text) {
+    const cleaned = normalizeForFilter(text);
+    if (!cleaned) return false;
+    return BLOCKED_TERMS.some(term => cleaned.includes(term));
+}
+
+// ---------- Positive Fantasienamen-Generator ----------
+const NAME_ADJECTIVES = [
+    "Fröhlicher","Mutiger","Strahlender","Flinker","Cleverer","Freundlicher",
+    "Neugieriger","Tapferer","Heiterer","Wilder","Goldener","Blitzschneller",
+    "Charmanter","Fantastischer","Genialer","Sonniger","Abenteuerlustiger","Cooler"
+];
+const NAME_NOUNS = [
+    "Falke","Löwe","Delfin","Panda","Adler","Fuchs","Tiger","Drache","Phönix",
+    "Kolibri","Eisbär","Wolf","Otter","Pinguin","Komet","Stern","Regenbogen","Ninja"
+];
+
+function generateFantasyName() {
+    const adj = NAME_ADJECTIVES[Math.floor(Math.random() * NAME_ADJECTIVES.length)];
+    const noun = NAME_NOUNS[Math.floor(Math.random() * NAME_NOUNS.length)];
+    const num = Math.floor(Math.random() * 90) + 10; // 10-99, reduziert Namensdopplungen
+    return `${adj} ${noun} ${num}`;
+}
+
 function levenshtein(a, b) {
     const dp = [];
     for (let i = 0; i <= a.length; i++) dp.push([i]);
@@ -784,7 +944,16 @@ function checkAnswer(userRaw, correctName) {
     return { correct: false, fuzzy: false };
 }
 
+// ---------- Sound Mute ----------
+let soundMuted = localStorage.getItem("flagquiz_muted") === "true";
+
+function updateMuteButton() {
+    muteBtn.textContent = soundMuted ? "🔇" : "🔊";
+    muteBtn.title = soundMuted ? "Sound einschalten" : "Sound ausschalten";
+}
+
 function playTone(freq, dur, type) {
+    if (soundMuted) return;
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -811,7 +980,7 @@ function playWrongSound() {
 
 const continents = [...new Set(countries.map(c => c.continent))];
 
-let settings = { continents: [...continents], length: 20, mode: "mc" };
+let settings = { continents: [...continents], length: 20, mode: "mc", learningMode: false };
 let list = [];
 let index = 0;
 let score = 0;
@@ -825,11 +994,23 @@ let flagStartTime = 0;
 const settingsDiv = document.getElementById("settings");
 const titleBlock = document.getElementById("titleBlock");
 const nicknameInput = document.getElementById("nickname");
+const nicknameHint = document.getElementById("nicknameHint");
 const highscoreDisplay = document.getElementById("highscoreDisplay");
 const continentButtons = document.getElementById("continentButtons");
 const lengthButtons = document.getElementById("lengthButtons");
 const lengthHint = document.getElementById("lengthHint");
+const continentSummary = document.getElementById("continentSummary");
 const modeButtons = document.getElementById("modeButtons");
+const learningModeToggle = document.getElementById("learningModeToggle");
+const statsLink = document.getElementById("statsLink");
+const statsModal = document.getElementById("statsModal");
+const statsContent = document.getElementById("statsContent");
+const statsCloseBtn = document.getElementById("statsCloseBtn");
+const statsResetBtn = document.getElementById("statsResetBtn");
+const privacyLink = document.getElementById("privacyLink");
+const privacyModal = document.getElementById("privacyModal");
+const privacyCloseBtn = document.getElementById("privacyCloseBtn");
+const muteBtn = document.getElementById("muteBtn");
 const startBtn = document.getElementById("startBtn");
 
 const game = document.getElementById("game");
@@ -860,17 +1041,70 @@ const restartBtn = document.getElementById("restartBtn");
 
 // ---------- Settings-Screen aufbauen ----------
 
+// ---------- Einstellungen dauerhaft merken ----------
+const SETTINGS_STORAGE_KEY = "flagquiz_settings";
+
+function saveSettingsToStorage() {
+    try {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
+            continents: settings.continents,
+            length: settings.length,
+            mode: settings.mode,
+            learningMode: settings.learningMode
+        }));
+    } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
+}
+
+function loadSettingsFromStorage() {
+    try {
+        const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.continents)) {
+            const valid = parsed.continents.filter(c => continents.includes(c));
+            if (valid.length > 0) settings.continents = valid;
+        }
+        if (typeof parsed.length === "number" && [10, 20, 30, 50].includes(parsed.length)) {
+            settings.length = parsed.length;
+        }
+        if (parsed.mode === "text" || parsed.mode === "mc") {
+            settings.mode = parsed.mode;
+        }
+        if (typeof parsed.learningMode === "boolean") {
+            settings.learningMode = parsed.learningMode;
+        }
+    } catch (e) { /* fehlerhafte/ fehlende Daten -> Standardwerte bleiben */ }
+}
+
+function updateContinentSummary() {
+    const total = continents.length;
+    const sel = continents.filter(c => settings.continents.includes(c)); // in fester Reihenfolge
+
+    let text;
+    if (sel.length === total) {
+        text = "Alle";
+    } else if (sel.length === total - 1) {
+        const missing = continents.find(c => !sel.includes(c));
+        text = "Alle außer " + missing;
+    } else if (sel.length === 1) {
+        text = sel[0];
+    } else {
+        text = sel.slice(0, -1).join(", ") + " und " + sel[sel.length - 1];
+    }
+    continentSummary.textContent = "Ausgewählt: " + text;
+}
+
 function buildSettingsScreen() {
     continentButtons.innerHTML = "";
     const allBtn = document.createElement("button");
-    allBtn.className = "option-btn selected";
+    allBtn.className = "option-btn";
     allBtn.textContent = "Alle";
     allBtn.dataset.continent = "all";
     continentButtons.appendChild(allBtn);
 
     continents.forEach(cont => {
         const btn = document.createElement("button");
-        btn.className = "option-btn selected";
+        btn.className = "option-btn";
         btn.textContent = cont;
         btn.dataset.continent = cont;
         continentButtons.appendChild(btn);
@@ -881,6 +1115,7 @@ function buildSettingsScreen() {
             b.classList.toggle("selected", settings.continents.includes(b.dataset.continent));
         });
         allBtn.classList.toggle("selected", settings.continents.length === continents.length);
+        updateContinentSummary();
     }
 
     allBtn.onclick = () => {
@@ -888,6 +1123,7 @@ function buildSettingsScreen() {
         refreshContinentButtonStyles();
         updateLengthHint();
         updateHighscoreDisplay();
+        saveSettingsToStorage();
     };
 
     continentButtons.querySelectorAll(".option-btn[data-continent]:not([data-continent='all'])").forEach(btn => {
@@ -904,13 +1140,16 @@ function buildSettingsScreen() {
             refreshContinentButtonStyles();
             updateLengthHint();
             updateHighscoreDisplay();
+            saveSettingsToStorage();
         };
     });
 
+    refreshContinentButtonStyles();
+
     lengthButtons.innerHTML = "";
-    [10, 20, 30, 50].forEach((n, i) => {
+    [10, 20, 30, 50].forEach((n) => {
         const btn = document.createElement("button");
-        btn.className = "option-btn" + (n === 20 ? " selected" : "");
+        btn.className = "option-btn" + (n === settings.length ? " selected" : "");
         btn.textContent = n;
         btn.dataset.length = n;
         btn.onclick = () => {
@@ -919,18 +1158,32 @@ function buildSettingsScreen() {
             settings.length = n;
             updateLengthHint();
             updateHighscoreDisplay();
+            saveSettingsToStorage();
         };
         lengthButtons.appendChild(btn);
     });
 
     modeButtons.querySelectorAll(".option-btn").forEach(btn => {
+        btn.classList.toggle("selected", btn.dataset.mode === settings.mode);
         btn.onclick = () => {
             modeButtons.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
             btn.classList.add("selected");
             settings.mode = btn.dataset.mode;
             updateHighscoreDisplay();
+            saveSettingsToStorage();
         };
     });
+
+    function refreshLearningModeButton() {
+        learningModeToggle.classList.toggle("selected", settings.learningMode);
+        learningModeToggle.textContent = "🎓 Lernmodus: " + (settings.learningMode ? "An" : "Aus");
+    }
+    refreshLearningModeButton();
+    learningModeToggle.onclick = () => {
+        settings.learningMode = !settings.learningMode;
+        refreshLearningModeButton();
+        saveSettingsToStorage();
+    };
 
     updateLengthHint();
     updateHighscoreDisplay();
@@ -1053,9 +1306,78 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// ---------- Persönliche Lernstatistik (nur lokal auf diesem Gerät) ----------
+const STATS_KEY = "flagquiz_stats";
+
+function loadStats() {
+    try {
+        const raw = localStorage.getItem(STATS_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveStats(stats) {
+    try {
+        localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
+}
+
+function recordAnswerStat(countryName, wasCorrect) {
+    const stats = loadStats();
+    if (!stats[countryName]) stats[countryName] = { seen: 0, correct: 0 };
+    stats[countryName].seen++;
+    if (wasCorrect) stats[countryName].correct++;
+    saveStats(stats);
+}
+
+function renderStatsModal() {
+    const stats = loadStats();
+    const entries = Object.entries(stats);
+
+    if (entries.length === 0) {
+        statsContent.innerHTML = "<p>Noch keine Daten — spiel ein paar Runden, dann siehst du hier deine Lernstatistik!</p>";
+        return;
+    }
+
+    let totalSeen = 0, totalCorrect = 0;
+    entries.forEach(([, v]) => { totalSeen += v.seen; totalCorrect += v.correct; });
+    const accuracy = totalSeen > 0 ? Math.round((totalCorrect / totalSeen) * 100) : 0;
+
+    // Länder mit den meisten Fehlern zuerst (mindestens 2x gesehen, damit Zufallstreffer nicht verzerren)
+    const worst = entries
+        .filter(([, v]) => v.seen >= 2)
+        .map(([name, v]) => ({ name, ratio: v.correct / v.seen, seen: v.seen, correct: v.correct }))
+        .sort((a, b) => a.ratio - b.ratio)
+        .slice(0, 12);
+
+    let html = `
+        <div class="stats-row" style="font-weight:bold;border-bottom:2px solid #333;">
+            <div>Insgesamt beantwortet</div><div>${totalSeen} (${accuracy}% richtig)</div>
+        </div>`;
+
+    if (worst.length > 0) {
+        html += `<div style="margin-top:14px;font-weight:bold;">Zum Üben — hier häufen sich Fehler:</div>`;
+        html += worst.map(w => `
+            <div class="stats-row">
+                <div class="stats-name">${escapeHtml(w.name)}</div>
+                <div class="stats-ratio">${w.correct}/${w.seen} richtig</div>
+            </div>`).join("");
+    } else {
+        html += `<div style="margin-top:14px;color:#666;">Noch nicht genug Daten für eine Schwachstellen-Auswertung — spiel weiter!</div>`;
+    }
+
+    statsContent.innerHTML = html;
+}
+
 // ---------- Start ----------
 
 startBtn.onclick = function () {
+    if (containsBlockedContent(nicknameInput.value)) {
+        nicknameInput.value = generateFantasyName();
+        localStorage.setItem("flagquiz_nickname", nicknameInput.value);
+    }
     const filtered = getFilteredCountries();
     maxFlags = Math.min(settings.length, filtered.length);
     list = shuffle(filtered).slice(0, maxFlags);
@@ -1063,13 +1385,15 @@ startBtn.onclick = function () {
     score = 0;
     wrongAnswers = [];
     scoreDiv.innerHTML = "Punkte: 0";
+    scoreDiv.style.display = settings.learningMode ? "none" : "block";
 
     textInputArea.style.display = settings.mode === "text" ? "block" : "none";
     mcOptionsDiv.style.display = settings.mode === "mc" ? "block" : "none";
 
     const modeLabel = settings.mode === "mc" ? "Multiple Choice" : "Texteingabe";
     document.getElementById("settingsSummary").innerHTML =
-        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel;
+        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel +
+        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "");
 
     settingsDiv.style.display = "none";
     endScreen.style.display = "none";
@@ -1157,14 +1481,19 @@ function loadFlag() {
 
     counterDiv.innerHTML = "Flagge " + (index + 1) + " von " + maxFlags;
     progressBarInner.style.width = (index / maxFlags * 100) + "%";
-    pointsDiv.innerHTML = "Punkte bei richtiger Antwort: " + calculatePoints(c, 0);
+    pointsDiv.innerHTML = settings.learningMode
+        ? "🎓 Lernmodus — kein Zeitdruck, kein Highscore-Eintrag"
+        : "Punkte bei richtiger Antwort: " + calculatePoints(c, 0);
 
     if (settings.mode === "mc") {
         buildMcOptions(c);
     }
 
     flagStartTime = Date.now();
-    startTimeBonusBar();
+    document.getElementById("timeBonusBarOuter").style.display = settings.learningMode ? "none" : "block";
+    if (!settings.learningMode) {
+        startTimeBonusBar();
+    }
 }
 
 function buildMcOptions(correctCountry) {
@@ -1245,15 +1574,18 @@ function submitAnswer(userInput, forcedCountry) {
         });
     }
     tipBtn.disabled = true;
+    recordAnswerStat(c.name, result.correct);
 
     if (result.correct) {
         const basePoints = calculatePoints(c, tipCount);
-        const bonus = calculateTimeBonus(elapsed);
-        score += basePoints + bonus;
+        const bonus = settings.learningMode ? 0 : calculateTimeBonus(elapsed);
+        if (!settings.learningMode) {
+            score += basePoints + bonus;
+        }
         emojiDiv.innerHTML = "😀";
-        solutionDiv.innerHTML = result.fuzzy
-            ? "Richtig (kleiner Tippfehler toleriert)! +" + basePoints + " Punkte"
-            : "Richtig! +" + basePoints + " Punkte";
+        solutionDiv.innerHTML = settings.learningMode
+            ? (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!")
+            : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)! +" + basePoints + " Punkte" : "Richtig! +" + basePoints + " Punkte");
         timeBonusInfo.innerHTML = bonus > 0 ? "Zeitbonus: +" + bonus + " Punkte" : "";
         playCorrectSound();
     } else {
@@ -1302,35 +1634,41 @@ async function showEndScreen() {
     titleBlock.style.display = "block";
     endScreen.style.display = "block";
 
-    finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
-    highscoreLine.innerHTML = "Bestenliste wird aktualisiert …";
-
-    const playerName = (nicknameInput.value.trim() || "Anonym");
-    const key = highscoreKey();
-    const { list: currentList } = await fetchTopList(key);
-    let list = currentList.slice();
-    const newEntry = { name: playerName, score: score, __new: true };
-    list.push(newEntry);
-    list.sort((a, b) => b.score - a.score);
-    list = list.slice(0, 50);
-    const rank = list.findIndex(e => e.__new);
-    list.forEach(e => delete e.__new);
-    const savedOnline = await saveTopList(key, list);
-    const onlineNote = savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
-
-    if (rank === 0) {
-        highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>' + onlineNote;
-    } else if (rank === 1) {
-        highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht." + onlineNote;
-    } else if (rank === 2) {
-        highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!" + onlineNote;
-    } else if (rank >= 3) {
-        highscoreLine.innerHTML = "🏅 Platz " + (rank + 1) + " von " + list.length + " in der Bestenliste erreicht!" + onlineNote;
+    if (settings.learningMode) {
+        finalScoreLine.innerHTML = "🎓 Lernrunde abgeschlossen!";
+        highscoreLine.innerHTML = "Im Lernmodus werden keine Punkte gezählt und kein Highscore-Eintrag gespeichert — nur zum Üben.";
     } else {
-        const last = list[list.length - 1];
-        highscoreLine.innerHTML = (last
-            ? "Knapp kein Platz in den Top 50 — Platz 50 liegt bei " + last.score + " Punkten."
-            : "Kein Platz in den Top 50.") + onlineNote;
+        finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+        highscoreLine.innerHTML = "Bestenliste wird aktualisiert …";
+
+        const rawName = nicknameInput.value.trim();
+        const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
+        const key = highscoreKey();
+        const { list: currentList } = await fetchTopList(key);
+        let list = currentList.slice();
+        const newEntry = { name: playerName, score: score, __new: true };
+        list.push(newEntry);
+        list.sort((a, b) => b.score - a.score);
+        list = list.slice(0, 50);
+        const rank = list.findIndex(e => e.__new);
+        list.forEach(e => delete e.__new);
+        const savedOnline = await saveTopList(key, list);
+        const onlineNote = savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
+
+        if (rank === 0) {
+            highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>' + onlineNote;
+        } else if (rank === 1) {
+            highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht." + onlineNote;
+        } else if (rank === 2) {
+            highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!" + onlineNote;
+        } else if (rank >= 3) {
+            highscoreLine.innerHTML = "🏅 Platz " + (rank + 1) + " von " + list.length + " in der Bestenliste erreicht!" + onlineNote;
+        } else {
+            const last = list[list.length - 1];
+            highscoreLine.innerHTML = (last
+                ? "Knapp kein Platz in den Top 50 — Platz 50 liegt bei " + last.score + " Punkten."
+                : "Kein Platz in den Top 50.") + onlineNote;
+        }
     }
 
     if (wrongAnswers.length === 0) {
@@ -1365,13 +1703,69 @@ restartBtn.onclick = function () {
 
 // ---------- Init ----------
 
-nicknameInput.value = localStorage.getItem("flagquiz_nickname") || "";
+let savedNickname = localStorage.getItem("flagquiz_nickname");
+if (!savedNickname || containsBlockedContent(savedNickname)) {
+    savedNickname = generateFantasyName();
+    localStorage.setItem("flagquiz_nickname", savedNickname);
+}
+nicknameInput.value = savedNickname;
+
 nicknameInput.addEventListener("input", function () {
     localStorage.setItem("flagquiz_nickname", nicknameInput.value.trim());
 });
 
+nicknameInput.addEventListener("blur", function () {
+    if (containsBlockedContent(nicknameInput.value)) {
+        nicknameInput.value = generateFantasyName();
+        localStorage.setItem("flagquiz_nickname", nicknameInput.value);
+        nicknameHint.textContent = "Dieser Name war nicht erlaubt und wurde ersetzt.";
+        nicknameHint.style.display = "block";
+        setTimeout(() => { nicknameHint.style.display = "none"; }, 4000);
+    }
+});
+
+loadSettingsFromStorage();
 buildSettingsScreen();
 settingsDiv.style.display = "block";
+
+// ---------- Mute-Button ----------
+updateMuteButton();
+muteBtn.onclick = function () {
+    soundMuted = !soundMuted;
+    localStorage.setItem("flagquiz_muted", soundMuted);
+    updateMuteButton();
+};
+
+// ---------- Statistik-Modal ----------
+statsLink.onclick = function (e) {
+    e.preventDefault();
+    renderStatsModal();
+    statsModal.classList.add("open");
+};
+statsCloseBtn.onclick = function () {
+    statsModal.classList.remove("open");
+};
+statsModal.onclick = function (e) {
+    if (e.target === statsModal) statsModal.classList.remove("open");
+};
+statsResetBtn.onclick = function () {
+    const sure = confirm("Deine persönliche Lernstatistik wirklich löschen? Das betrifft nur diesen Browser, nicht die zentrale Bestenliste.");
+    if (!sure) return;
+    localStorage.removeItem(STATS_KEY);
+    renderStatsModal();
+};
+
+// ---------- Datenschutz-Modal ----------
+privacyLink.onclick = function (e) {
+    e.preventDefault();
+    privacyModal.classList.add("open");
+};
+privacyCloseBtn.onclick = function () {
+    privacyModal.classList.remove("open");
+};
+privacyModal.onclick = function (e) {
+    if (e.target === privacyModal) privacyModal.classList.remove("open");
+};
 
 // ---------- PWA: Service Worker registrieren ----------
 if ("serviceWorker" in navigator) {
