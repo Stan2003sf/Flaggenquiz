@@ -184,6 +184,9 @@
         background: linear-gradient(90deg, #64b5f6, #1565c0);
         transition: width 0.1s linear;
     }
+    #timeBonusBarInner.speed-mode {
+        background: linear-gradient(90deg, #ff8a65, #c62828);
+    }
 
     #tip {
         margin-top: 10px;
@@ -543,6 +546,7 @@
             <button class="option-btn selected" data-mode="mc">Multiple Choice</button>
             <button class="option-btn" data-mode="reverse-mc">Reverse Multiple Choice</button>
             <button class="option-btn" data-mode="text">Text eingeben</button>
+            <button class="option-btn" data-mode="mixed">🔀 Mixed</button>
         </div>
     </div>
 
@@ -550,7 +554,8 @@
         <label>Modus</label>
         <button class="option-btn" id="learningModeToggle">🎓 Lernmodus: Aus</button>
         <button class="option-btn" id="proModeToggle">🎯 Profimodus: Aus</button>
-        <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.<br>Im Profimodus sind Tippfehler strenger bewertet und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.</div>
+        <button class="option-btn" id="speedModeToggle">⚡ Speedmodus: Aus</button>
+        <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.<br>Im Profimodus sind Tippfehler strenger bewertet und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.<br>Im Speedmodus wird nach Ablauf des Zeitbonus (10 Sekunden) automatisch zur nächsten Frage gewechselt, falls du nicht rechtzeitig geantwortet hast — ohne Punkte für diese Frage. Speedmodus und Lernmodus schließen sich gegenseitig aus.</div>
         <div style="margin-top:10px;">
             <a href="#" id="statsLink" style="font-size:14px;color:#1976d2;text-decoration:none;">📊 Meine Statistik ansehen</a>
         </div>
@@ -562,6 +567,7 @@
     <div id="highscoreDisplay"></div>
 
     <div style="text-align:center;margin-top:10px;">
+        <a href="#" id="helpLink" style="font-size:12px;color:#1976d2;text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
         <a href="#" id="privacyLink" style="font-size:12px;color:#999;text-decoration:underline;">🔒 Datenschutz</a>
     </div>
 </div>
@@ -576,6 +582,65 @@
         <h2>📊 Meine Statistik</h2>
         <div id="statsContent"></div>
         <button id="statsResetBtn" style="margin-top:14px;background:#eee;font-size:13px;padding:8px 14px;">Statistik zurücksetzen</button>
+    </div>
+</div>
+
+<!-- Hilfe-Modal -->
+<div id="helpModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="modal-close" id="helpCloseBtn">✕</button>
+        <h2>❓ Hilfe</h2>
+        <div style="text-align:left;font-size:14px;line-height:1.55;">
+
+            <h3 style="margin-bottom:4px;">Einstellungen</h3>
+            <p><strong>Dein Name</strong><br>
+            Wird in der Bestenliste angezeigt, wenn du eine Runde beendest.</p>
+
+            <p><strong>Kontinent</strong><br>
+            Wähle einen oder mehrere Kontinente aus, aus denen die Flaggen zufällig gezogen werden. Mehrfachauswahl ist möglich.</p>
+
+            <p><strong>Anzahl Flaggen</strong><br>
+            Legt fest, wie viele Flaggen in einer Runde abgefragt werden.</p>
+
+            <p><strong>Antwortmodus</strong><br>
+            • <em>Multiple Choice</em>: Du siehst eine Flagge und wählst den richtigen Ländernamen aus 4 Optionen.<br>
+            • <em>Reverse Multiple Choice</em>: Du siehst einen Ländernamen und wählst die richtige Flagge aus 4 Optionen.<br>
+            • <em>Text eingeben</em>: Du siehst eine Flagge und tippst den Ländernamen selbst ein.<br>
+            • <em>🔀 Mixed</em>: Bei jeder Frage wird zufällig einer der drei obigen Modi verwendet — über die ganze Runde gesehen ungefähr gleich oft.</p>
+
+            <p><strong>Lernmodus</strong><br>
+            Kein Zeitdruck und keine Punkte — die Runde zählt nicht für die Bestenliste. Ideal zum entspannten Üben.</p>
+
+            <p><strong>Profimodus</strong><br>
+            Tippfehler bei der Texteingabe werden strenger bewertet. Bei Multiple Choice und Reverse Multiple Choice stammen die falschen Antworten dann bevorzugt aus den von dir gewählten Kontinenten, statt aus der ganzen Welt — das macht es schwerer.</p>
+
+            <p><strong>⚡ Speedmodus</strong><br>
+            Läuft der Zeitbonus (10 Sekunden) ab, ohne dass du geantwortet hast, wird die Frage automatisch als nicht beantwortet gewertet (0 Punkte) und nach kurzer Anzeige der richtigen Lösung automatisch zur nächsten Frage gewechselt. Die Zeitleiste ist in diesem Modus rot statt blau, damit der Zeitdruck sofort erkennbar ist. Speedmodus und Lernmodus schließen sich gegenseitig aus.</p>
+
+            <h3 style="margin-bottom:4px;margin-top:18px;">Wie die Punkte zustande kommen</h3>
+
+            <p><strong>Basispunkte: 16</strong><br>
+            Für jede richtig beantwortete Flagge gibt es 16 Punkte.</p>
+
+            <p><strong>Tipp-Abzug</strong><br>
+            Nutzt du einen Tipp, halbieren sich die Punkte dieser Frage (8 Punkte). Nutzt du einen zweiten Tipp, werden sie geviertelt (4 Punkte).</p>
+
+            <p><strong>⏱️ Zeitbonus</strong><br>
+            Je schneller du richtig antwortest, desto mehr Zusatzpunkte gibt es:</p>
+            <div style="margin:6px 0 10px 10px;">
+                ≤ 2 Sek.: +5 &nbsp;·&nbsp; ≤ 4 Sek.: +4 &nbsp;·&nbsp; ≤ 6 Sek.: +3<br>
+                ≤ 8 Sek.: +2 &nbsp;·&nbsp; ≤ 10 Sek.: +1 &nbsp;·&nbsp; danach: +0
+            </div>
+            <p>Im Lernmodus entfällt der Zeitbonus.</p>
+
+            <p><strong>🔥 Siegesserie</strong><br>
+            Beantwortest du 3 Fragen in Folge richtig, <em>ohne</em> dabei einen Tipp zu nutzen, bekommst du bei der 3. richtigen Antwort +1 Punkt Siegesserien-Bonus. Jede weitere richtige Antwort in Folge (wieder ohne Tipp) erhöht diesen Bonus um +1:</p>
+            <div style="margin:6px 0 10px 10px;">
+                3 richtige in Folge: +1 &nbsp;·&nbsp; 4 in Folge: +2 &nbsp;·&nbsp; 5 in Folge: +3 &nbsp;·&nbsp; usw.
+            </div>
+            <p>Sobald du einen Tipp anzeigen lässt oder eine Frage falsch beantwortest, wird die Serie unterbrochen und beginnt danach wieder bei 0 — die bereits erspielten Bonuspunkte bleiben dir aber erhalten. Deine bisher höchste Siegesserie siehst du in deiner persönlichen Statistik.</p>
+
+        </div>
     </div>
 </div>
 
@@ -1031,7 +1096,7 @@ function playWrongSound() {
 
 const continents = [...new Set(countries.map(c => c.continent))];
 
-let settings = { continents: [...continents], length: 20, mode: "mc", learningMode: false, proMode: false };
+let settings = { continents: [...continents], length: 20, mode: "mc", learningMode: false, proMode: false, speedMode: false };
 let list = [];
 let index = 0;
 let score = 0;
@@ -1040,7 +1105,23 @@ let maxFlags = 20;
 let wrongAnswers = [];
 let flagStartTime = 0;
 let flagLoadToken = 0; // verhindert, dass der Timer nachträglich startet, wenn die Frage schon gewechselt wurde
+let currentStreak = 0; // Anzahl richtiger Antworten ohne Tipp in Folge
+let currentMode = "mc"; // effektiver Modus der aktuellen Frage (bei Mixed pro Frage neu bestimmt)
+let mixedBag = []; // Ziehungs-"Tüte" für einen ausgeglichenen Mixed-Modus
 const loadingInfo = document.getElementById("loadingInfo");
+
+const BEST_STREAK_KEY = "flagquiz_best_streak";
+
+function getBestStreak() {
+    const v = parseInt(localStorage.getItem(BEST_STREAK_KEY), 10);
+    return isNaN(v) ? 0 : v;
+}
+
+function updateBestStreak(value) {
+    if (value > getBestStreak()) {
+        try { localStorage.setItem(BEST_STREAK_KEY, String(value)); } catch (e) { /* ignorieren */ }
+    }
+}
 
 // ---------- Elemente ----------
 
@@ -1056,6 +1137,7 @@ const continentSummary = document.getElementById("continentSummary");
 const modeButtons = document.getElementById("modeButtons");
 const learningModeToggle = document.getElementById("learningModeToggle");
 const proModeToggle = document.getElementById("proModeToggle");
+const speedModeToggle = document.getElementById("speedModeToggle");
 const statsLink = document.getElementById("statsLink");
 const statsModal = document.getElementById("statsModal");
 const statsContent = document.getElementById("statsContent");
@@ -1064,6 +1146,9 @@ const statsResetBtn = document.getElementById("statsResetBtn");
 const privacyLink = document.getElementById("privacyLink");
 const privacyModal = document.getElementById("privacyModal");
 const privacyCloseBtn = document.getElementById("privacyCloseBtn");
+const helpLink = document.getElementById("helpLink");
+const helpModal = document.getElementById("helpModal");
+const helpCloseBtn = document.getElementById("helpCloseBtn");
 const muteBtn = document.getElementById("muteBtn");
 const startBtn = document.getElementById("startBtn");
 
@@ -1107,7 +1192,8 @@ function saveSettingsToStorage() {
             length: settings.length,
             mode: settings.mode,
             learningMode: settings.learningMode,
-            proMode: settings.proMode
+            proMode: settings.proMode,
+            speedMode: settings.speedMode
         }));
     } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
 }
@@ -1124,7 +1210,7 @@ function loadSettingsFromStorage() {
         if (typeof parsed.length === "number" && [10, 20, 30, 50].includes(parsed.length)) {
             settings.length = parsed.length;
         }
-        if (parsed.mode === "text" || parsed.mode === "mc" || parsed.mode === "reverse-mc") {
+        if (parsed.mode === "text" || parsed.mode === "mc" || parsed.mode === "reverse-mc" || parsed.mode === "mixed") {
             settings.mode = parsed.mode;
         }
         if (typeof parsed.learningMode === "boolean") {
@@ -1133,13 +1219,30 @@ function loadSettingsFromStorage() {
         if (typeof parsed.proMode === "boolean") {
             settings.proMode = parsed.proMode;
         }
+        if (typeof parsed.speedMode === "boolean") {
+            settings.speedMode = parsed.speedMode;
+        }
+        // Sicherheitsnetz: falls je beide gleichzeitig gespeichert wurden, hat der Lernmodus Vorrang
+        if (settings.learningMode && settings.speedMode) {
+            settings.speedMode = false;
+        }
     } catch (e) { /* fehlerhafte/ fehlende Daten -> Standardwerte bleiben */ }
 }
 
 function modeLabel() {
     if (settings.mode === "mc") return "Multiple Choice";
     if (settings.mode === "reverse-mc") return "Reverse Multiple Choice";
+    if (settings.mode === "mixed") return "Mixed (zufällig gemischt)";
     return "Texteingabe";
+}
+
+// Zieht per Frage zufällig einen der 3 Basis-Modi, aber ausgeglichen:
+// eine "Tüte" mit je einem Text-/MC-/Reverse-MC-Los wird gemischt und nacheinander geleert.
+function pickMixedSubMode() {
+    if (mixedBag.length === 0) {
+        mixedBag = shuffle(["text", "mc", "reverse-mc"]);
+    }
+    return mixedBag.pop();
 }
 
 
@@ -1248,6 +1351,10 @@ function buildSettingsScreen() {
     refreshLearningModeButton();
     learningModeToggle.onclick = () => {
         settings.learningMode = !settings.learningMode;
+        if (settings.learningMode) {
+            settings.speedMode = false; // schließen sich gegenseitig aus
+            refreshSpeedModeButton();
+        }
         refreshLearningModeButton();
         saveSettingsToStorage();
     };
@@ -1260,6 +1367,21 @@ function buildSettingsScreen() {
     proModeToggle.onclick = () => {
         settings.proMode = !settings.proMode;
         refreshProModeButton();
+        saveSettingsToStorage();
+    };
+
+    function refreshSpeedModeButton() {
+        speedModeToggle.classList.toggle("selected", settings.speedMode);
+        speedModeToggle.textContent = "⚡ Speedmodus: " + (settings.speedMode ? "An" : "Aus");
+    }
+    refreshSpeedModeButton();
+    speedModeToggle.onclick = () => {
+        settings.speedMode = !settings.speedMode;
+        if (settings.speedMode) {
+            settings.learningMode = false; // schließen sich gegenseitig aus
+            refreshLearningModeButton();
+        }
+        refreshSpeedModeButton();
         saveSettingsToStorage();
     };
 
@@ -1443,6 +1565,7 @@ function renderStatsModal() {
     let totalSeen = 0, totalCorrect = 0;
     entries.forEach(([, v]) => { totalSeen += v.seen; totalCorrect += v.correct; });
     const accuracy = totalSeen > 0 ? Math.round((totalCorrect / totalSeen) * 100) : 0;
+    const bestStreak = getBestStreak();
 
     // Länder mit den meisten Fehlern zuerst (mindestens 2x gesehen, damit Zufallstreffer nicht verzerren)
     const worst = entries
@@ -1454,6 +1577,9 @@ function renderStatsModal() {
     let html = explanation + `
         <div class="stats-row" style="font-weight:bold;border-bottom:2px solid #333;">
             <div>Insgesamt beantwortet</div><div>${totalSeen} (${accuracy}% richtig)</div>
+        </div>
+        <div class="stats-row" style="font-weight:bold;">
+            <div>🔥 Höchste Siegesserie</div><div>${bestStreak > 0 ? bestStreak : "–"}</div>
         </div>`;
 
     if (worst.length > 0) {
@@ -1511,19 +1637,16 @@ startBtn.onclick = async function () {
     index = 0;
     score = 0;
     wrongAnswers = [];
+    currentStreak = 0;
+    mixedBag = [];
     scoreDiv.innerHTML = "Punkte: 0";
     scoreDiv.style.display = settings.learningMode ? "none" : "block";
-
-    textInputArea.style.display = settings.mode === "text" ? "block" : "none";
-    mcOptionsDiv.style.display = settings.mode === "mc" ? "block" : "none";
-    reverseMcOptionsDiv.style.display = settings.mode === "reverse-mc" ? "grid" : "none";
-    countryNamePrompt.style.display = settings.mode === "reverse-mc" ? "block" : "none";
-    flagDiv.style.display = settings.mode === "reverse-mc" ? "none" : "block";
 
     document.getElementById("settingsSummary").innerHTML =
         "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel() +
         (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "") +
-        (settings.proMode ? " &nbsp;·&nbsp; 🎯 Profimodus" : "");
+        (settings.proMode ? " &nbsp;·&nbsp; 🎯 Profimodus" : "") +
+        (settings.speedMode ? " &nbsp;·&nbsp; ⚡ Speedmodus" : "");
 
     settingsDiv.style.display = "none";
     endScreen.style.display = "none";
@@ -1535,27 +1658,27 @@ startBtn.onclick = async function () {
 // ---------- Punkteberechnung ----------
 
 function calculatePoints(country, tips) {
-    const isEurope = country.continent === "Europa";
-    let base = isEurope ? 8 : 16;
+    const base = 16;
     if (tips === 0) return base;
     if (tips === 1) return base / 2;
     return base / 4;
 }
 
-const TIME_BONUS_WINDOW_MS = 15000; // muss zu den Schwellen in calculateTimeBonus passen
+const TIME_BONUS_WINDOW_MS = 10000; // muss zu den Schwellen in calculateTimeBonus passen
 let timeBonusIntervalId = null;
 
 function calculateTimeBonus(elapsedSeconds) {
-    if (elapsedSeconds <= 3) return 5;
-    if (elapsedSeconds <= 6) return 4;
-    if (elapsedSeconds <= 9) return 3;
-    if (elapsedSeconds <= 12) return 2;
-    if (elapsedSeconds <= 15) return 1;
+    if (elapsedSeconds <= 2) return 5;
+    if (elapsedSeconds <= 4) return 4;
+    if (elapsedSeconds <= 6) return 3;
+    if (elapsedSeconds <= 8) return 2;
+    if (elapsedSeconds <= 10) return 1;
     return 0;
 }
 
 function startTimeBonusBar() {
     clearInterval(timeBonusIntervalId);
+    timeBonusBarInner.classList.toggle("speed-mode", settings.speedMode);
     timeBonusBarInner.style.transition = "none";
     timeBonusBarInner.style.width = "100%";
     // Erzwingt Neuberechnung, damit die Transition beim nächsten Tick wieder greift
@@ -1566,8 +1689,20 @@ function startTimeBonusBar() {
         const elapsedMs = Date.now() - flagStartTime;
         const pct = Math.max(0, 100 - (elapsedMs / TIME_BONUS_WINDOW_MS * 100));
         timeBonusBarInner.style.width = pct + "%";
-        if (pct <= 0) clearInterval(timeBonusIntervalId);
+        if (pct <= 0) {
+            clearInterval(timeBonusIntervalId);
+            if (settings.speedMode) handleSpeedTimeout();
+        }
     }, 100);
+}
+
+// Speedmodus: Zeit abgelaufen, ohne dass geantwortet wurde -> als nicht beantwortet werten (0 Punkte),
+// Lösung kurz zeigen, danach automatisch zur nächsten Frage
+function handleSpeedTimeout() {
+    submitAnswer(""); // wird wie eine falsche/leere Antwort behandelt -> 0 Punkte, Serie bricht
+    setTimeout(() => {
+        if (nextBtn.style.display !== "none") nextBtn.click();
+    }, 2000);
 }
 
 function stopTimeBonusBar() {
@@ -1586,7 +1721,15 @@ function loadFlag() {
     answer.value = "";
     tipBtn.disabled = false;
 
-    if (settings.mode === "text") {
+    // Effektiven Modus für diese Frage bestimmen (bei Mixed pro Frage neu gezogen)
+    currentMode = settings.mode === "mixed" ? pickMixedSubMode() : settings.mode;
+    textInputArea.style.display = currentMode === "text" ? "block" : "none";
+    mcOptionsDiv.style.display = currentMode === "mc" ? "block" : "none";
+    reverseMcOptionsDiv.style.display = currentMode === "reverse-mc" ? "grid" : "none";
+    countryNamePrompt.style.display = currentMode === "reverse-mc" ? "block" : "none";
+    flagDiv.style.display = currentMode === "reverse-mc" ? "none" : "block";
+
+    if (currentMode === "text") {
         solveBtn.style.display = "inline-block";
         solveBtn.disabled = false;
         answer.disabled = false;
@@ -1595,7 +1738,7 @@ function loadFlag() {
 
     const c = list[index];
 
-    if (settings.mode === "reverse-mc") {
+    if (currentMode === "reverse-mc") {
         countryNamePrompt.textContent = c.name;
     } else {
         const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
@@ -1619,7 +1762,7 @@ function loadFlag() {
         ? "🎓 Lernmodus — kein Zeitdruck, kein Highscore-Eintrag"
         : "Punkte bei richtiger Antwort: " + calculatePoints(c, 0);
 
-    if (settings.mode === "mc" || settings.mode === "reverse-mc") {
+    if (currentMode === "mc" || currentMode === "reverse-mc") {
         buildAnswerOptions(c);
     }
 
@@ -1628,7 +1771,7 @@ function loadFlag() {
     // Zeitbonus erst starten, wenn die Flaggen tatsächlich geladen sind
     flagStartTime = Date.now(); // Fallback, falls jemand schon vor Ladeende antwortet
     const urlsToLoad = [];
-    if (settings.mode === "reverse-mc") {
+    if (currentMode === "reverse-mc") {
         reverseMcOptionsDiv.querySelectorAll(".reverse-mc-btn").forEach(btn => {
             if (btn.dataset.flagUrl) urlsToLoad.push(btn.dataset.flagUrl);
         });
@@ -1644,7 +1787,7 @@ function loadFlag() {
     preloadImages(urlsToLoad, 8000).then(result => {
         if (myToken !== flagLoadToken) return; // Frage wurde inzwischen gewechselt oder beantwortet
         loadingInfo.textContent = "";
-        if (!result.allLoaded && settings.mode === "reverse-mc") {
+        if (!result.allLoaded && currentMode === "reverse-mc") {
             loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden — bitte Internetverbindung prüfen.";
         }
         flagStartTime = Date.now();
@@ -1693,7 +1836,7 @@ function buildAnswerOptions(correctCountry) {
     const distractors = pickDistractors(correctCountry);
     const options = shuffle([correctCountry, ...distractors]);
 
-    if (settings.mode === "mc") {
+    if (currentMode === "mc") {
         mcOptionsDiv.innerHTML = "";
         options.forEach(opt => {
             const btn = document.createElement("button");
@@ -1702,7 +1845,7 @@ function buildAnswerOptions(correctCountry) {
             btn.onclick = () => submitAnswer(opt.name, correctCountry);
             mcOptionsDiv.appendChild(btn);
         });
-    } else if (settings.mode === "reverse-mc") {
+    } else if (currentMode === "reverse-mc") {
         reverseMcOptionsDiv.innerHTML = "";
         options.forEach(opt => {
             const btn = document.createElement("button");
@@ -1723,8 +1866,9 @@ function buildAnswerOptions(correctCountry) {
 tipBtn.onclick = function () {
     const c = list[index];
     tipCount++;
+    currentStreak = 0; // Ein Tipp unterbricht die Siegesserie sofort
 
-    if (settings.mode === "mc" || settings.mode === "reverse-mc") {
+    if (currentMode === "mc" || currentMode === "reverse-mc") {
         removeWrongOption(c);
         if (tipCount === 1) {
             tipDiv.innerHTML = "Eine falsche Antwort wurde entfernt.";
@@ -1751,7 +1895,7 @@ tipBtn.onclick = function () {
 };
 
 function removeWrongOption(correctCountry) {
-    const isReverse = settings.mode === "reverse-mc";
+    const isReverse = currentMode === "reverse-mc";
     const container = isReverse ? reverseMcOptionsDiv : mcOptionsDiv;
     const selector = isReverse ? ".reverse-mc-btn:not(:disabled)" : ".mc-btn:not(:disabled)";
     const buttons = Array.from(container.querySelectorAll(selector));
@@ -1775,11 +1919,11 @@ function submitAnswer(userInput, forcedCountry) {
     const elapsed = (Date.now() - flagStartTime) / 1000;
     const result = checkAnswer(userInput, c.name);
 
-    if (settings.mode === "text") {
+    if (currentMode === "text") {
         solveBtn.style.display = "none";
         answer.disabled = true;
     } else {
-        const isReverse = settings.mode === "reverse-mc";
+        const isReverse = currentMode === "reverse-mc";
         const container = isReverse ? reverseMcOptionsDiv : mcOptionsDiv;
         const btnSelector = isReverse ? ".reverse-mc-btn" : ".mc-btn";
         container.querySelectorAll(btnSelector).forEach(btn => {
@@ -1798,17 +1942,28 @@ function submitAnswer(userInput, forcedCountry) {
     if (result.correct) {
         const basePoints = calculatePoints(c, tipCount);
         const bonus = settings.learningMode ? 0 : calculateTimeBonus(elapsed);
+
+        let streakBonus = 0;
+        if (tipCount === 0) {
+            currentStreak++;
+            updateBestStreak(currentStreak);
+            if (currentStreak >= 3) streakBonus = currentStreak - 2;
+        }
+
         if (!settings.learningMode) {
-            score += basePoints + bonus;
+            score += basePoints + bonus + streakBonus;
         }
         emojiDiv.innerHTML = "😀";
         solutionDiv.innerHTML = settings.learningMode
             ? (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!")
             : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)! +" + basePoints + " Punkte" : "Richtig! +" + basePoints + " Punkte");
-        timeBonusInfo.innerHTML = bonus > 0 ? "Zeitbonus: +" + bonus + " Punkte" : "";
+        timeBonusInfo.innerHTML =
+            (bonus > 0 ? "Zeitbonus: +" + bonus + " Punkte" : "") +
+            (streakBonus > 0 ? (bonus > 0 ? "<br>" : "") + "🔥 Siegesserie (" + currentStreak + "): +" + streakBonus + " Punkt" + (streakBonus > 1 ? "e" : "") : "");
         playCorrectSound();
     } else {
         wrongAnswers.push({ name: c.name, given: userInput || "(keine Antwort)" });
+        currentStreak = 0; // Falsche Antwort unterbricht die Siegesserie
         emojiDiv.innerHTML = "😢";
         solutionDiv.innerHTML = "Richtig wäre: " + c.name;
         timeBonusInfo.innerHTML = "";
@@ -2035,6 +2190,7 @@ statsResetBtn.onclick = function () {
     const sure = confirm("Deine persönliche Lernstatistik wirklich löschen? Das betrifft nur diesen Browser, nicht die zentrale Bestenliste.");
     if (!sure) return;
     localStorage.removeItem(STATS_KEY);
+    localStorage.removeItem(BEST_STREAK_KEY);
     renderStatsModal();
 };
 
@@ -2048,6 +2204,18 @@ privacyCloseBtn.onclick = function () {
 };
 privacyModal.onclick = function (e) {
     if (e.target === privacyModal) privacyModal.classList.remove("open");
+};
+
+// ---------- Hilfe-Modal ----------
+helpLink.onclick = function (e) {
+    e.preventDefault();
+    helpModal.classList.add("open");
+};
+helpCloseBtn.onclick = function () {
+    helpModal.classList.remove("open");
+};
+helpModal.onclick = function (e) {
+    if (e.target === helpModal) helpModal.classList.remove("open");
 };
 
 // ---------- PWA: Service Worker registrieren ----------
