@@ -258,9 +258,9 @@
     #reverseMcOptions {
         display: none;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-top: 15px;
-        max-width: min(420px, 92vw);
+        gap: 8px;
+        margin-top: 12px;
+        max-width: min(340px, 76vw);
         margin-left: auto;
         margin-right: auto;
     }
@@ -516,6 +516,9 @@
 </div>
 
 <div id="settings">
+    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:8px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
+        ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
+    </div>
     <div class="setting-block" id="nicknameBlock">
         <label for="nickname">Dein Name</label>
         <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20" style="font-size:16px;padding:8px 10px;width:100%;box-sizing:border-box;border:2px solid #ccc;border-radius:6px;">
@@ -603,6 +606,7 @@
     <div id="flag"><div id="flagError"></div></div>
     <div id="countryNamePrompt"></div>
     <div id="timeBonusBarOuter"><div id="timeBonusBarInner"></div></div>
+    <div id="loadingInfo" style="font-size:14px;color:#666;min-height:18px;margin-top:4px;"></div>
 
     <div id="textInputArea">
         <input type="text" id="answer" placeholder="Land eingeben" style="font-size:18px;padding:5px;width:min(300px, 90vw);box-sizing:border-box;" autocomplete="off">
@@ -1035,6 +1039,8 @@ let tipCount = 0;
 let maxFlags = 20;
 let wrongAnswers = [];
 let flagStartTime = 0;
+let flagLoadToken = 0; // verhindert, dass der Timer nachträglich startet, wenn die Frage schon gewechselt wurde
+const loadingInfo = document.getElementById("loadingInfo");
 
 // ---------- Elemente ----------
 
@@ -1601,7 +1607,7 @@ function loadFlag() {
         // Unauffälliger Test, ob das Bild tatsächlich lädt (ändert die Anzeige nicht, außer bei Fehler)
         const testImg = new Image();
         testImg.onerror = function () {
-            flagError.textContent = "Flagge konnte nicht geladen werden";
+            flagError.textContent = "Flagge konnte nicht geladen werden — bitte Internetverbindung prüfen";
             flagError.style.display = "flex";
         };
         testImg.src = flagUrl;
@@ -1617,11 +1623,56 @@ function loadFlag() {
         buildAnswerOptions(c);
     }
 
-    flagStartTime = Date.now();
     document.getElementById("timeBonusBarOuter").style.display = settings.learningMode ? "none" : "block";
-    if (!settings.learningMode) {
-        startTimeBonusBar();
+
+    // Zeitbonus erst starten, wenn die Flaggen tatsächlich geladen sind
+    flagStartTime = Date.now(); // Fallback, falls jemand schon vor Ladeende antwortet
+    const urlsToLoad = [];
+    if (settings.mode === "reverse-mc") {
+        reverseMcOptionsDiv.querySelectorAll(".reverse-mc-btn").forEach(btn => {
+            if (btn.dataset.flagUrl) urlsToLoad.push(btn.dataset.flagUrl);
+        });
+    } else {
+        urlsToLoad.push("https://flagcdn.com/w320/" + c.iso + ".png");
     }
+
+    const myToken = ++flagLoadToken;
+    loadingInfo.textContent = "⏳ Flaggen werden geladen…";
+    timeBonusBarInner.style.transition = "none";
+    timeBonusBarInner.style.width = "100%";
+
+    preloadImages(urlsToLoad, 8000).then(result => {
+        if (myToken !== flagLoadToken) return; // Frage wurde inzwischen gewechselt oder beantwortet
+        loadingInfo.textContent = "";
+        if (!result.allLoaded && settings.mode === "reverse-mc") {
+            loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden — bitte Internetverbindung prüfen.";
+        }
+        flagStartTime = Date.now();
+        if (!settings.learningMode) {
+            startTimeBonusBar();
+        }
+    });
+}
+
+// Lädt Bilder vor und meldet sich, sobald alle fertig sind (oder das Zeitlimit erreicht ist)
+function preloadImages(urls, timeoutMs) {
+    return new Promise(resolve => {
+        if (urls.length === 0) { resolve({ allLoaded: true }); return; }
+        let loaded = 0, failed = 0, finished = false;
+        const finish = () => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            resolve({ allLoaded: loaded === urls.length });
+        };
+        const timer = setTimeout(finish, timeoutMs);
+        urls.forEach(u => {
+            const img = new Image();
+            img.onload = () => { loaded++; if (loaded + failed === urls.length) finish(); };
+            img.onerror = () => { failed++; if (loaded + failed === urls.length) finish(); };
+            img.src = u;
+        });
+    });
 }
 
 function pickDistractors(correctCountry) {
@@ -1656,7 +1707,9 @@ function buildAnswerOptions(correctCountry) {
         options.forEach(opt => {
             const btn = document.createElement("button");
             btn.className = "reverse-mc-btn";
-            btn.style.backgroundImage = "url('https://flagcdn.com/w320/" + opt.iso + ".png')";
+            const flagUrl = "https://flagcdn.com/w320/" + opt.iso + ".png";
+            btn.style.backgroundImage = "url('" + flagUrl + "')";
+            btn.dataset.flagUrl = flagUrl;
             btn.dataset.name = opt.name;
             btn.setAttribute("aria-label", opt.name);
             btn.onclick = () => submitAnswer(opt.name, correctCountry);
@@ -1715,6 +1768,8 @@ function removeWrongOption(correctCountry) {
 // ---------- Antwort einreichen ----------
 
 function submitAnswer(userInput, forcedCountry) {
+    flagLoadToken++; // laufendes Vorladen soll den Timer nicht mehr starten
+    loadingInfo.textContent = "";
     stopTimeBonusBar();
     const c = forcedCountry || list[index];
     const elapsed = (Date.now() - flagStartTime) / 1000;
@@ -1879,6 +1934,7 @@ async function showEndScreen() {
 endBtn.onclick = function () {
     const sure = confirm("Möchtest du das Quiz wirklich beenden? Dein aktueller Fortschritt in dieser Runde geht verloren.");
     if (!sure) return;
+    flagLoadToken++;
     stopTimeBonusBar();
     game.style.display = "none";
     endScreen.style.display = "none";
@@ -1886,6 +1942,7 @@ endBtn.onclick = function () {
     settingsDiv.style.display = "block";
     updateLengthHint();
     updateHighscoreDisplay();
+    checkConnection();
 };
 
 restartBtn.onclick = function () {
@@ -1893,6 +1950,7 @@ restartBtn.onclick = function () {
     settingsDiv.style.display = "block";
     updateLengthHint();
     updateHighscoreDisplay();
+    checkConnection();
 };
 
 // ---------- Init ----------
@@ -1921,6 +1979,37 @@ nicknameInput.addEventListener("blur", function () {
 loadSettingsFromStorage();
 buildSettingsScreen();
 settingsDiv.style.display = "block";
+
+// ---------- Verbindungs-Check auf der Startseite ----------
+const offlineWarning = document.getElementById("offlineWarning");
+let connectionCheckToken = 0;
+
+function checkConnection() {
+    // Sofort warnen, wenn das Gerät offline meldet (z. B. Flugmodus)
+    if (!navigator.onLine) {
+        offlineWarning.style.display = "block";
+        return;
+    }
+    // Zusätzlich ein winziges Testbild laden, um langsame oder blockierte Verbindungen zu erkennen
+    const myToken = ++connectionCheckToken;
+    const img = new Image();
+    const timer = setTimeout(() => {
+        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
+    }, 5000);
+    img.onload = () => {
+        clearTimeout(timer);
+        if (myToken === connectionCheckToken) offlineWarning.style.display = "none";
+    };
+    img.onerror = () => {
+        clearTimeout(timer);
+        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
+    };
+    img.src = "https://flagcdn.com/w20/de.png?t=" + Date.now();
+}
+
+window.addEventListener("offline", () => { offlineWarning.style.display = "block"; });
+window.addEventListener("online", checkConnection);
+checkConnection();
 
 // ---------- Mute-Button ----------
 updateMuteButton();
