@@ -615,7 +615,7 @@
             Tippfehler bei der Texteingabe werden strenger bewertet. Bei Multiple Choice und Reverse Multiple Choice stammen die falschen Antworten dann bevorzugt aus den von dir gewählten Kontinenten, statt aus der ganzen Welt — das macht es schwerer.</p>
 
             <p><strong>⚡ Speedmodus</strong><br>
-            Läuft der Zeitbonus (10 Sekunden) ab, ohne dass du geantwortet hast, wird die Frage automatisch als nicht beantwortet gewertet (0 Punkte) und nach kurzer Anzeige der richtigen Lösung automatisch zur nächsten Frage gewechselt. Die Zeitleiste ist in diesem Modus rot statt blau, damit der Zeitdruck sofort erkennbar ist. Speedmodus und Lernmodus schließen sich gegenseitig aus.</p>
+            Im Speedmodus läuft die Zeit doppelt so schnell wie sonst: Das Zeitfenster für den Zeitbonus ist auf 5 Sekunden halbiert (≤1 Sek.: +5, ≤2 Sek.: +4, ≤3 Sek.: +3, ≤4 Sek.: +2, ≤5 Sek.: +1). Läuft die Zeit ab, ohne dass du geantwortet hast, wird die Frage automatisch als nicht beantwortet gewertet (0 Punkte) und nach kurzer Anzeige der richtigen Lösung (2 Sekunden) automatisch zur nächsten Frage gewechselt. Die Zeitleiste ist in diesem Modus rot statt blau, damit der Zeitdruck sofort erkennbar ist. Speedmodus und Lernmodus schließen sich gegenseitig aus.</p>
 
             <h3 style="margin-bottom:4px;margin-top:18px;">Wie die Punkte zustande kommen</h3>
 
@@ -1664,10 +1664,19 @@ function calculatePoints(country, tips) {
     return base / 4;
 }
 
-const TIME_BONUS_WINDOW_MS = 10000; // muss zu den Schwellen in calculateTimeBonus passen
+const TIME_BONUS_WINDOW_MS = 10000; // normale Modi — muss zu den Schwellen in calculateTimeBonus passen
+const SPEED_TIME_BONUS_WINDOW_MS = 5000; // Speedmodus (halbiertes Tempo) — muss ebenfalls zu calculateTimeBonus passen
 let timeBonusIntervalId = null;
 
 function calculateTimeBonus(elapsedSeconds) {
+    if (settings.speedMode) {
+        if (elapsedSeconds <= 1) return 5;
+        if (elapsedSeconds <= 2) return 4;
+        if (elapsedSeconds <= 3) return 3;
+        if (elapsedSeconds <= 4) return 2;
+        if (elapsedSeconds <= 5) return 1;
+        return 0;
+    }
     if (elapsedSeconds <= 2) return 5;
     if (elapsedSeconds <= 4) return 4;
     if (elapsedSeconds <= 6) return 3;
@@ -1686,8 +1695,9 @@ function startTimeBonusBar() {
     timeBonusBarInner.style.transition = "width 0.1s linear";
 
     timeBonusIntervalId = setInterval(() => {
+        const windowMs = settings.speedMode ? SPEED_TIME_BONUS_WINDOW_MS : TIME_BONUS_WINDOW_MS;
         const elapsedMs = Date.now() - flagStartTime;
-        const pct = Math.max(0, 100 - (elapsedMs / TIME_BONUS_WINDOW_MS * 100));
+        const pct = Math.max(0, 100 - (elapsedMs / windowMs * 100));
         timeBonusBarInner.style.width = pct + "%";
         if (pct <= 0) {
             clearInterval(timeBonusIntervalId);
