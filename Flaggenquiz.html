@@ -247,6 +247,39 @@
     .mc-btn.eliminated { opacity: 0.35; text-decoration: line-through; }
     .mc-btn:disabled { cursor: default; }
 
+    #countryNamePrompt {
+        display: none;
+        font-size: 26px;
+        font-weight: bold;
+        text-align: center;
+        margin: 20px auto 10px auto;
+        color: #1565C0;
+    }
+    #reverseMcOptions {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 15px;
+        max-width: min(420px, 92vw);
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .reverse-mc-btn {
+        aspect-ratio: 320 / 213;
+        border-radius: 6px;
+        border: 2px solid #999;
+        background-color: transparent;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+        padding: 0;
+    }
+    .reverse-mc-btn.correct { border-color: #2e7d32; border-width: 4px; }
+    .reverse-mc-btn.wrong { border-color: #c62828; border-width: 4px; }
+    .reverse-mc-btn.eliminated { opacity: 0.25; }
+    .reverse-mc-btn:disabled { cursor: default; }
+
     /* ---------- Modals: Statistik & Datenschutz ---------- */
     .modal-overlay {
         display: none;
@@ -505,6 +538,7 @@
         <label>Antwortmodus</label>
         <div id="modeButtons">
             <button class="option-btn selected" data-mode="mc">Multiple Choice</button>
+            <button class="option-btn" data-mode="reverse-mc">Reverse Multiple Choice</button>
             <button class="option-btn" data-mode="text">Text eingeben</button>
         </div>
     </div>
@@ -512,7 +546,8 @@
     <div class="setting-block" id="learningModeBlock">
         <label>Modus</label>
         <button class="option-btn" id="learningModeToggle">🎓 Lernmodus: Aus</button>
-        <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.</div>
+        <button class="option-btn" id="proModeToggle">🎯 Profimodus: Aus</button>
+        <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.<br>Im Profimodus sind Tippfehler strenger bewertet und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.</div>
         <div style="margin-top:10px;">
             <a href="#" id="statsLink" style="font-size:14px;color:#1976d2;text-decoration:none;">📊 Meine Statistik ansehen</a>
         </div>
@@ -529,7 +564,7 @@
 </div>
 
 <!-- Lautstärke-Umschalter, auf allen Bildschirmen sichtbar -->
-<button id="muteBtn" title="Sound an/aus" style="position:fixed;top:14px;right:14px;z-index:50;background:#fff;border:2px solid #ccc;border-radius:50%;width:42px;height:42px;font-size:18px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,0.15);">🔊</button>
+<button id="muteBtn" title="Sound an/aus" style="position:fixed;top:max(25px, calc(env(safe-area-inset-top) + 14px));right:14px;z-index:50;background:#fff;border:2px solid #ccc;border-radius:50%;width:42px;height:42px;font-size:18px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,0.15);">🔊</button>
 
 <!-- Statistik-Modal -->
 <div id="statsModal" class="modal-overlay">
@@ -566,6 +601,7 @@
     <div id="progressBarOuter"><div id="progressBarInner"></div></div>
     <div id="score">Punkte: 0</div>
     <div id="flag"><div id="flagError"></div></div>
+    <div id="countryNamePrompt"></div>
     <div id="timeBonusBarOuter"><div id="timeBonusBarInner"></div></div>
 
     <div id="textInputArea">
@@ -575,6 +611,7 @@
     </div>
 
     <div id="mcOptions"></div>
+    <div id="reverseMcOptions"></div>
 
     <button id="tipBtn">Tipp anzeigen</button>
     <div id="tip"></div>
@@ -934,12 +971,22 @@ function levenshtein(a, b) {
     return dp[a.length][b.length];
 }
 
+function typoThresholdForLength(len) {
+    if (len <= 3) return 0;
+    if (len <= 5) return 1;
+    if (len <= 8) return 2;
+    if (len <= 12) return 3;
+    return 4;
+}
+
 function checkAnswer(userRaw, correctName) {
     const user = normalize(userRaw);
     const correct = normalize(correctName);
     if (!user) return { correct: false, fuzzy: false };
     if (user === correct) return { correct: true, fuzzy: false };
-    const threshold = correct.length >= 5 ? 1 : 0;
+    const threshold = settings.proMode
+        ? (correct.length >= 5 ? 1 : 0)
+        : typoThresholdForLength(correct.length);
     if (levenshtein(user, correct) <= threshold) return { correct: true, fuzzy: true };
     return { correct: false, fuzzy: false };
 }
@@ -980,7 +1027,7 @@ function playWrongSound() {
 
 const continents = [...new Set(countries.map(c => c.continent))];
 
-let settings = { continents: [...continents], length: 20, mode: "mc", learningMode: false };
+let settings = { continents: [...continents], length: 20, mode: "mc", learningMode: false, proMode: false };
 let list = [];
 let index = 0;
 let score = 0;
@@ -1002,6 +1049,7 @@ const lengthHint = document.getElementById("lengthHint");
 const continentSummary = document.getElementById("continentSummary");
 const modeButtons = document.getElementById("modeButtons");
 const learningModeToggle = document.getElementById("learningModeToggle");
+const proModeToggle = document.getElementById("proModeToggle");
 const statsLink = document.getElementById("statsLink");
 const statsModal = document.getElementById("statsModal");
 const statsContent = document.getElementById("statsContent");
@@ -1018,6 +1066,8 @@ const flagDiv = document.getElementById("flag");
 const answer = document.getElementById("answer");
 const textInputArea = document.getElementById("textInputArea");
 const mcOptionsDiv = document.getElementById("mcOptions");
+const reverseMcOptionsDiv = document.getElementById("reverseMcOptions");
+const countryNamePrompt = document.getElementById("countryNamePrompt");
 const tipBtn = document.getElementById("tipBtn");
 const tipDiv = document.getElementById("tip");
 const solveBtn = document.getElementById("solveBtn");
@@ -1050,7 +1100,8 @@ function saveSettingsToStorage() {
             continents: settings.continents,
             length: settings.length,
             mode: settings.mode,
-            learningMode: settings.learningMode
+            learningMode: settings.learningMode,
+            proMode: settings.proMode
         }));
     } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
 }
@@ -1067,14 +1118,24 @@ function loadSettingsFromStorage() {
         if (typeof parsed.length === "number" && [10, 20, 30, 50].includes(parsed.length)) {
             settings.length = parsed.length;
         }
-        if (parsed.mode === "text" || parsed.mode === "mc") {
+        if (parsed.mode === "text" || parsed.mode === "mc" || parsed.mode === "reverse-mc") {
             settings.mode = parsed.mode;
         }
         if (typeof parsed.learningMode === "boolean") {
             settings.learningMode = parsed.learningMode;
         }
+        if (typeof parsed.proMode === "boolean") {
+            settings.proMode = parsed.proMode;
+        }
     } catch (e) { /* fehlerhafte/ fehlende Daten -> Standardwerte bleiben */ }
 }
+
+function modeLabel() {
+    if (settings.mode === "mc") return "Multiple Choice";
+    if (settings.mode === "reverse-mc") return "Reverse Multiple Choice";
+    return "Texteingabe";
+}
+
 
 function updateContinentSummary() {
     const total = continents.length;
@@ -1185,6 +1246,17 @@ function buildSettingsScreen() {
         saveSettingsToStorage();
     };
 
+    function refreshProModeButton() {
+        proModeToggle.classList.toggle("selected", settings.proMode);
+        proModeToggle.textContent = "🎯 Profimodus: " + (settings.proMode ? "An" : "Aus");
+    }
+    refreshProModeButton();
+    proModeToggle.onclick = () => {
+        settings.proMode = !settings.proMode;
+        refreshProModeButton();
+        saveSettingsToStorage();
+    };
+
     updateLengthHint();
     updateHighscoreDisplay();
 }
@@ -1259,8 +1331,8 @@ function continentLabel() {
 
 async function updateHighscoreDisplay() {
     const key = highscoreKey();
-    const modeLabel = settings.mode === "mc" ? "Multiple Choice" : "Texteingabe";
-    const subtitle = `${settings.length} Flaggen · ${continentLabel()} · ${modeLabel}`;
+    const modeLabelText = modeLabel();
+    const subtitle = `${settings.length} Flaggen · ${continentLabel()} · ${modeLabelText}`;
 
     highscoreDisplay.innerHTML = `
         <div class="highscore-card hs-empty">
@@ -1350,8 +1422,15 @@ function renderStatsModal() {
     const stats = loadStats();
     const entries = Object.entries(stats);
 
+    const explanation = `<p style="font-size:13px;color:#666;margin-top:0;">
+        Oben siehst du, wie viele Flaggen du insgesamt beantwortet hast und wie hoch deine Trefferquote ist.
+        Darunter stehen die Länder, bei denen du dich am häufigsten vertust — als "X von Y richtig"
+        (Y = wie oft dir das Land gezeigt wurde, X = wie oft davon richtig). Gelistet werden nur Länder,
+        die du mindestens zweimal gesehen hast, damit ein einzelner Zufallstreffer die Auswertung nicht verzerrt.
+    </p>`;
+
     if (entries.length === 0) {
-        statsContent.innerHTML = "<p>Noch keine Daten — spiel ein paar Runden, dann siehst du hier deine Lernstatistik!</p>";
+        statsContent.innerHTML = explanation + "<p>Noch keine Daten — spiel ein paar Runden, dann siehst du hier deine Lernstatistik!</p>";
         return;
     }
 
@@ -1366,7 +1445,7 @@ function renderStatsModal() {
         .sort((a, b) => a.ratio - b.ratio)
         .slice(0, 12);
 
-    let html = `
+    let html = explanation + `
         <div class="stats-row" style="font-weight:bold;border-bottom:2px solid #333;">
             <div>Insgesamt beantwortet</div><div>${totalSeen} (${accuracy}% richtig)</div>
         </div>`;
@@ -1376,7 +1455,7 @@ function renderStatsModal() {
         html += worst.map(w => `
             <div class="stats-row">
                 <div class="stats-name">${escapeHtml(w.name)}</div>
-                <div class="stats-ratio">${w.correct}/${w.seen} richtig</div>
+                <div class="stats-ratio">${w.correct} von ${w.seen} richtig</div>
             </div>`).join("");
     } else {
         html += `<div style="margin-top:14px;color:#666;">Noch nicht genug Daten für eine Schwachstellen-Auswertung — spiel weiter!</div>`;
@@ -1387,11 +1466,39 @@ function renderStatsModal() {
 
 // ---------- Start ----------
 
-startBtn.onclick = function () {
+startBtn.onclick = async function () {
     if (containsBlockedContent(nicknameInput.value)) {
         nicknameInput.value = generateFantasyName();
         localStorage.setItem("flagquiz_nickname", nicknameInput.value);
     }
+
+    const rawName = nicknameInput.value.trim();
+    const playerName = rawName || generateFantasyName();
+    if (!rawName) {
+        nicknameInput.value = playerName;
+        localStorage.setItem("flagquiz_nickname", playerName);
+    }
+    nicknameHint.style.display = "none";
+
+    // Namens-Kollisionsprüfung: derselbe Name bereits unter einer ANDEREN Geräte-ID vergeben?
+    startBtn.disabled = true;
+    const originalStartLabel = startBtn.textContent;
+    startBtn.textContent = "Prüfe Name …";
+    const key = highscoreKey();
+    const { list: existingList } = await fetchTopList(key);
+    const deviceId = getDeviceId();
+    const collision = existingList.find(e =>
+        normalize(e.name || "") === normalize(playerName) && e.deviceId && e.deviceId !== deviceId
+    );
+    startBtn.disabled = false;
+    startBtn.textContent = originalStartLabel;
+
+    if (collision) {
+        nicknameHint.textContent = "Name bereits vergeben – bitte wähle einen anderen Namen.";
+        nicknameHint.style.display = "block";
+        return;
+    }
+
     const filtered = getFilteredCountries();
     maxFlags = Math.min(settings.length, filtered.length);
     list = shuffle(filtered).slice(0, maxFlags);
@@ -1403,11 +1510,14 @@ startBtn.onclick = function () {
 
     textInputArea.style.display = settings.mode === "text" ? "block" : "none";
     mcOptionsDiv.style.display = settings.mode === "mc" ? "block" : "none";
+    reverseMcOptionsDiv.style.display = settings.mode === "reverse-mc" ? "grid" : "none";
+    countryNamePrompt.style.display = settings.mode === "reverse-mc" ? "block" : "none";
+    flagDiv.style.display = settings.mode === "reverse-mc" ? "none" : "block";
 
-    const modeLabel = settings.mode === "mc" ? "Multiple Choice" : "Texteingabe";
     document.getElementById("settingsSummary").innerHTML =
-        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel +
-        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "");
+        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel() +
+        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "") +
+        (settings.proMode ? " &nbsp;·&nbsp; 🎯 Profimodus" : "");
 
     settingsDiv.style.display = "none";
     endScreen.style.display = "none";
@@ -1478,20 +1588,24 @@ function loadFlag() {
     }
 
     const c = list[index];
-    const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
 
-    const flagError = document.getElementById("flagError");
-    flagError.style.display = "none";
-    flagError.textContent = "";
-    flagDiv.style.backgroundImage = "url('" + flagUrl + "')";
+    if (settings.mode === "reverse-mc") {
+        countryNamePrompt.textContent = c.name;
+    } else {
+        const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
+        const flagError = document.getElementById("flagError");
+        flagError.style.display = "none";
+        flagError.textContent = "";
+        flagDiv.style.backgroundImage = "url('" + flagUrl + "')";
 
-    // Unauffälliger Test, ob das Bild tatsächlich lädt (ändert die Anzeige nicht, außer bei Fehler)
-    const testImg = new Image();
-    testImg.onerror = function () {
-        flagError.textContent = "Flagge konnte nicht geladen werden";
-        flagError.style.display = "flex";
-    };
-    testImg.src = flagUrl;
+        // Unauffälliger Test, ob das Bild tatsächlich lädt (ändert die Anzeige nicht, außer bei Fehler)
+        const testImg = new Image();
+        testImg.onerror = function () {
+            flagError.textContent = "Flagge konnte nicht geladen werden";
+            flagError.style.display = "flex";
+        };
+        testImg.src = flagUrl;
+    }
 
     counterDiv.innerHTML = "Flagge " + (index + 1) + " von " + maxFlags;
     progressBarInner.style.width = (index / maxFlags * 100) + "%";
@@ -1499,8 +1613,8 @@ function loadFlag() {
         ? "🎓 Lernmodus — kein Zeitdruck, kein Highscore-Eintrag"
         : "Punkte bei richtiger Antwort: " + calculatePoints(c, 0);
 
-    if (settings.mode === "mc") {
-        buildMcOptions(c);
+    if (settings.mode === "mc" || settings.mode === "reverse-mc") {
+        buildAnswerOptions(c);
     }
 
     flagStartTime = Date.now();
@@ -1510,19 +1624,45 @@ function loadFlag() {
     }
 }
 
-function buildMcOptions(correctCountry) {
-    const wrongPool = countries.filter(c => c.name !== correctCountry.name);
-    const distractors = shuffle(wrongPool).slice(0, 3);
+function pickDistractors(correctCountry) {
+    const pool = countries.filter(c => c.name !== correctCountry.name);
+    if (settings.proMode) {
+        const sameContinent = pool.filter(c => settings.continents.includes(c.continent));
+        if (sameContinent.length >= 3) {
+            return shuffle(sameContinent).slice(0, 3);
+        }
+        // Zu wenige Länder im gewählten Kontinent -> mit den übrigen auffüllen, damit die Runde funktioniert
+        const others = pool.filter(c => !settings.continents.includes(c.continent));
+        return [...sameContinent, ...shuffle(others)].slice(0, 3);
+    }
+    return shuffle(pool).slice(0, 3);
+}
+
+function buildAnswerOptions(correctCountry) {
+    const distractors = pickDistractors(correctCountry);
     const options = shuffle([correctCountry, ...distractors]);
 
-    mcOptionsDiv.innerHTML = "";
-    options.forEach(opt => {
-        const btn = document.createElement("button");
-        btn.className = "mc-btn";
-        btn.textContent = opt.name;
-        btn.onclick = () => submitAnswer(opt.name, correctCountry);
-        mcOptionsDiv.appendChild(btn);
-    });
+    if (settings.mode === "mc") {
+        mcOptionsDiv.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.className = "mc-btn";
+            btn.textContent = opt.name;
+            btn.onclick = () => submitAnswer(opt.name, correctCountry);
+            mcOptionsDiv.appendChild(btn);
+        });
+    } else if (settings.mode === "reverse-mc") {
+        reverseMcOptionsDiv.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.className = "reverse-mc-btn";
+            btn.style.backgroundImage = "url('https://flagcdn.com/w320/" + opt.iso + ".png')";
+            btn.dataset.name = opt.name;
+            btn.setAttribute("aria-label", opt.name);
+            btn.onclick = () => submitAnswer(opt.name, correctCountry);
+            reverseMcOptionsDiv.appendChild(btn);
+        });
+    }
 }
 
 // ---------- Tipp ----------
@@ -1531,8 +1671,8 @@ tipBtn.onclick = function () {
     const c = list[index];
     tipCount++;
 
-    if (settings.mode === "mc") {
-        removeWrongMcOption(c);
+    if (settings.mode === "mc" || settings.mode === "reverse-mc") {
+        removeWrongOption(c);
         if (tipCount === 1) {
             tipDiv.innerHTML = "Eine falsche Antwort wurde entfernt.";
         } else if (tipCount === 2) {
@@ -1557,9 +1697,15 @@ tipBtn.onclick = function () {
     pointsDiv.innerHTML = "Punkte bei richtiger Antwort: " + calculatePoints(c, tipCount);
 };
 
-function removeWrongMcOption(correctCountry) {
-    const buttons = Array.from(mcOptionsDiv.querySelectorAll(".mc-btn:not(:disabled)"));
-    const wrongButtons = buttons.filter(b => normalize(b.textContent) !== normalize(correctCountry.name));
+function removeWrongOption(correctCountry) {
+    const isReverse = settings.mode === "reverse-mc";
+    const container = isReverse ? reverseMcOptionsDiv : mcOptionsDiv;
+    const selector = isReverse ? ".reverse-mc-btn:not(:disabled)" : ".mc-btn:not(:disabled)";
+    const buttons = Array.from(container.querySelectorAll(selector));
+    const wrongButtons = buttons.filter(b => {
+        const name = isReverse ? b.dataset.name : b.textContent;
+        return normalize(name) !== normalize(correctCountry.name);
+    });
     if (wrongButtons.length === 0) return;
     const target = wrongButtons[Math.floor(Math.random() * wrongButtons.length)];
     target.disabled = true;
@@ -1578,11 +1724,15 @@ function submitAnswer(userInput, forcedCountry) {
         solveBtn.style.display = "none";
         answer.disabled = true;
     } else {
-        mcOptionsDiv.querySelectorAll(".mc-btn").forEach(btn => {
+        const isReverse = settings.mode === "reverse-mc";
+        const container = isReverse ? reverseMcOptionsDiv : mcOptionsDiv;
+        const btnSelector = isReverse ? ".reverse-mc-btn" : ".mc-btn";
+        container.querySelectorAll(btnSelector).forEach(btn => {
+            const btnName = isReverse ? btn.dataset.name : btn.textContent;
             btn.disabled = true;
-            if (normalize(btn.textContent) === normalize(c.name)) {
+            if (normalize(btnName) === normalize(c.name)) {
                 btn.classList.add("correct");
-            } else if (normalize(btn.textContent) === normalize(userInput) && !result.correct) {
+            } else if (normalize(btnName) === normalize(userInput) && !result.correct) {
                 btn.classList.add("wrong");
             }
         });
