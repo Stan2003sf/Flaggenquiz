@@ -47,6 +47,9 @@
         padding: 30px 25px;
         box-shadow: 0 6px 20px rgba(0,0,0,0.1);
     }
+    #settings.group-locked {
+        border: 3px solid #c62828;
+    }
 
     .setting-block {
         margin: 0 0 22px 0;
@@ -95,6 +98,11 @@
     }
     #startBtn:hover {
         background: #43a047;
+    }
+    #startBtn:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+        box-shadow: none;
     }
 
     #flag {
@@ -522,6 +530,8 @@
     <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:8px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
         ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
     </div>
+    <div id="groupLeaderBanner" style="display:none;background:#e3f2fd;border:2px solid #1565c0;color:#0d47a1;border-radius:8px;padding:12px;margin-bottom:18px;font-size:14px;text-align:left;"></div>
+    <div id="groupPlayerBanner" style="display:none;background:#ffebee;border:2px solid #c62828;color:#b71c1c;border-radius:8px;padding:12px;margin-bottom:18px;font-size:14px;text-align:left;"></div>
     <div class="setting-block" id="nicknameBlock">
         <label for="nickname">Dein Name</label>
         <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20" style="font-size:16px;padding:8px 10px;width:100%;box-sizing:border-box;border:2px solid #ccc;border-radius:6px;">
@@ -569,6 +579,10 @@
     <div style="text-align:center;margin-top:10px;">
         <a href="#" id="helpLink" style="font-size:12px;color:#1976d2;text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
         <a href="#" id="privacyLink" style="font-size:12px;color:#999;text-decoration:underline;">🔒 Datenschutz</a>
+    </div>
+    <div style="text-align:center;margin-top:14px;">
+        <a href="#" id="groupCreateLink" style="font-size:13px;color:#1976d2;text-decoration:underline;margin-right:14px;">🧑‍🏫 Gruppenquiz starten</a>
+        <a href="#" id="groupJoinLink" style="font-size:13px;color:#1976d2;text-decoration:underline;">🔗 Gruppenquiz beitreten</a>
     </div>
 </div>
 
@@ -659,6 +673,33 @@
     </div>
 </div>
 
+<!-- Gruppenquiz erstellen -->
+<div id="groupCreateModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="modal-close" id="groupCreateCloseBtn">✕</button>
+        <h2>🧑‍🏫 Gruppenquiz</h2>
+        <div id="groupCreateContent" style="text-align:left;font-size:14px;line-height:1.5;"></div>
+    </div>
+</div>
+
+<!-- Gruppenquiz beitreten -->
+<div id="groupJoinModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="modal-close" id="groupJoinCloseBtn">✕</button>
+        <h2>🔗 Gruppenquiz beitreten</h2>
+        <div id="groupJoinContent" style="text-align:left;font-size:14px;line-height:1.5;"></div>
+    </div>
+</div>
+
+<!-- Gruppen-Bestenliste (für die Gruppenleitung jederzeit einsehbar) -->
+<div id="groupHighscoreModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="modal-close" id="groupHighscoreCloseBtn">✕</button>
+        <h2>🏆 Gruppen-Bestenliste</h2>
+        <div id="groupHighscoreModalContent" style="text-align:left;"></div>
+    </div>
+</div>
+
 <div id="game">
     <div id="gameHeader">
         <button id="endBtn">← Hauptmenü</button>
@@ -697,10 +738,14 @@
     <h2>Runde beendet!</h2>
     <div id="finalScoreLine" style="font-size:22px;font-weight:bold;"></div>
     <div id="highscoreLine"></div>
+    <div id="groupHighscoreBox" style="display:none;margin-top:16px;"></div>
     <div id="wrongListTitle" style="font-weight:bold;margin-top:15px;"></div>
     <div id="wrongList"></div>
     <button id="restartBtn">Neue Runde</button>
 </div>
+
+<!-- QR-Code-Erzeugung für den Gruppenquiz-Beitrittslink -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <!-- Firebase: zentrale Bestenliste -->
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
@@ -1176,6 +1221,7 @@ const endBtn = document.getElementById("endBtn");
 const endScreen = document.getElementById("endScreen");
 const finalScoreLine = document.getElementById("finalScoreLine");
 const highscoreLine = document.getElementById("highscoreLine");
+const groupHighscoreBox = document.getElementById("groupHighscoreBox");
 const wrongListTitle = document.getElementById("wrongListTitle");
 const wrongListDiv = document.getElementById("wrongList");
 const restartBtn = document.getElementById("restartBtn");
@@ -1196,6 +1242,7 @@ function saveSettingsToStorage() {
             speedMode: settings.speedMode
         }));
     } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
+    syncGroupSettingsIfLeader();
 }
 
 function loadSettingsFromStorage() {
@@ -1519,6 +1566,601 @@ function getDeviceId() {
         try { localStorage.setItem(DEVICE_ID_KEY, id); } catch (e) { /* ignorieren */ }
     }
     return id;
+}
+
+// ---------- Gruppenquiz (Sitzungen für Lehrkräfte/Gruppenleiter:innen) ----------
+const GROUP_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // ohne O/0, I/1 zur besseren Lesbarkeit
+const GROUP_LEADER_SESSION_KEY = "flagquiz_leader_session"; // { code, leaderToken }
+const GROUP_PLAYER_SESSION_KEY = "flagquiz_group_session";   // { code }
+const GROUP_EXPIRY_HOURS = 12;
+
+function generateGroupCode() {
+    let code = "";
+    for (let i = 0; i < 5; i++) {
+        code += GROUP_CODE_ALPHABET[Math.floor(Math.random() * GROUP_CODE_ALPHABET.length)];
+    }
+    return code;
+}
+
+function generateLeaderToken() {
+    return (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : ("lt-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+}
+
+function getLeaderSession() {
+    try {
+        const raw = localStorage.getItem(GROUP_LEADER_SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+function saveLeaderSession(session) {
+    try { localStorage.setItem(GROUP_LEADER_SESSION_KEY, JSON.stringify(session)); } catch (e) { /* ignorieren */ }
+}
+function clearLeaderSession() {
+    try { localStorage.removeItem(GROUP_LEADER_SESSION_KEY); } catch (e) { /* ignorieren */ }
+}
+
+function getPlayerGroupSession() {
+    try {
+        const raw = localStorage.getItem(GROUP_PLAYER_SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+function savePlayerGroupSession(session) {
+    try { localStorage.setItem(GROUP_PLAYER_SESSION_KEY, JSON.stringify(session)); } catch (e) { /* ignorieren */ }
+}
+function clearPlayerGroupSession() {
+    try { localStorage.removeItem(GROUP_PLAYER_SESSION_KEY); } catch (e) { /* ignorieren */ }
+}
+
+// Räumt beiläufig alte, abgelaufene Gruppen auf. Wird beim Erstellen einer neuen Gruppe
+// angestoßen, läuft im Hintergrund und darf ruhig scheitern -- ist nur "Kür", keine Voraussetzung
+// (die eigentliche Löschung übernimmt zusätzlich eine TTL-Regel serverseitig in Firestore).
+async function cleanupExpiredGroups() {
+    if (!firestoreDb) return;
+    try {
+        const now = firebase.firestore.Timestamp.now();
+        const snap = await firestoreDb.collection("gruppen").where("expiresAt", "<", now).limit(10).get();
+        for (const doc of snap.docs) {
+            try {
+                const ergebnisseSnap = await doc.ref.collection("ergebnisse").get();
+                for (const eDoc of ergebnisseSnap.docs) {
+                    try { await eDoc.ref.delete(); } catch (e) { /* ignorieren */ }
+                }
+                const teilnehmerSnap = await doc.ref.collection("teilnehmer").get();
+                for (const tDoc of teilnehmerSnap.docs) {
+                    try { await tDoc.ref.delete(); } catch (e) { /* ignorieren */ }
+                }
+                await doc.ref.delete();
+            } catch (e) { /* evtl. schon gelöscht o. ä., ignorieren */ }
+        }
+    } catch (e) {
+        console.warn("Aufräumen alter Gruppen fehlgeschlagen (nicht kritisch).", e);
+    }
+}
+
+// Erstellt eine neue Gruppe mit zufälligem Code und geheimem Leiter-Token (nur lokal gespeichert).
+async function createGroup() {
+    if (!firestoreDb) return null;
+    cleanupExpiredGroups(); // nebenbei, nicht abwarten
+    const leaderToken = generateLeaderToken();
+    const expiresAt = firebase.firestore.Timestamp.fromMillis(Date.now() + GROUP_EXPIRY_HOURS * 3600 * 1000);
+    let code, ref, exists = true, attempts = 0;
+    do {
+        code = generateGroupCode();
+        ref = firestoreDb.collection("gruppen").doc(code);
+        const snap = await ref.get();
+        exists = snap.exists;
+        attempts++;
+    } while (exists && attempts < 5);
+
+    await ref.set({
+        leaderToken: leaderToken,
+        status: "warten",
+        round: 1,
+        createdAt: firebase.firestore.Timestamp.now(),
+        expiresAt: expiresAt
+    });
+
+    const session = { code: code, leaderToken: leaderToken };
+    saveLeaderSession(session);
+    return session;
+}
+
+// Schließt die eigene Gruppe (nur möglich mit passendem Leiter-Token) und räumt ihre Ergebnisse auf.
+async function closeGroup() {
+    const session = getLeaderSession();
+    if (!session) return;
+    if (firestoreDb) {
+        try {
+            await firestoreDb.collection("gruppen").doc(session.code).update({
+                leaderToken: session.leaderToken,
+                status: "beendet",
+                expiresAt: firebase.firestore.Timestamp.now()
+            });
+            // Ergebnisse und Teilnehmerliste der Gruppe löschen (jetzt erlaubt, da status == 'beendet')
+            const ergebnisseSnap = await firestoreDb.collection("gruppen").doc(session.code).collection("ergebnisse").get();
+            for (const eDoc of ergebnisseSnap.docs) {
+                try { await eDoc.ref.delete(); } catch (e) { /* ignorieren */ }
+            }
+            const teilnehmerSnap = await firestoreDb.collection("gruppen").doc(session.code).collection("teilnehmer").get();
+            for (const tDoc of teilnehmerSnap.docs) {
+                try { await tDoc.ref.delete(); } catch (e) { /* ignorieren */ }
+            }
+        } catch (e) {
+            console.warn("Gruppe konnte nicht sauber geschlossen werden, wird trotzdem lokal beendet.", e);
+        }
+    }
+    clearLeaderSession();
+}
+
+// Prüft einen eingegebenen Code und tritt der Gruppe bei, falls sie existiert und aktiv ist.
+async function joinGroupByCode(code) {
+    if (!firestoreDb) return { ok: false, reason: "offline" };
+    const cleanCode = (code || "").trim().toUpperCase();
+    if (cleanCode.length !== 5) return { ok: false, reason: "format" };
+    try {
+        const snap = await firestoreDb.collection("gruppen").doc(cleanCode).get();
+        if (!snap.exists) return { ok: false, reason: "not_found" };
+        const data = snap.data();
+        const now = Date.now();
+        const expiresMs = (data.expiresAt && data.expiresAt.toMillis) ? data.expiresAt.toMillis() : 0;
+        if (data.status === "beendet" || expiresMs < now) return { ok: false, reason: "closed" };
+        savePlayerGroupSession({ code: cleanCode });
+        return { ok: true, code: cleanCode };
+    } catch (e) {
+        console.warn("Beitritt zum Gruppenquiz fehlgeschlagen.", e);
+        return { ok: false, reason: "error" };
+    }
+}
+
+// Sendet die aktuellen Einstellungen an Firestore, falls dieses Gerät gerade eine Gruppe leitet.
+// Leicht entprellt, damit schnelles Klicken (z. B. mehrere Kontinente hintereinander) nicht zu viele Schreibzugriffe auslöst.
+let groupSettingsSyncTimer = null;
+function syncGroupSettingsIfLeader() {
+    const session = getLeaderSession();
+    if (!session || !firestoreDb) return;
+    clearTimeout(groupSettingsSyncTimer);
+    groupSettingsSyncTimer = setTimeout(async () => {
+        try {
+            await firestoreDb.collection("gruppen").doc(session.code).update({
+                leaderToken: session.leaderToken,
+                settings: {
+                    continents: settings.continents,
+                    length: settings.length,
+                    mode: settings.mode,
+                    learningMode: settings.learningMode,
+                    proMode: settings.proMode,
+                    speedMode: settings.speedMode
+                }
+            });
+        } catch (e) {
+            console.warn("Einstellungen konnten nicht an die Gruppe gesendet werden.", e);
+        }
+    }, 400);
+}
+
+// Gibt das Spiel für die Mitspieler:innen der eigenen Gruppe frei (Status "warten" -> "laeuft").
+async function releaseGroupForPlaying() {
+    const session = getLeaderSession();
+    if (!session || !firestoreDb) return;
+    try {
+        await firestoreDb.collection("gruppen").doc(session.code).update({
+            leaderToken: session.leaderToken,
+            status: "laeuft"
+        });
+    } catch (e) {
+        console.warn("Spiel konnte nicht freigegeben werden.", e);
+        alert("Freigabe fehlgeschlagen — bitte Internetverbindung prüfen und erneut versuchen.");
+    }
+}
+
+// Startet eine neue Runde für die Gruppe: Rundenzähler erhöhen, damit eine frische
+// rundenbezogene Bestenliste beginnt (die Gesamtwertung über alle Runden bleibt erhalten).
+async function advanceGroupRound(session, currentRound) {
+    if (!firestoreDb) return;
+    try {
+        await firestoreDb.collection("gruppen").doc(session.code).update({
+            leaderToken: session.leaderToken,
+            status: "laeuft",
+            round: currentRound + 1
+        });
+    } catch (e) {
+        console.warn("Neue Runde konnte nicht gestartet werden.", e);
+        alert("Neue Runde konnte nicht gestartet werden — bitte Internetverbindung prüfen.");
+    }
+}
+
+// Aktuelle Rundennummer der Gruppe, wird über den Live-Listener der Mitspieler:innen aktuell gehalten.
+let currentGroupRound = 1;
+
+// Speichert das eigene Ergebnis unter der eigenen Geräte-ID in der Gruppe. Pro Runde zählt nur
+// der eigene Bestwert (mehrfaches Spielen derselben Runde verbessert höchstens den Eintrag).
+async function submitGroupResult(playerName, roundScore) {
+    const playerSession = getPlayerGroupSession();
+    if (!playerSession || !firestoreDb) return;
+    const code = playerSession.code;
+    const deviceId = getDeviceId();
+    const ref = firestoreDb.collection("gruppen").doc(code).collection("ergebnisse").doc(deviceId);
+    try {
+        const snap = await ref.get();
+        const existing = snap.exists ? snap.data() : {};
+        const roundScores = Object.assign({}, existing.roundScores || {});
+        const roundKey = String(currentGroupRound);
+        if (!(roundKey in roundScores) || roundScore > roundScores[roundKey]) {
+            roundScores[roundKey] = roundScore;
+        }
+        await ref.set({
+            name: playerName,
+            roundScores: roundScores,
+            updatedAt: firebase.firestore.Timestamp.now()
+        });
+    } catch (e) {
+        console.warn("Gruppenergebnis konnte nicht gespeichert werden.", e);
+    }
+}
+
+// Baut die HTML-Ansicht der Gruppen-Bestenliste (Runde + Gesamtwertung) aus den Rohdaten.
+function buildGroupHighscoreHtml(docsData, round) {
+    const roundList = [];
+    const totalList = [];
+    docsData.forEach(d => {
+        const name = d.name || "Anonym";
+        const rs = d.roundScores || {};
+        const roundScore = rs[String(round)];
+        if (typeof roundScore === "number") roundList.push({ name, score: roundScore });
+        const total = Object.values(rs).reduce((sum, v) => sum + (typeof v === "number" ? v : 0), 0);
+        if (total > 0) totalList.push({ name, score: total });
+    });
+    roundList.sort((a, b) => b.score - a.score);
+    totalList.sort((a, b) => b.score - a.score);
+
+    function renderRows(rows) {
+        if (rows.length === 0) return '<div style="color:#666;font-size:13px;padding:6px 0;">Noch keine Einträge.</div>';
+        const medals = ["🥇", "🥈", "🥉"];
+        return '<div class="hs-row-list">' + rows.map((e, i) => `
+            <div class="hs-row rank-${i + 1}">
+                <div class="hs-medal">${i < 3 ? medals[i] : (i + 1) + "."}</div>
+                <div class="hs-row-name">${escapeHtml(e.name)}</div>
+                <div class="hs-row-score">${e.score} Pkt.</div>
+            </div>`).join("") + '</div>';
+    }
+
+    return `
+        <div class="highscore-card" style="margin-bottom:14px;">
+            <div class="hs-card-title">🚩 Diese Runde (Runde ${round})</div>
+            ${renderRows(roundList)}
+        </div>
+        <div class="highscore-card">
+            <div class="hs-card-title">🏆 Gesamtwertung (alle Runden)</div>
+            ${renderRows(totalList)}
+        </div>`;
+}
+
+// Zeigt die Gruppen-Bestenliste live in einem Container an (endScreen-Box oder Modal).
+// getRound ist eine Funktion, damit bei Rundenwechseln immer die aktuelle Nummer verwendet wird.
+let groupHighscoreUnsub = null;
+function startGroupHighscoreLive(containerEl, code, getRound) {
+    stopGroupHighscoreLive();
+    if (!firestoreDb) return;
+    containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Gruppen-Bestenliste wird geladen …</div></div>';
+    groupHighscoreUnsub = firestoreDb.collection("gruppen").doc(code).collection("ergebnisse").onSnapshot(
+        (snap) => {
+            const docsData = snap.docs.map(d => d.data());
+            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound());
+        },
+        (e) => {
+            console.warn("Gruppen-Bestenliste nicht erreichbar.", e);
+            containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">⚠️</span><div>Gruppen-Bestenliste momentan nicht erreichbar.</div></div>';
+        }
+    );
+}
+function stopGroupHighscoreLive() {
+    if (groupHighscoreUnsub) { groupHighscoreUnsub(); groupHighscoreUnsub = null; }
+}
+
+// Zeigt die Teilnehmer:innen-Liste der Gruppe live in der Leiter-Ansicht an (Nummer + Name),
+// inkl. grünem Häkchen sobald jemand die aktuelle Runde beendet hat.
+let groupRosterUnsub = null;
+let groupRosterErgebnisseUnsub = null;
+let groupRosterTeilnehmerDocs = [];
+let groupRosterErgebnisseDocs = [];
+let groupRosterGetRound = () => 1;
+let groupRosterContainerEl = null;
+
+function renderGroupRosterCombined() {
+    if (!groupRosterContainerEl) return;
+    const round = groupRosterGetRound();
+    const finishedIds = new Set();
+    groupRosterErgebnisseDocs.forEach(doc => {
+        const rs = doc.data().roundScores || {};
+        if (String(round) in rs) finishedIds.add(doc.id);
+    });
+    if (groupRosterTeilnehmerDocs.length === 0) {
+        groupRosterContainerEl.innerHTML = '<div style="font-size:13px;color:#666;">👥 Noch niemand beigetreten.</div>';
+        return;
+    }
+    const rows = groupRosterTeilnehmerDocs.map((d, i) =>
+        (i + 1) + ". " + escapeHtml(d.data().name || "Anonym") +
+        (finishedIds.has(d.id) ? ' <span style="color:#2e7d32;">✅</span>' : "")
+    ).join("<br>");
+    groupRosterContainerEl.innerHTML =
+        '<div style="font-size:13px;font-weight:bold;margin-bottom:6px;">👥 ' + groupRosterTeilnehmerDocs.length +
+        ' beigetreten · ✅ ' + finishedIds.size + ' fertig (Runde ' + round + ')</div>' +
+        '<div style="font-size:13px;line-height:1.7;max-height:160px;overflow-y:auto;">' + rows + '</div>';
+}
+
+function startGroupRosterLive(code, containerEl, getRound) {
+    if (!firestoreDb || !containerEl) return;
+    groupRosterContainerEl = containerEl;
+    groupRosterGetRound = getRound || (() => 1);
+    groupRosterTeilnehmerDocs = [];
+    groupRosterErgebnisseDocs = [];
+    containerEl.innerHTML = '<div style="font-size:13px;color:#666;">Lade Teilnehmer:innen …</div>';
+
+    groupRosterUnsub = firestoreDb.collection("gruppen").doc(code).collection("teilnehmer")
+        .orderBy("joinedAt", "asc")
+        .onSnapshot((snap) => {
+            groupRosterTeilnehmerDocs = snap.docs;
+            renderGroupRosterCombined();
+        }, (e) => {
+            console.warn("Teilnehmerliste nicht erreichbar.", e);
+            containerEl.innerHTML = '<div style="font-size:13px;color:#c62828;">⚠️ Teilnehmerliste momentan nicht erreichbar.</div>';
+        });
+
+    groupRosterErgebnisseUnsub = firestoreDb.collection("gruppen").doc(code).collection("ergebnisse")
+        .onSnapshot((snap) => {
+            groupRosterErgebnisseDocs = snap.docs;
+            renderGroupRosterCombined();
+        }, (e) => {
+            console.warn("Fertig-Status für Teilnehmerliste nicht erreichbar.", e);
+        });
+}
+
+function stopGroupRosterLive() {
+    if (groupRosterUnsub) { groupRosterUnsub(); groupRosterUnsub = null; }
+    if (groupRosterErgebnisseUnsub) { groupRosterErgebnisseUnsub(); groupRosterErgebnisseUnsub = null; }
+    groupRosterContainerEl = null;
+    groupRosterTeilnehmerDocs = [];
+    groupRosterErgebnisseDocs = [];
+}
+
+// Sperrt "Gruppenquiz starten" und "Gruppenquiz beitreten", solange dieses Gerät bereits eine
+// Gruppe leitet oder einer Gruppe beigetreten ist (verhindert widersprüchliche Doppelrollen).
+// Nutzt getElementById direkt, damit die Funktion unabhängig von der Deklarationsreihenfolge
+// der const-Referenzen weiter unten im Skript sicher aufgerufen werden kann.
+function updateGroupEntryLinksState() {
+    const locked = !!getLeaderSession() || isGroupPlayer;
+    ["groupCreateLink", "groupJoinLink"].forEach(id => {
+        const link = document.getElementById(id);
+        if (!link) return;
+        link.style.pointerEvents = locked ? "none" : "";
+        link.style.opacity = locked ? "0.4" : "";
+        link.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst verlassen bzw. schließen" : "";
+    });
+}
+
+// ---------- Gruppenquiz: Sperr-UI für Mitspieler:innen ----------
+let isGroupPlayer = false;
+let groupPlayerUnsub = null;
+
+function setGroupPlayerLockUI(locked) {
+    [continentButtons, lengthButtons, modeButtons, learningModeToggle, proModeToggle, speedModeToggle].forEach(el => {
+        if (!el) return;
+        el.style.pointerEvents = locked ? "none" : "";
+        el.style.opacity = locked ? "0.5" : "";
+    });
+    settingsDiv.classList.toggle("group-locked", locked);
+}
+
+// Übernimmt die von der Gruppenleitung gewählten Einstellungen und aktualisiert die (gesperrte) Ansicht.
+function applyGroupSettingsFromDoc(data) {
+    const s = data && data.settings;
+    if (!s) return;
+    if (Array.isArray(s.continents)) {
+        const valid = s.continents.filter(c => continents.includes(c));
+        if (valid.length > 0) settings.continents = valid;
+    }
+    if (typeof s.length === "number" && [10, 20, 30, 50].includes(s.length)) settings.length = s.length;
+    if (["mc", "reverse-mc", "text", "mixed"].includes(s.mode)) settings.mode = s.mode;
+    if (typeof s.learningMode === "boolean") settings.learningMode = s.learningMode;
+    if (typeof s.proMode === "boolean") settings.proMode = s.proMode;
+    if (typeof s.speedMode === "boolean") settings.speedMode = s.speedMode;
+    buildSettingsScreen();
+    setGroupPlayerLockUI(true); // buildSettingsScreen setzt Handler neu, Sperre danach erneut anwenden
+}
+
+function renderGroupPlayerBanner(code, status) {
+    const groupPlayerBanner = document.getElementById("groupPlayerBanner");
+    groupPlayerBanner.style.display = "block";
+    groupPlayerBanner.innerHTML =
+        "<strong>🚩 Gruppenquiz — Code: " + escapeHtml(code) + "</strong><br>" +
+        "Die Einstellungen werden von deiner Gruppenleitung verwaltet." +
+        (status === "laeuft"
+            ? " Ihr könnt jetzt starten!"
+            : " Bitte warten, bis die Gruppenleitung das Spiel freigibt …") +
+        "<br><a href=\"#\" id=\"groupLeaveLink\" style=\"font-size:13px;color:#b71c1c;\">Gruppe verlassen</a>";
+    document.getElementById("groupLeaveLink").onclick = function (e) {
+        e.preventDefault();
+        leaveGroupPlayerMode(false);
+    };
+}
+
+// Trägt dieses Gerät als Teilnehmer:in in der Gruppe ein (Name + Beitrittszeitpunkt), damit die
+// Gruppenleitung live sehen kann, wer schon da ist. Läuft nebenbei, blockiert die UI nicht.
+async function registerAsGroupParticipant(code) {
+    if (!firestoreDb) return;
+    const deviceId = getDeviceId();
+    const rawName = nicknameInput.value.trim();
+    const name = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
+    const ref = firestoreDb.collection("gruppen").doc(code).collection("teilnehmer").doc(deviceId);
+    try {
+        const snap = await ref.get();
+        if (snap.exists) {
+            await ref.update({ name: name });
+        } else {
+            await ref.set({ name: name, joinedAt: firebase.firestore.Timestamp.now() });
+        }
+    } catch (e) {
+        console.warn("Konnte nicht als Teilnehmer:in registriert werden.", e);
+    }
+}
+
+// Trägt dieses Gerät wieder aus der Teilnehmer:innen-Liste aus (z. B. beim freiwilligen Verlassen).
+async function unregisterGroupParticipant(code) {
+    if (!firestoreDb) return;
+    try {
+        await firestoreDb.collection("gruppen").doc(code).collection("teilnehmer").doc(getDeviceId()).delete();
+    } catch (e) { /* nicht kritisch, Eintrag verschwindet spätestens beim Aufräumen */ }
+}
+
+function enterGroupPlayerMode(code) {
+    isGroupPlayer = true;
+    updateGroupEntryLinksState();
+    registerAsGroupParticipant(code);
+    startBtn.disabled = true;
+    startBtn.textContent = "Warte auf Freigabe …";
+    setGroupPlayerLockUI(true);
+    renderGroupPlayerBanner(code, "warten");
+
+    if (groupPlayerUnsub) groupPlayerUnsub();
+    groupPlayerUnsub = firestoreDb.collection("gruppen").doc(code).onSnapshot(
+        (snap) => {
+            if (!snap.exists) { leaveGroupPlayerMode(true); return; }
+            const data = snap.data();
+            const now = Date.now();
+            const expiresMs = (data.expiresAt && data.expiresAt.toMillis) ? data.expiresAt.toMillis() : 0;
+            if (data.status === "beendet" || expiresMs < now) { leaveGroupPlayerMode(true); return; }
+
+            applyGroupSettingsFromDoc(data);
+            currentGroupRound = data.round || 1;
+            renderGroupPlayerBanner(code, data.status);
+            startBtn.disabled = data.status !== "laeuft";
+            startBtn.textContent = data.status === "laeuft" ? "Start" : "Warte auf Freigabe …";
+        },
+        (e) => {
+            console.warn("Verbindung zur Gruppe verloren.", e);
+        }
+    );
+}
+
+function leaveGroupPlayerMode(closedByLeader) {
+    const session = getPlayerGroupSession();
+    if (groupPlayerUnsub) { groupPlayerUnsub(); groupPlayerUnsub = null; }
+    stopGroupHighscoreLive();
+    isGroupPlayer = false;
+    updateGroupEntryLinksState();
+    clearPlayerGroupSession();
+    if (!closedByLeader && session) unregisterGroupParticipant(session.code);
+    setGroupPlayerLockUI(false);
+    document.getElementById("groupPlayerBanner").style.display = "none";
+    startBtn.disabled = false;
+    startBtn.textContent = "Start";
+    if (closedByLeader) {
+        alert("Die Gruppe wurde beendet oder ist abgelaufen. Du spielst jetzt wieder mit deinen eigenen Einstellungen.");
+    }
+}
+
+// Sperrt den Lernmodus-Schalter, solange eine Gruppe geleitet wird: Im Lernmodus gibt es
+// grundsätzlich keinen Highscore-Eintrag — das würde sonst die Gruppen-Bestenliste leer lassen.
+function setLeaderLearningModeLock(locked) {
+    if (!learningModeToggle) return;
+    learningModeToggle.style.pointerEvents = locked ? "none" : "";
+    learningModeToggle.style.opacity = locked ? "0.4" : "";
+    learningModeToggle.title = locked ? "Im Gruppenquiz deaktiviert — sonst gäbe es keine Gruppen-Bestenliste" : "";
+    if (locked && settings.learningMode) {
+        settings.learningMode = false;
+        buildSettingsScreen();
+        saveSettingsToStorage();
+    }
+}
+
+// ---------- Gruppenquiz: Leiter-Banner ----------
+async function renderGroupLeaderBanner() {
+    const groupLeaderBanner = document.getElementById("groupLeaderBanner");
+    const session = getLeaderSession();
+    stopGroupRosterLive();
+    updateGroupEntryLinksState();
+    if (!session) {
+        groupLeaderBanner.style.display = "none";
+        setLeaderLearningModeLock(false);
+        if (!isGroupPlayer) {
+            startBtn.disabled = false;
+            startBtn.textContent = "Start";
+        }
+        return;
+    }
+    groupLeaderBanner.style.display = "block";
+    setLeaderLearningModeLock(true);
+    groupLeaderBanner.innerHTML = '<div style="font-size:13px;color:#666;">Gruppendaten werden geladen …</div>';
+    startBtn.disabled = true;
+    startBtn.textContent = "Start (siehe „Runde freigeben“ oben)";
+
+    let round = 1, status = "warten";
+    if (firestoreDb) {
+        try {
+            const snap = await firestoreDb.collection("gruppen").doc(session.code).get();
+            if (snap.exists) {
+                round = snap.data().round || 1;
+                status = snap.data().status || "warten";
+            }
+        } catch (e) { /* Anzeige bleibt bei Standardwerten, nicht kritisch */ }
+    }
+    // Session könnte inzwischen (z. B. durch Schließen in einem anderen Tab) ungültig geworden sein
+    if (!getLeaderSession()) {
+        groupLeaderBanner.style.display = "none";
+        stopGroupRosterLive();
+        setLeaderLearningModeLock(false);
+        if (!isGroupPlayer) {
+            startBtn.disabled = false;
+            startBtn.textContent = "Start";
+        }
+        return;
+    }
+
+    const releaseLabel = status === "laeuft"
+        ? "🔄 Nächste Runde starten (aktuell: Runde " + round + ")"
+        : "▶️ Spiel freigeben";
+
+    groupLeaderBanner.innerHTML =
+        "<strong>🧑‍🏫 Du leitest ein Gruppenquiz — Code: " + escapeHtml(session.code) + "</strong><br>" +
+        "Einstellungen unten werden live an die Mitspieler:innen übertragen.<br>" +
+        "<div style=\"margin-top:8px;\">" +
+        "<button id=\"groupShowQrBtn\" style=\"font-size:13px;padding:6px 10px;margin-right:8px;margin-bottom:6px;\">📱 Code/QR anzeigen</button>" +
+        "<button id=\"groupReleaseBtn\" style=\"font-size:13px;padding:6px 10px;background:#2e7d32;color:#fff;margin-right:8px;margin-bottom:6px;\">" + releaseLabel + "</button>" +
+        "<button id=\"groupShowScoresBtn\" style=\"font-size:13px;padding:6px 10px;margin-right:8px;margin-bottom:6px;\">🏆 Bestenliste</button>" +
+        "<button id=\"groupLeaderCloseBtn\" style=\"font-size:13px;padding:6px 10px;background:#c62828;color:#fff;margin-bottom:6px;\">Gruppe schließen</button>" +
+        "</div>" +
+        "<div id=\"groupRosterList\" style=\"margin-top:10px;padding-top:10px;border-top:1px solid #90caf9;\"></div>";
+
+    document.getElementById("groupShowQrBtn").onclick = function () {
+        renderGroupCreateModal();
+        groupCreateModal.classList.add("open");
+    };
+    document.getElementById("groupReleaseBtn").onclick = async function () {
+        this.disabled = true;
+        this.textContent = status === "laeuft" ? "Wird gestartet …" : "Wird freigegeben …";
+        if (status === "laeuft") {
+            await advanceGroupRound(session, round);
+        } else {
+            await releaseGroupForPlaying();
+        }
+        renderGroupLeaderBanner();
+    };
+    document.getElementById("groupShowScoresBtn").onclick = function () {
+        groupHighscoreModal.classList.add("open");
+        startGroupHighscoreLive(groupHighscoreModalContent, session.code, () => round);
+    };
+    document.getElementById("groupLeaderCloseBtn").onclick = async function () {
+        const sure = confirm("Gruppe wirklich schließen? Alle Mitspieler:innen werden auf ihre eigenen Einstellungen zurückgesetzt.");
+        if (!sure) return;
+        this.disabled = true;
+        await closeGroup();
+        renderGroupLeaderBanner();
+    };
+
+    startGroupRosterLive(session.code, document.getElementById("groupRosterList"), () => round);
 }
 
 const STATS_KEY = "flagquiz_stats";
@@ -2017,10 +2659,18 @@ async function showEndScreen() {
     game.style.display = "none";
     titleBlock.style.display = "block";
     endScreen.style.display = "block";
+    stopGroupHighscoreLive();
+    groupHighscoreBox.style.display = "none";
+    groupHighscoreBox.innerHTML = "";
 
     if (settings.learningMode) {
         finalScoreLine.innerHTML = "🎓 Lernrunde abgeschlossen!";
         highscoreLine.innerHTML = "Im Lernmodus werden keine Punkte gezählt und kein Highscore-Eintrag gespeichert — nur zum Üben.";
+    } else if (isGroupPlayer) {
+        // Im Gruppenmodus zählt nur die Gruppen-Bestenliste weiter unten — die globale
+        // Bestenliste wird hier bewusst weder abgerufen noch angezeigt, um nicht zu verwirren.
+        finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+        highscoreLine.innerHTML = "🚩 Deine Punkte fließen in die Gruppen-Bestenliste weiter unten ein.";
     } else {
         finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
         highscoreLine.innerHTML = "Bestenliste wird aktualisiert …";
@@ -2085,6 +2735,18 @@ async function showEndScreen() {
         }
     }
 
+    // Gruppenquiz: eigenes Ergebnis einsenden und Live-Bestenliste der Gruppe anzeigen
+    if (isGroupPlayer && !settings.learningMode) {
+        const playerSession = getPlayerGroupSession();
+        if (playerSession) {
+            const rawGroupName = nicknameInput.value.trim();
+            const groupPlayerName = (!rawGroupName || containsBlockedContent(rawGroupName)) ? generateFantasyName() : rawGroupName;
+            await submitGroupResult(groupPlayerName, score);
+            groupHighscoreBox.style.display = "block";
+            startGroupHighscoreLive(groupHighscoreBox, playerSession.code, () => currentGroupRound);
+        }
+    }
+
     if (wrongAnswers.length === 0) {
         wrongListTitle.innerHTML = "Alles richtig — stark! 🎉";
         wrongListDiv.innerHTML = "";
@@ -2101,6 +2763,7 @@ endBtn.onclick = function () {
     if (!sure) return;
     flagLoadToken++;
     stopTimeBonusBar();
+    stopGroupHighscoreLive();
     game.style.display = "none";
     endScreen.style.display = "none";
     titleBlock.style.display = "block";
@@ -2111,6 +2774,7 @@ endBtn.onclick = function () {
 };
 
 restartBtn.onclick = function () {
+    stopGroupHighscoreLive();
     endScreen.style.display = "none";
     settingsDiv.style.display = "block";
     updateLengthHint();
@@ -2127,8 +2791,18 @@ if (!savedNickname || containsBlockedContent(savedNickname)) {
 }
 nicknameInput.value = savedNickname;
 
+let nicknameGroupSyncTimer = null;
 nicknameInput.addEventListener("input", function () {
     localStorage.setItem("flagquiz_nickname", nicknameInput.value.trim());
+    // Im Gruppenmodus: geänderten Namen (entprellt) auch in der Teilnehmerliste aktualisieren,
+    // damit die Gruppenleitung immer den aktuellen Namen sieht.
+    if (isGroupPlayer) {
+        clearTimeout(nicknameGroupSyncTimer);
+        nicknameGroupSyncTimer = setTimeout(() => {
+            const session = getPlayerGroupSession();
+            if (session) registerAsGroupParticipant(session.code);
+        }, 800);
+    }
 });
 
 nicknameInput.addEventListener("blur", function () {
@@ -2144,6 +2818,15 @@ nicknameInput.addEventListener("blur", function () {
 loadSettingsFromStorage();
 buildSettingsScreen();
 settingsDiv.style.display = "block";
+
+// ---------- Gruppenquiz: Status beim Laden wiederherstellen ----------
+renderGroupLeaderBanner();
+(function restoreGroupPlayerSession() {
+    const playerSession = getPlayerGroupSession();
+    if (playerSession && playerSession.code && firestoreDb) {
+        enterGroupPlayerMode(playerSession.code);
+    }
+})();
 
 // ---------- Verbindungs-Check auf der Startseite ----------
 const offlineWarning = document.getElementById("offlineWarning");
@@ -2227,6 +2910,143 @@ helpCloseBtn.onclick = function () {
 helpModal.onclick = function (e) {
     if (e.target === helpModal) helpModal.classList.remove("open");
 };
+
+// ---------- Gruppenquiz: Erstellen ----------
+const groupCreateLink = document.getElementById("groupCreateLink");
+const groupCreateModal = document.getElementById("groupCreateModal");
+const groupCreateCloseBtn = document.getElementById("groupCreateCloseBtn");
+const groupCreateContent = document.getElementById("groupCreateContent");
+
+function renderGroupCreateModal() {
+    const session = getLeaderSession();
+    if (session) {
+        groupCreateContent.innerHTML =
+            "<p>Deine Gruppe ist aktiv. Code an die Mitspieler:innen weitergeben oder den QR-Code scannen lassen:</p>" +
+            "<div style=\"font-size:32px;font-weight:bold;letter-spacing:5px;text-align:center;margin:12px 0;\">" + escapeHtml(session.code) + "</div>" +
+            "<div id=\"groupQrContainer\" style=\"display:flex;justify-content:center;margin:10px 0;\"></div>" +
+            "<p style=\"font-size:13px;color:#666;\">Die Warteansicht mit den Live-Einstellungen für die Gruppe folgt in einem der nächsten Ausbauschritte.</p>" +
+            "<div style=\"text-align:center;margin-top:10px;\"><button id=\"groupCloseBtn\" style=\"background:#c62828;color:#fff;\">Gruppe schließen</button></div>";
+        const qrDiv = document.getElementById("groupQrContainer");
+        const joinUrl = location.origin + location.pathname + "?gruppe=" + session.code;
+        if (window.QRCode) {
+            new QRCode(qrDiv, { text: joinUrl, width: 160, height: 160 });
+        }
+        document.getElementById("groupCloseBtn").onclick = async function () {
+            this.disabled = true;
+            this.textContent = "Wird geschlossen…";
+            await closeGroup();
+            renderGroupCreateModal();
+        };
+    } else {
+        groupCreateContent.innerHTML =
+            "<p>Starte ein Gruppenquiz für deine Klasse oder Gruppe. Du erhältst einen Code, mit dem die Mitspieler:innen beitreten können.</p>" +
+            "<div style=\"text-align:center;margin-top:10px;\"><button id=\"groupCreateBtn\">Gruppe erstellen</button></div>";
+        document.getElementById("groupCreateBtn").onclick = async function () {
+            this.disabled = true;
+            this.textContent = "Wird erstellt…";
+            const newSession = await createGroup();
+            if (newSession) {
+                renderGroupCreateModal();
+                renderGroupLeaderBanner();
+            } else {
+                this.disabled = false;
+                this.textContent = "Gruppe erstellen";
+                alert("Für ein Gruppenquiz wird eine Internetverbindung benötigt.");
+            }
+        };
+    }
+}
+
+groupCreateLink.onclick = function (e) {
+    e.preventDefault();
+    if (getLeaderSession() || isGroupPlayer) return;
+    renderGroupCreateModal();
+    groupCreateModal.classList.add("open");
+};
+groupCreateCloseBtn.onclick = function () {
+    groupCreateModal.classList.remove("open");
+};
+groupCreateModal.onclick = function (e) {
+    if (e.target === groupCreateModal) groupCreateModal.classList.remove("open");
+};
+
+// ---------- Gruppenquiz: Beitreten ----------
+const groupJoinLink = document.getElementById("groupJoinLink");
+const groupJoinModal = document.getElementById("groupJoinModal");
+const groupJoinCloseBtn = document.getElementById("groupJoinCloseBtn");
+const groupJoinContent = document.getElementById("groupJoinContent");
+
+function renderGroupJoinModal(prefillCode) {
+    groupJoinContent.innerHTML =
+        "<p>Code von deiner Lehrkraft bzw. Gruppenleitung eingeben:</p>" +
+        "<div style=\"text-align:center;\">" +
+        "<input type=\"text\" id=\"groupCodeInput\" maxlength=\"5\" placeholder=\"z. B. A7K3M\" style=\"font-size:20px;letter-spacing:3px;text-align:center;text-transform:uppercase;padding:8px;width:140px;border:2px solid #ccc;border-radius:6px;\">" +
+        "<br><br><button id=\"groupJoinBtn\">Beitreten</button>" +
+        "<div id=\"groupJoinFeedback\" style=\"margin-top:10px;font-size:14px;\"></div></div>";
+    const input = document.getElementById("groupCodeInput");
+    if (prefillCode) input.value = prefillCode;
+    input.addEventListener("input", () => { input.value = input.value.toUpperCase(); });
+
+    document.getElementById("groupJoinBtn").onclick = async function () {
+        const feedback = document.getElementById("groupJoinFeedback");
+        this.disabled = true;
+        feedback.style.color = "#666";
+        feedback.textContent = "Prüfe Code…";
+        const result = await joinGroupByCode(input.value);
+        this.disabled = false;
+        if (result.ok) {
+            groupJoinModal.classList.remove("open");
+            enterGroupPlayerMode(result.code);
+        } else {
+            let msg = "Code nicht gefunden oder Gruppe bereits geschlossen.";
+            if (result.reason === "offline") msg = "Für den Beitritt wird eine Internetverbindung benötigt.";
+            if (result.reason === "format") msg = "Bitte den 5-stelligen Code vollständig eingeben.";
+            feedback.style.color = "#c62828";
+            feedback.textContent = "⚠️ " + msg;
+        }
+    };
+    if (prefillCode) document.getElementById("groupJoinBtn").click();
+}
+
+groupJoinLink.onclick = function (e) {
+    e.preventDefault();
+    if (getLeaderSession() || isGroupPlayer) return;
+    renderGroupJoinModal();
+    groupJoinModal.classList.add("open");
+};
+groupJoinCloseBtn.onclick = function () {
+    groupJoinModal.classList.remove("open");
+};
+groupJoinModal.onclick = function (e) {
+    if (e.target === groupJoinModal) groupJoinModal.classList.remove("open");
+};
+
+// ---------- Gruppenquiz: Bestenliste (Modal für die Gruppenleitung) ----------
+const groupHighscoreModal = document.getElementById("groupHighscoreModal");
+const groupHighscoreModalContent = document.getElementById("groupHighscoreModalContent");
+const groupHighscoreCloseBtn = document.getElementById("groupHighscoreCloseBtn");
+groupHighscoreCloseBtn.onclick = function () {
+    groupHighscoreModal.classList.remove("open");
+    stopGroupHighscoreLive();
+};
+groupHighscoreModal.onclick = function (e) {
+    if (e.target === groupHighscoreModal) {
+        groupHighscoreModal.classList.remove("open");
+        stopGroupHighscoreLive();
+    }
+};
+
+// Automatischer Beitritt über den QR-Code-Link (?gruppe=CODE in der URL)
+(function checkGroupUrlParam() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("gruppe");
+    if (code) {
+        renderGroupJoinModal(code.toUpperCase());
+        groupJoinModal.classList.add("open");
+        // Parameter aus der URL entfernen, damit ein Neuladen nicht erneut automatisch beitritt
+        history.replaceState({}, "", location.pathname);
+    }
+})();
 
 // ---------- PWA: Service Worker registrieren ----------
 if ("serviceWorker" in navigator) {

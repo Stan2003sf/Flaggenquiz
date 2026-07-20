@@ -24,6 +24,16 @@ Ein Browser-Quiz zum Erraten von Länderflaggen — mit Mehrfachauswahl der Kont
 - **🎓 Lernmodus** — ohne Zeitdruck und ohne Highscore-Eintrag, nur zum Üben
 - **🎯 Profimodus** — verschärft die Regeln: strenge 1-Zeichen-Tippfehlertoleranz im Textmodus, und bei beiden Multiple-Choice-Varianten stammen falsche Antworten ausschließlich aus den gewählten Kontinenten
 
+### 🧑‍🏫 Gruppenquiz (z. B. für Schulklassen)
+- **Gruppe erstellen**: Gruppenleiter:in (z. B. Lehrkraft) erhält einen kurzen 5-stelligen Code plus QR-Code zum Beitreten
+- **Beitreten per Code oder QR-Scan** (`?gruppe=CODE` in der URL öffnet den Beitritt automatisch)
+- **Live-Einstellungen**: Die Gruppenleitung wählt Kontinente, Rundenlänge und Modus zentral — Änderungen erscheinen bei allen Beigetretenen in Echtzeit; deren eigene Einstellungs-Buttons sind gesperrt (roter Rahmen + Hinweis)
+- **Freigabe-Mechanik**: Der Start-Button der Mitspieler:innen bleibt gesperrt, bis die Leitung "Spiel freigeben" klickt; weitere Runden per "Nächste Runde starten"
+- **Live-Teilnehmerliste** im Leiter-Banner (Nummer + Name), damit vor dem Start sichtbar ist, wer schon da ist — Namensänderungen der Spieler:innen werden live übernommen
+- **Gruppen-Bestenliste** (getrennt von der globalen): pro Runde und als Gesamtwertung über alle Runden, live aktualisiert am Rundenende und jederzeit für die Leitung einsehbar
+- **Gruppe schließen** löscht alle Gruppendaten (Sitzung, Ergebnisse, Teilnehmerliste); zusätzlich laufen Gruppen nach 12 Stunden automatisch ab und werden beim nächsten Erstellen einer neuen Gruppe beiläufig mit aufgeräumt
+- Absicherung über einen geheimen, nur lokal auf dem Leiter-Gerät gespeicherten Leiter-Schlüssel (nur damit sind Einstellungsänderungen, Freigabe und Schließen möglich)
+
 ### Zentrale Bestenliste (Firebase Firestore)
 - **Top 50** pro Kontinent-/Längen-/Modus-Kombination, mit Medaillen 🥇🥈🥉 für die ersten drei Plätze
 - **Nur der persönliche Bestwert zählt** — schlechtere Wiederholungen erzeugen keinen neuen Eintrag, sondern werden ignoriert; ein neuer Bestwert ersetzt automatisch den alten
@@ -84,12 +94,39 @@ Wer das Projekt forkt und eine eigene, unabhängige Bestenliste möchte:
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
+
        match /highscores/{docId} {
          allow read: if true;
          allow write: if request.resource.data.entries is list
                       && request.resource.data.entries.size() <= 50
                       && request.resource.data.keys().hasOnly(['entries']);
        }
+
+       match /gruppen/{code} {
+         allow read: if true;
+         allow create: if request.resource.data.keys().hasOnly(['leaderToken','status','round','createdAt','expiresAt'])
+                       && request.resource.data.leaderToken is string
+                       && request.resource.data.status == 'warten';
+         allow update: if request.resource.data.leaderToken == resource.data.leaderToken;
+         allow delete: if resource.data.expiresAt < request.time;
+
+         match /ergebnisse/{deviceId} {
+           allow read: if true;
+           allow create, update: if request.resource.data.keys().hasOnly(['name','roundScores','updatedAt'])
+                                 && request.resource.data.name is string
+                                 && request.resource.data.roundScores is map;
+           allow delete: if get(/databases/$(database)/documents/gruppen/$(code)).data.status == 'beendet'
+                         || get(/databases/$(database)/documents/gruppen/$(code)).data.expiresAt < request.time;
+         }
+
+         match /teilnehmer/{deviceId} {
+           allow read: if true;
+           allow create, update: if request.resource.data.keys().hasOnly(['name','joinedAt'])
+                                 && request.resource.data.name is string;
+           allow delete: if true;
+         }
+       }
+
      }
    }
    ```
