@@ -7,7 +7,7 @@
 
 <!-- PWA / Homescreen-Unterstützung -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1565c0">
+<meta name="theme-color" content="#1976D2">
 <link rel="icon" href="icon-192.png">
 
 <!-- iOS-spezifisch: "Zum Home-Bildschirm hinzufügen" -->
@@ -16,24 +16,80 @@
 <meta name="apple-mobile-web-app-title" content="Flaggenquiz">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
+<!-- Schriften: Poppins (Überschriften) & Inter (Fließtext) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
 <style>
+    :root {
+        --color-primary: #1976D2;
+        --color-primary-dark: #0D47A1;
+        --color-secondary: #26A65B;
+        --color-secondary-dark: #1B7A43;
+        --gradient-brand: linear-gradient(135deg, #1976D2 0%, #26A65B 100%);
+        --gradient-brand-soft: linear-gradient(135deg, rgba(25,118,210,0.12) 0%, rgba(38,166,91,0.12) 100%);
+        --color-accent: #FF9800;
+        --color-accent-dark: #F57C00;
+        --color-danger: #D64545;
+        --color-danger-dark: #B23434;
+        --bg-page: linear-gradient(160deg, #EAF6FB 0%, #F1FBF4 55%, #EEF7F1 100%);
+        --text-primary: #16232B;
+        --text-secondary: #5C6E76;
+        --text-muted: #8A97A0;
+        --card-bg: #FFFFFF;
+        --card-border: #E7EFF1;
+        --card-shadow: 0 10px 28px rgba(19, 54, 74, 0.09);
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --radius-sm: 10px;
+        --radius-pill: 999px;
+        --font-display: 'Poppins', 'Inter', sans-serif;
+        --font-body: 'Inter', 'Poppins', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-        font-family: 'Segoe UI', Arial, sans-serif;
-        background: linear-gradient(135deg, #e3f2fd 0%, #f0f0f0 60%);
+        font-family: var(--font-body);
+        background: var(--bg-page);
+        background-attachment: fixed;
+        color: var(--text-primary);
         text-align: center;
         padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
         min-height: 100vh;
         margin: 0;
-        box-sizing: border-box;
+    }
+
+    #titleBlock {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 22px;
+    }
+    #logoImg {
+        width: 84px;
+        height: 84px;
+        border-radius: 22px;
+        margin-bottom: 10px;
+        box-shadow: 0 8px 20px rgba(19,54,74,0.18);
     }
     h1 {
-        margin-bottom: 4px;
-        font-size: 2.4em;
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 2.1em;
+        background: var(--gradient-brand);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        letter-spacing: -0.5px;
     }
     #subtitle {
-        color: #666;
-        margin-bottom: 25px;
-        font-size: 15px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+        margin-bottom: 0;
+        font-size: 14.5px;
     }
 
     #settings, #game, #endScreen {
@@ -42,68 +98,154 @@
         margin: 0 auto;
     }
     #settings {
-        background: #fff;
-        border-radius: 14px;
-        padding: 30px 25px;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: 26px 22px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--card-border);
     }
     #settings.group-locked {
-        border: 3px solid #c62828;
+        border: 2px solid var(--color-danger);
     }
 
-    .setting-block {
-        margin: 0 0 22px 0;
+    /* ---------- Namens-Karte & Start-Button (oben, prominent) ---------- */
+    #nicknameBlock {
         text-align: left;
-        display: block;
-        padding-bottom: 18px;
-        border-bottom: 1px solid #eee;
+        margin-bottom: 16px;
     }
-    .setting-block:last-of-type {
-        border-bottom: none;
-        margin-bottom: 10px;
-    }
-    .setting-block label {
+    #nicknameBlock label {
         display: block;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #333;
+        font-family: var(--font-display);
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-primary);
         font-size: 15px;
     }
-    .option-btn {
-        padding: 8px 14px;
-        margin: 4px;
-        font-size: 14px;
-        cursor: pointer;
-        border: 2px solid #999;
+    #nickname {
+        font-family: var(--font-body);
+        font-size: 16px;
+        padding: 12px 14px;
+        width: 100%;
+        border: 2px solid #DCE7EA;
+        border-radius: var(--radius-md);
+        background: #F8FBFC;
+        transition: border-color .15s ease;
+    }
+    #nickname:focus {
+        outline: none;
+        border-color: var(--color-primary);
         background: #fff;
-        border-radius: 6px;
-        transition: all 0.15s ease;
     }
-    .option-btn.selected {
-        background: #1976d2;
-        color: #fff;
-        border-color: #1976d2;
-    }
-    .hint-small { color: #777; font-size: 13px; margin-top: 4px; }
 
     #startBtn {
-        background: #4caf50;
+        font-family: var(--font-display);
+        background: var(--gradient-brand);
         color: #fff;
         border: none;
-        font-size: 18px;
-        font-weight: bold;
-        padding: 12px 40px;
-        border-radius: 8px;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        font-size: 19px;
+        font-weight: 700;
+        padding: 16px 20px;
+        border-radius: var(--radius-pill);
+        box-shadow: 0 8px 20px rgba(25,118,210,0.30);
+        width: 100%;
+        margin: 4px 0 22px 0;
+        letter-spacing: 0.2px;
+        transition: transform .12s ease, box-shadow .12s ease;
     }
     #startBtn:hover {
-        background: #43a047;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(25,118,210,0.36);
     }
     #startBtn:disabled {
-        background: #aaa;
+        background: #C7D0D4;
+        color: #fff;
         cursor: not-allowed;
         box-shadow: none;
+        transform: none;
     }
+
+    /* ---------- Einstellungen als Accordion ---------- */
+    .settings-accordion { margin-bottom: 4px; }
+    details.setting-block {
+        text-align: left;
+        display: block;
+        margin: 0 0 10px 0;
+        padding: 0;
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius-md);
+        background: #FCFDFE;
+        overflow: hidden;
+    }
+    details.setting-block[open] {
+        background: #FBFEFC;
+    }
+    details.setting-block summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 15px;
+    }
+    details.setting-block summary::-webkit-details-marker { display: none; }
+    details.setting-block summary::marker { content: ""; }
+    .summary-label { display: flex; align-items: center; gap: 8px; }
+    .summary-value {
+        font-family: var(--font-body);
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 13px;
+        text-align: right;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .summary-chevron {
+        color: var(--text-muted);
+        font-size: 12px;
+        transition: transform .2s ease;
+        flex-shrink: 0;
+    }
+    details.setting-block[open] .summary-chevron { transform: rotate(180deg); }
+    .setting-block-body {
+        padding: 4px 16px 16px 16px;
+    }
+    .hint-small { color: var(--text-muted); font-size: 12.5px; margin-top: 6px; }
+
+    /* ---------- Chips (Kontinent / Modus) ---------- */
+    #continentButtons, #lengthButtons, #modeButtons { display: flex; flex-wrap: wrap; gap: 8px; }
+    .option-btn {
+        font-family: var(--font-body);
+        padding: 9px 16px;
+        margin: 0;
+        font-size: 13.5px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 2px solid #DCE7EA;
+        background: #fff;
+        color: var(--text-primary);
+        border-radius: var(--radius-pill);
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .option-btn.selected {
+        background: var(--gradient-brand);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(25,118,210,0.25);
+    }
+    #learningModeBlock .option-btn { width: 100%; justify-content: center; margin-bottom: 8px; border-radius: var(--radius-md); }
+    #learningModeToggle.selected { background: var(--gradient-brand); color: #fff; border-color: transparent; }
+    #proModeToggle.selected { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+    #speedModeToggle.selected { background: var(--color-danger); color: #fff; border-color: var(--color-danger); }
 
     #flag {
         width: min(320px, 90vw);
@@ -111,6 +253,8 @@
         margin: 20px auto;
         position: relative;
         overflow: hidden;
+        border-radius: var(--radius-md);
+        box-shadow: 0 6px 18px rgba(19,54,74,0.15);
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
@@ -138,27 +282,30 @@
     }
     #settingsSummary {
         font-size: 13px;
-        color: #666;
-        background: #eef4fb;
-        border-radius: 6px;
+        color: var(--text-secondary);
+        background: var(--gradient-brand-soft);
+        border-radius: var(--radius-sm);
         padding: 6px 10px;
         margin-bottom: 12px;
+        font-weight: 500;
     }
     #endBtn {
+        font-family: var(--font-body);
         background: none;
-        border: 1px solid #999;
-        color: #555;
+        border: 2px solid #DCE7EA;
+        color: var(--text-secondary);
         padding: 6px 12px;
         margin: 0;
         font-size: 14px;
-        border-radius: 6px;
+        border-radius: var(--radius-pill);
     }
     #endBtn:hover {
-        background: #eee;
+        background: #F1F6F7;
     }
     #counter {
+        font-family: var(--font-display);
         font-size: 18px;
-        font-weight: bold;
+        font-weight: 600;
         flex: 1;
         text-align: center;
     }
@@ -166,7 +313,7 @@
     #progressBarOuter {
         width: 100%;
         height: 10px;
-        background: #ddd;
+        background: #E5EEF0;
         border-radius: 5px;
         overflow: hidden;
         margin-bottom: 10px;
@@ -174,7 +321,7 @@
     #progressBarInner {
         height: 100%;
         width: 0%;
-        background: #4caf50;
+        background: var(--gradient-brand);
         transition: width 0.3s ease;
     }
 
@@ -182,24 +329,24 @@
         width: min(320px, 90vw);
         margin: 8px auto 0 auto;
         height: 6px;
-        background: #ddd;
+        background: #E5EEF0;
         border-radius: 3px;
         overflow: hidden;
     }
     #timeBonusBarInner {
         height: 100%;
         width: 100%;
-        background: linear-gradient(90deg, #64b5f6, #1565c0);
+        background: linear-gradient(90deg, #64b5f6, var(--color-primary));
         transition: width 0.1s linear;
     }
     #timeBonusBarInner.speed-mode {
-        background: linear-gradient(90deg, #ff8a65, #c62828);
+        background: linear-gradient(90deg, #ff8a65, var(--color-danger));
     }
 
     #tip {
         margin-top: 10px;
         font-weight: bold;
-        color: #444;
+        color: var(--text-primary);
         min-height: 20px;
     }
     #emoji {
@@ -208,35 +355,40 @@
         height: 70px;
     }
     #solution {
+        font-family: var(--font-display);
         font-size: 22px;
         margin-top: 10px;
-        font-weight: bold;
+        font-weight: 600;
     }
     #points {
         font-size: 18px;
         margin-top: 10px;
-        color: #222;
+        color: var(--text-primary);
         font-weight: bold;
     }
     #timeBonusInfo {
         font-size: 14px;
-        color: #666;
+        color: var(--text-secondary);
         margin-top: 4px;
     }
     button {
+        font-family: var(--font-body);
         padding: 10px 20px;
         margin: 10px;
         font-size: 16px;
         cursor: pointer;
+        border-radius: var(--radius-pill);
     }
     button:disabled {
         opacity: 0.4;
         cursor: not-allowed;
     }
     #score {
+        font-family: var(--font-display);
         font-size: 22px;
-        font-weight: bold;
+        font-weight: 700;
         margin-bottom: 10px;
+        color: var(--color-primary);
     }
     #mcOptions {
         display: none;
@@ -246,25 +398,27 @@
         display: block;
         width: 100%;
         margin: 6px 0;
-        padding: 12px;
+        padding: 14px;
         font-size: 16px;
-        border-radius: 6px;
-        border: 2px solid #999;
+        border-radius: var(--radius-md);
+        border: 2px solid #DCE7EA;
         background: #fff;
         cursor: pointer;
+        font-family: var(--font-body);
     }
-    .mc-btn.correct { background: #b6f2b6; border-color: #2e7d32; }
-    .mc-btn.wrong { background: #f7b6b6; border-color: #c62828; }
+    .mc-btn.correct { background: #E3F6E9; border-color: var(--color-secondary); }
+    .mc-btn.wrong { background: #FBE8E8; border-color: var(--color-danger); }
     .mc-btn.eliminated { opacity: 0.35; text-decoration: line-through; }
     .mc-btn:disabled { cursor: default; }
 
     #countryNamePrompt {
         display: none;
+        font-family: var(--font-display);
         font-size: 26px;
-        font-weight: bold;
+        font-weight: 700;
         text-align: center;
         margin: 20px auto 10px auto;
-        color: #1565C0;
+        color: var(--color-primary);
     }
     #reverseMcOptions {
         display: none;
@@ -277,7 +431,7 @@
     }
     .reverse-mc-btn {
         aspect-ratio: 320 / 213;
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         border: 2px solid transparent;
         background-color: transparent;
         background-size: contain;
@@ -285,9 +439,10 @@
         background-position: center;
         cursor: pointer;
         padding: 0;
+        box-shadow: 0 4px 10px rgba(19,54,74,0.12);
     }
-    .reverse-mc-btn.correct { border-color: #2e7d32; border-width: 4px; }
-    .reverse-mc-btn.wrong { border-color: #c62828; border-width: 4px; }
+    .reverse-mc-btn.correct { border-color: var(--color-secondary); border-width: 4px; }
+    .reverse-mc-btn.wrong { border-color: var(--color-danger); border-width: 4px; }
     .reverse-mc-btn.eliminated { opacity: 0.25; }
     .reverse-mc-btn:disabled { cursor: default; }
 
@@ -296,7 +451,7 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.5);
+        background: rgba(16,30,38,0.55);
         z-index: 100;
         align-items: center;
         justify-content: center;
@@ -309,20 +464,21 @@
     .modal-card {
         position: relative;
         background: #fff;
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         padding: 26px;
         max-width: 440px;
         width: 100%;
         max-height: 80vh;
         overflow-y: auto;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        box-shadow: 0 20px 50px rgba(10,25,35,0.35);
+        font-family: var(--font-body);
     }
-    .modal-card h2 { margin-top: 0; }
+    .modal-card h2 { margin-top: 0; font-family: var(--font-display); }
     .modal-close {
         position: absolute;
         top: 12px;
         right: 12px;
-        background: #eee;
+        background: #F1F6F7;
         border: none;
         border-radius: 50%;
         width: 30px;
@@ -332,11 +488,6 @@
         margin: 0;
         cursor: pointer;
     }
-    #learningModeToggle.selected {
-        background: #4caf50;
-        color: #fff;
-        border-color: #4caf50;
-    }
     .stats-row {
         display: flex;
         justify-content: space-between;
@@ -345,46 +496,72 @@
         border-bottom: 1px solid #eee;
     }
     .stats-row .stats-name { font-weight: bold; }
-    .stats-row .stats-ratio { color: #666; }
+    .stats-row .stats-ratio { color: var(--text-secondary); }
 
     #endScreen {
-        background: #fff;
-        border-radius: 10px;
-        padding: 25px;
-        border: 2px solid #333;
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: 26px;
+        border: 1px solid var(--card-border);
+        box-shadow: var(--card-shadow);
     }
-    #endScreen h2 { margin-top: 0; }
+    #endScreen h2 { margin-top: 0; font-family: var(--font-display); color: var(--color-primary); }
     #wrongList {
         text-align: left;
         max-height: 220px;
         overflow-y: auto;
         margin: 15px 0;
         padding: 10px;
-        background: #f7f7f7;
-        border-radius: 6px;
+        background: #F8FBFC;
+        border-radius: var(--radius-sm);
     }
     #wrongList div { padding: 3px 0; border-bottom: 1px solid #eee; }
     #highscoreLine { font-size: 18px; margin: 10px 0; }
     #newHighscoreBadge {
         display: inline-block;
-        background: #ffd54f;
+        background: var(--color-accent);
+        color: #fff;
         padding: 4px 10px;
-        border-radius: 5px;
+        border-radius: var(--radius-pill);
         font-weight: bold;
         margin-left: 8px;
     }
 
-    #highscoreDisplay {
-        margin: 18px 0 4px 0;
+    /* ---------- Bestenliste als eigener Abschnitt (einklappbar) ---------- */
+    #highscoreDisplay { margin: 0; }
+    details.highscore-accordion {
+        max-width: 480px;
+        margin: 16px auto 0 auto;
+        text-align: left;
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius-lg);
+        background: var(--card-bg);
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
     }
+    details.highscore-accordion summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 15.5px;
+    }
+    details.highscore-accordion summary::-webkit-details-marker { display: none; }
+    details.highscore-accordion summary::marker { content: ""; }
+    details.highscore-accordion[open] .summary-chevron { transform: rotate(180deg); }
     .highscore-card {
         position: relative;
         overflow: hidden;
-        border-radius: 12px;
-        padding: 16px 18px;
-        background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
-        border: 2px solid #ffca28;
-        box-shadow: 0 4px 14px rgba(255, 193, 7, 0.35);
+        border-radius: var(--radius-md);
+        padding: 4px 18px 16px 18px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
         text-align: left;
         animation: hs-pop 0.35s ease;
     }
@@ -392,7 +569,7 @@
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #8a6d1a;
+        color: var(--text-muted);
         font-weight: bold;
         margin-bottom: 10px;
     }
@@ -405,10 +582,10 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 6px 0;
+        padding: 8px 0;
     }
     .hs-row + .hs-row {
-        border-top: 1px solid rgba(0,0,0,0.06);
+        border-top: 1px solid #EEF3F4;
     }
     .hs-medal {
         font-size: 18px;
@@ -416,7 +593,7 @@
         width: 34px;
         text-align: center;
         flex-shrink: 0;
-        color: #6b5416;
+        color: var(--text-secondary);
     }
     .hs-row.rank-1 .hs-medal,
     .hs-row.rank-2 .hs-medal,
@@ -425,42 +602,184 @@
     }
     .hs-row-name {
         flex: 1;
-        font-weight: bold;
-        color: #4a3a00;
+        font-weight: 600;
+        color: var(--text-primary);
         font-size: 15px;
     }
     .hs-row-score {
-        font-weight: bold;
-        color: #6b5416;
+        font-weight: 700;
+        color: var(--color-primary);
         font-size: 15px;
         white-space: nowrap;
     }
-    .hs-row.rank-1 .hs-row-name { color: #7a5c00; font-size: 16px; }
+    .hs-row.rank-1 .hs-row-name { color: var(--color-accent-dark); font-size: 16px; }
     .hs-row.rank-2 { opacity: 0.92; }
     .hs-row.rank-3 { opacity: 0.85; }
     .highscore-card.hs-empty {
-        background: #f5f5f5;
-        border-color: #ddd;
+        background: transparent;
+        border: none;
         box-shadow: none;
-        color: #888;
+        color: var(--text-muted);
         text-align: center;
-        padding: 18px;
+        padding: 10px 18px 20px 18px;
     }
-    .highscore-card.hs-empty .trophy { font-size: 36px; opacity: 0.4; display:block; margin-bottom:8px; }
+    .highscore-card.hs-empty .trophy { font-size: 36px; opacity: 0.5; display:block; margin-bottom:8px; }
     .hs-status {
         font-size: 11px;
-        color: #9a8340;
+        color: var(--text-muted);
         margin-top: 8px;
         text-align: right;
     }
     .highscore-card.hs-empty .hs-status {
         text-align: center;
-        color: #999;
+        color: var(--text-muted);
     }
     @keyframes hs-pop {
         0% { transform: scale(0.94); opacity: 0; }
         100% { transform: scale(1); opacity: 1; }
     }
+
+    /* ---------- Gruppen-Dashboard (Leitung) ---------- */
+    #groupLeaderBanner {
+        display: none;
+        background: var(--card-bg) !important;
+        border: 1px solid var(--card-border) !important;
+        color: var(--text-primary) !important;
+        border-radius: var(--radius-lg) !important;
+        padding: 0 !important;
+        margin-bottom: 18px !important;
+        font-size: 14px;
+        text-align: left;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .glb-head {
+        background: var(--gradient-brand);
+        color: #fff;
+        padding: 18px 18px 16px 18px;
+    }
+    .glb-head .glb-title {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .glb-code-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    .glb-code {
+        font-family: var(--font-display);
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        background: rgba(255,255,255,0.18);
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+    }
+    .glb-code-hint { font-size: 12px; opacity: 0.9; }
+    .glb-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--card-border);
+    }
+    .glb-tab {
+        flex: 1;
+        text-align: center;
+        padding: 12px 8px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        background: none;
+        margin: 0;
+        border-radius: 0;
+    }
+    .glb-tab.active {
+        color: var(--color-primary);
+        border-bottom-color: var(--color-primary);
+    }
+    .glb-tab-panel { display: none; padding: 14px 18px 90px 18px; }
+    .glb-tab-panel.active { display: block; }
+    .glb-actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-width: 480px;
+        margin: 0 auto;
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px max(12px, env(safe-area-inset-bottom)) 16px;
+        background: #fff;
+        border-top: 1px solid var(--card-border);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        box-shadow: 0 -8px 24px rgba(19,54,74,0.12);
+        z-index: 40;
+    }
+    body.leader-mode-active { padding-bottom: 90px; }
+    .glb-actions button {
+        flex: 1;
+        margin: 0;
+        font-size: 13px;
+        padding: 12px 8px;
+        font-family: var(--font-display);
+        font-weight: 600;
+    }
+    #groupReleaseBtn { background: var(--gradient-brand); color: #fff; }
+    #groupShowQrBtn { background: #F1F6F7; color: var(--text-primary); }
+    #groupLeaderCloseBtn { background: var(--color-danger); color: #fff; }
+    .glb-roster-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #F1F6F7;
+    }
+    .glb-roster-empty { color: var(--text-muted); font-size: 13.5px; padding: 8px 0; }
+
+    /* ---------- Gruppen-Player: minimale Wartefläche ---------- */
+    #groupPlayerBanner {
+        display: none;
+        background: var(--card-bg) !important;
+        border: 1px solid var(--card-border) !important;
+        color: var(--text-primary) !important;
+        border-radius: var(--radius-lg) !important;
+        padding: 22px 20px !important;
+        margin-bottom: 18px !important;
+        font-size: 14px;
+        text-align: center !important;
+        box-shadow: var(--card-shadow);
+    }
+    .gpb-badge {
+        display: inline-block;
+        background: var(--gradient-brand-soft);
+        color: var(--color-primary);
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 13px;
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        margin-bottom: 10px;
+        letter-spacing: 2px;
+    }
+    .gpb-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+    .gpb-text { color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; }
+    .gpb-spinner {
+        width: 34px; height: 34px; margin: 14px auto 6px auto;
+        border: 3px solid var(--card-border);
+        border-top-color: var(--color-primary);
+        border-radius: 50%;
+        animation: gpb-spin 0.9s linear infinite;
+    }
+    @keyframes gpb-spin { to { transform: rotate(360deg); } }
 
     /* ---------- Anpassungen für kleine Bildschirme (Smartphones) ---------- */
     @media (max-width: 480px) {
@@ -470,13 +789,15 @@
             padding-top: max(10px, env(safe-area-inset-top));
             padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
-        h1 { font-size: 1.9em; }
-        #settings { padding: 22px 16px; }
+        h1 { font-size: 1.7em; }
+        #logoImg { width: 68px; height: 68px; }
+        #settings { padding: 20px 16px; }
         #endScreen { padding: 18px 16px; }
-        .setting-block { margin-bottom: 18px; padding-bottom: 14px; }
-        #startBtn { width: 100%; padding: 14px 0; font-size: 17px; }
+        details.setting-block summary { padding: 12px 14px; }
+        .setting-block-body { padding: 4px 14px 14px 14px; }
+        #startBtn { width: 100%; padding: 15px 0; font-size: 17px; }
         button { padding: 12px 16px; margin: 6px; }
-        .option-btn { padding: 10px 12px; font-size: 14px; }
+        .option-btn { padding: 9px 13px; font-size: 13.5px; }
         #counter { font-size: 16px; }
         #endBtn { font-size: 13px; padding: 8px 10px; }
         #score { font-size: 19px; }
@@ -491,7 +812,7 @@
         #flag { width: min(210px, 52vw); margin: 8px auto; }
         #timeBonusBarOuter { width: min(210px, 52vw); margin: 6px auto 0 auto; }
         #textInputArea input#answer { padding: 6px; margin-bottom: 2px; }
-        #textInputArea button#solveBtn { margin: 6px; }
+        #solveBtn { margin: 6px; }
         #tipBtn { margin: 6px; }
         #tip { min-height: 14px; margin-top: 4px; font-size: 14px; }
         #nextBtn { margin: 6px; }
@@ -515,74 +836,108 @@
     @media (hover: none) and (pointer: coarse) {
         button, .option-btn, .mc-btn { min-height: 40px; }
         #endBtn:hover { background: none; }
-        #startBtn:hover { background: #4caf50; }
+        #startBtn:hover { transform: none; box-shadow: 0 8px 20px rgba(25,118,210,0.30); }
     }
 </style>
+
 </head>
 <body>
 
 <div id="titleBlock">
-    <h1>🌍 Flaggenquiz</h1>
+    <img id="logoImg" src="icon-192.png" alt="Flaggenquiz Logo">
+    <h1>Flaggenquiz</h1>
     <div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
 </div>
 
 <div id="settings">
-    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:8px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
+    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
         ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
     </div>
-    <div id="groupLeaderBanner" style="display:none;background:#e3f2fd;border:2px solid #1565c0;color:#0d47a1;border-radius:8px;padding:12px;margin-bottom:18px;font-size:14px;text-align:left;"></div>
-    <div id="groupPlayerBanner" style="display:none;background:#ffebee;border:2px solid #c62828;color:#b71c1c;border-radius:8px;padding:12px;margin-bottom:18px;font-size:14px;text-align:left;"></div>
-    <div class="setting-block" id="nicknameBlock">
+    <div id="groupLeaderBanner"></div>
+    <div id="groupPlayerBanner"></div>
+
+    <div id="nicknameBlock">
         <label for="nickname">Dein Name</label>
-        <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20" style="font-size:16px;padding:8px 10px;width:100%;box-sizing:border-box;border:2px solid #ccc;border-radius:6px;">
+        <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20">
         <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
     </div>
 
-    <div class="setting-block" id="continentBlock">
-        <label>Kontinent <span style="font-weight:normal;color:#888;">(Mehrfachauswahl möglich)</span></label>
-        <div id="continentButtons"></div>
-        <div id="continentSummary" class="hint-small" style="color:#555;font-weight:bold;margin-top:6px;"></div>
+    <button id="startBtn">🚀 Start</button>
+
+    <div class="settings-accordion">
+        <details class="setting-block" id="continentBlock">
+            <summary>
+                <span class="summary-label">🌍 Kontinent</span>
+                <span class="summary-value" id="continentSummary"></span>
+                <span class="summary-chevron">▾</span>
+            </summary>
+            <div class="setting-block-body">
+                <div class="hint-small" style="margin-bottom:8px;">Mehrfachauswahl möglich</div>
+                <div id="continentButtons"></div>
+            </div>
+        </details>
+
+        <details class="setting-block" id="lengthBlock">
+            <summary>
+                <span class="summary-label">🔢 Anzahl Flaggen</span>
+                <span class="summary-value" id="lengthSummary"></span>
+                <span class="summary-chevron">▾</span>
+            </summary>
+            <div class="setting-block-body">
+                <div id="lengthButtons"></div>
+                <div class="hint-small" id="lengthHint"></div>
+            </div>
+        </details>
+
+        <details class="setting-block" id="modeBlock">
+            <summary>
+                <span class="summary-label">🎮 Antwortmodus</span>
+                <span class="summary-value" id="modeSummary"></span>
+                <span class="summary-chevron">▾</span>
+            </summary>
+            <div class="setting-block-body">
+                <div id="modeButtons">
+                    <button class="option-btn selected" data-mode="mc">🔤 Multiple Choice</button>
+                    <button class="option-btn" data-mode="reverse-mc">🏳️ Reverse Multiple Choice</button>
+                    <button class="option-btn" data-mode="text">⌨️ Text eingeben</button>
+                    <button class="option-btn" data-mode="mixed">🔀 Mixed</button>
+                </div>
+            </div>
+        </details>
+
+        <details class="setting-block" id="learningModeBlock">
+            <summary>
+                <span class="summary-label">⚙️ Spielmodus</span>
+                <span class="summary-value" id="specialModeSummary"></span>
+                <span class="summary-chevron">▾</span>
+            </summary>
+            <div class="setting-block-body">
+                <button class="option-btn" id="learningModeToggle">🎓 Lernmodus: Aus</button>
+                <button class="option-btn" id="proModeToggle">🎯 Profimodus: Aus</button>
+                <button class="option-btn" id="speedModeToggle">⚡ Speedmodus: Aus</button>
+                <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.<br>Im Profimodus sind Tippfehler strenger bewertet und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.<br>Im Speedmodus wird nach Ablauf des Zeitbonus (5 Sekunden) automatisch zur nächsten Frage gewechselt, falls du nicht rechtzeitig geantwortet hast — ohne Punkte für diese Frage. Speedmodus und Lernmodus schließen sich gegenseitig aus.</div>
+                <div style="margin-top:10px;">
+                    <a href="#" id="statsLink" style="font-size:14px;color:var(--color-primary);text-decoration:none;font-weight:600;">📊 Meine Statistik ansehen</a>
+                </div>
+            </div>
+        </details>
     </div>
 
-    <div class="setting-block" id="lengthBlock">
-        <label>Anzahl Flaggen</label>
-        <div id="lengthButtons"></div>
-        <div class="hint-small" id="lengthHint"></div>
-    </div>
+    <details class="highscore-accordion" id="highscoreAccordionWrap">
+        <summary>
+            <span class="summary-label">🏆 Bestenliste</span>
+            <span class="summary-chevron">▾</span>
+        </summary>
+        <div id="highscoreDisplay"></div>
+    </details>
 
-    <div class="setting-block" id="modeBlock">
-        <label>Antwortmodus</label>
-        <div id="modeButtons">
-            <button class="option-btn selected" data-mode="mc">Multiple Choice</button>
-            <button class="option-btn" data-mode="reverse-mc">Reverse Multiple Choice</button>
-            <button class="option-btn" data-mode="text">Text eingeben</button>
-            <button class="option-btn" data-mode="mixed">🔀 Mixed</button>
-        </div>
-    </div>
-
-    <div class="setting-block" id="learningModeBlock">
-        <label>Modus</label>
-        <button class="option-btn" id="learningModeToggle">🎓 Lernmodus: Aus</button>
-        <button class="option-btn" id="proModeToggle">🎯 Profimodus: Aus</button>
-        <button class="option-btn" id="speedModeToggle">⚡ Speedmodus: Aus</button>
-        <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.<br>Im Profimodus sind Tippfehler strenger bewertet und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.<br>Im Speedmodus wird nach Ablauf des Zeitbonus (5 Sekunden) automatisch zur nächsten Frage gewechselt, falls du nicht rechtzeitig geantwortet hast — ohne Punkte für diese Frage. Speedmodus und Lernmodus schließen sich gegenseitig aus.</div>
-        <div style="margin-top:10px;">
-            <a href="#" id="statsLink" style="font-size:14px;color:#1976d2;text-decoration:none;">📊 Meine Statistik ansehen</a>
-        </div>
-    </div>
-
-    <br>
-    <button id="startBtn">Start</button>
-
-    <div id="highscoreDisplay"></div>
-
-    <div style="text-align:center;margin-top:10px;">
-        <a href="#" id="helpLink" style="font-size:12px;color:#1976d2;text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
-        <a href="#" id="privacyLink" style="font-size:12px;color:#999;text-decoration:underline;">🔒 Datenschutz</a>
+    <div style="text-align:center;margin-top:18px;">
+        <a href="#" id="helpLink" style="font-size:12px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
+        <a href="#" id="privacyLink" style="font-size:12px;color:var(--text-muted);text-decoration:underline;">🔒 Datenschutz</a>
     </div>
     <div style="text-align:center;margin-top:14px;">
-        <a href="#" id="groupCreateLink" style="font-size:13px;color:#1976d2;text-decoration:underline;margin-right:14px;">🧑‍🏫 Gruppenquiz starten</a>
-        <a href="#" id="groupJoinLink" style="font-size:13px;color:#1976d2;text-decoration:underline;">🔗 Gruppenquiz beitreten</a>
+        <a href="#" id="groupCreateLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">🧑‍🏫 Gruppenquiz starten</a>
+        <a href="#" id="groupJoinLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;">🔗 Gruppenquiz beitreten</a>
     </div>
 </div>
 
@@ -743,14 +1098,14 @@
 
     <div id="textInputArea">
         <input type="text" id="answer" placeholder="Land eingeben" style="font-size:18px;padding:5px;width:min(300px, 90vw);box-sizing:border-box;" autocomplete="off">
-        <br>
-        <button id="solveBtn">Lösen</button>
     </div>
 
     <div id="mcOptions"></div>
     <div id="reverseMcOptions"></div>
 
     <button id="tipBtn">Tipp anzeigen</button>
+    <br>
+    <button id="solveBtn">Lösen</button>
     <div id="tip"></div>
 
     <button id="nextBtn" style="display:none;">Nächste</button>
@@ -1302,6 +1657,7 @@ function saveSettingsToStorage() {
             speedMode: settings.speedMode
         }));
     } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
+    updateAllSummaries();
     syncGroupSettingsIfLeader();
 }
 
@@ -1368,21 +1724,47 @@ function updateContinentSummary() {
     } else {
         text = sel.slice(0, -1).join(", ") + " und " + sel[sel.length - 1];
     }
-    continentSummary.textContent = "Ausgewählt: " + text;
+    continentSummary.textContent = text;
 }
+
+// Aktualisiert die Kurz-Zusammenfassungen in den Accordion-Kopfzeilen der Einstellungen.
+function updateAllSummaries() {
+    updateContinentSummary();
+    const lengthSummaryEl = document.getElementById("lengthSummary");
+    if (lengthSummaryEl) lengthSummaryEl.textContent = settings.length + " Flaggen";
+    const modeSummaryEl = document.getElementById("modeSummary");
+    if (modeSummaryEl) modeSummaryEl.textContent = modeLabel();
+    const specialSummaryEl = document.getElementById("specialModeSummary");
+    if (specialSummaryEl) {
+        const parts = [];
+        if (settings.learningMode) parts.push("🎓 Lernmodus");
+        if (settings.proMode) parts.push("🎯 Profimodus");
+        if (settings.speedMode) parts.push("⚡ Speedmodus");
+        specialSummaryEl.textContent = parts.length ? parts.join(" · ") : "Standard";
+    }
+}
+
+const CONTINENT_ICONS = {
+    "Europa": "🇪🇺",
+    "Asien": "🌏",
+    "Afrika": "🌍",
+    "Nordamerika": "🌎",
+    "Südamerika": "🌎",
+    "Ozeanien": "🏝️"
+};
 
 function buildSettingsScreen() {
     continentButtons.innerHTML = "";
     const allBtn = document.createElement("button");
     allBtn.className = "option-btn";
-    allBtn.textContent = "Alle";
+    allBtn.textContent = "🌐 Alle";
     allBtn.dataset.continent = "all";
     continentButtons.appendChild(allBtn);
 
     continents.forEach(cont => {
         const btn = document.createElement("button");
         btn.className = "option-btn";
-        btn.textContent = cont;
+        btn.textContent = (CONTINENT_ICONS[cont] || "🌐") + " " + cont;
         btn.dataset.continent = cont;
         continentButtons.appendChild(btn);
     });
@@ -1427,7 +1809,7 @@ function buildSettingsScreen() {
     [10, 20, 30, 50].forEach((n) => {
         const btn = document.createElement("button");
         btn.className = "option-btn" + (n === settings.length ? " selected" : "");
-        btn.textContent = n;
+        btn.textContent = "🚩 " + n;
         btn.dataset.length = n;
         btn.onclick = () => {
             lengthButtons.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
@@ -1494,6 +1876,7 @@ function buildSettingsScreen() {
 
     updateLengthHint();
     updateHighscoreDisplay();
+    updateAllSummaries();
 }
 
 function getFilteredCountries() {
@@ -1589,12 +1972,13 @@ function continentLabel() {
 async function updateHighscoreDisplay() {
     // Im Gruppenquiz zählt nur die Gruppen-Bestenliste — die globale Bestenliste wird
     // hier weder angezeigt noch abgerufen (spart unnötige Firestore-Anfragen).
+    const highscoreAccordionWrap = document.getElementById("highscoreAccordionWrap");
     if (isGroupPlayer || getLeaderSession()) {
-        highscoreDisplay.style.display = "none";
+        if (highscoreAccordionWrap) highscoreAccordionWrap.style.display = "none";
         highscoreDisplay.innerHTML = "";
         return;
     }
-    highscoreDisplay.style.display = "";
+    if (highscoreAccordionWrap) highscoreAccordionWrap.style.display = "";
 
     const key = highscoreKey();
     const modeLabelText = modeLabel();
@@ -1989,17 +2373,19 @@ function renderGroupRosterCombined() {
         if (String(round) in rs) finishedIds.add(doc.id);
     });
     if (groupRosterTeilnehmerDocs.length === 0) {
-        groupRosterContainerEl.innerHTML = '<div style="font-size:13px;color:#666;">👥 Noch niemand beigetreten.</div>';
+        groupRosterContainerEl.innerHTML = '<div class="glb-roster-empty">👥 Noch niemand beigetreten. Code oder QR-Code teilen, um Mitspieler:innen einzuladen.</div>';
         return;
     }
     const rows = groupRosterTeilnehmerDocs.map((d, i) =>
-        (i + 1) + ". " + escapeHtml(d.data().name || "Anonym") +
-        (finishedIds.has(d.id) ? ' <span style="color:#2e7d32;">✅</span>' : "")
-    ).join("<br>");
+        '<div class="glb-roster-row"><span style="color:var(--text-muted);width:22px;flex-shrink:0;">' + (i + 1) + '.</span>' +
+        '<span style="flex:1;">' + escapeHtml(d.data().name || "Anonym") + '</span>' +
+        (finishedIds.has(d.id) ? '<span style="color:var(--color-secondary);">✅</span>' : '')
+        + '</div>'
+    ).join("");
     groupRosterContainerEl.innerHTML =
-        '<div style="font-size:13px;font-weight:bold;margin-bottom:6px;">👥 ' + groupRosterTeilnehmerDocs.length +
+        '<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-secondary);">👥 ' + groupRosterTeilnehmerDocs.length +
         ' beigetreten · ✅ ' + finishedIds.size + ' fertig (Runde ' + round + ')</div>' +
-        '<div style="font-size:13px;line-height:1.7;max-height:160px;overflow-y:auto;">' + rows + '</div>';
+        '<div style="max-height:220px;overflow-y:auto;">' + rows + '</div>';
 }
 
 function startGroupRosterLive(code, containerEl, getRound) {
@@ -2078,6 +2464,10 @@ function setGroupPlayerLockUI(locked) {
         el.style.pointerEvents = locked ? "none" : "";
         el.style.opacity = locked ? "0.5" : "";
     });
+    // Mitspieler:innen brauchen keine eigenen Einstellungen zu sehen — die Accordion-Karten
+    // werden für sie komplett ausgeblendet, damit die Seite minimal bleibt.
+    const accordion = document.querySelector(".settings-accordion");
+    if (accordion) accordion.style.display = locked ? "none" : "";
     settingsDiv.classList.toggle("group-locked", locked);
 }
 
@@ -2101,13 +2491,17 @@ function applyGroupSettingsFromDoc(data) {
 function renderGroupPlayerBanner(code, status) {
     const groupPlayerBanner = document.getElementById("groupPlayerBanner");
     groupPlayerBanner.style.display = "block";
+    const isReady = status === "laeuft";
     groupPlayerBanner.innerHTML =
-        "<strong>🚩 Gruppenquiz — Code: " + escapeHtml(code) + "</strong><br>" +
-        "Die Einstellungen werden von deiner Gruppenleitung verwaltet." +
-        (status === "laeuft"
-            ? " Ihr könnt jetzt starten!"
-            : " Bitte warten, bis die Gruppenleitung das Spiel freigibt …") +
-        "<br><a href=\"#\" id=\"groupLeaveLink\" style=\"font-size:13px;color:#b71c1c;\">Gruppe verlassen</a>";
+        '<div class="gpb-badge">CODE ' + escapeHtml(code) + '</div>' +
+        '<div class="gpb-title">' + (isReady ? "🎉 Los geht's!" : "🚩 Du bist beigetreten") + '</div>' +
+        (isReady ? '' : '<div class="gpb-spinner"></div>') +
+        '<div class="gpb-text">' +
+        (isReady
+            ? 'Die Gruppenleitung hat das Spiel freigegeben. Tippe unten auf „Start", sobald du bereit bist.'
+            : 'Deine Gruppenleitung stellt die Einstellungen ein. Bitte warten, bis das Spiel freigegeben wird …') +
+        '</div>' +
+        '<div style="margin-top:14px;"><a href="#" id="groupLeaveLink" style="font-size:13px;color:var(--color-danger);">Gruppe verlassen</a></div>';
     document.getElementById("groupLeaveLink").onclick = function (e) {
         e.preventDefault();
         leaveGroupPlayerMode(false);
@@ -2216,6 +2610,8 @@ async function renderGroupLeaderBanner() {
     updateGroupEntryLinksState();
     if (!session) {
         groupLeaderBanner.style.display = "none";
+        document.body.classList.remove("leader-mode-active");
+        stopGroupHighscoreLive();
         setLeaderLearningModeLock(false);
         if (!isGroupPlayer) {
             startBtn.disabled = false;
@@ -2224,10 +2620,11 @@ async function renderGroupLeaderBanner() {
         return;
     }
     groupLeaderBanner.style.display = "block";
+    document.body.classList.add("leader-mode-active");
     setLeaderLearningModeLock(true);
-    groupLeaderBanner.innerHTML = '<div style="font-size:13px;color:#666;">Gruppendaten werden geladen …</div>';
+    groupLeaderBanner.innerHTML = '<div class="glb-head"><div class="glb-title">🧑\u200d🏫 Gruppendaten werden geladen …</div></div>';
     startBtn.disabled = true;
-    startBtn.textContent = "Start (siehe „Runde freigeben“ oben)";
+    startBtn.textContent = "Start (siehe Dashboard oben)";
 
     let round = 1, status = "warten";
     if (firestoreDb) {
@@ -2242,7 +2639,9 @@ async function renderGroupLeaderBanner() {
     // Session könnte inzwischen (z. B. durch Schließen in einem anderen Tab) ungültig geworden sein
     if (!getLeaderSession()) {
         groupLeaderBanner.style.display = "none";
+        document.body.classList.remove("leader-mode-active");
         stopGroupRosterLive();
+        stopGroupHighscoreLive();
         setLeaderLearningModeLock(false);
         if (!isGroupPlayer) {
             startBtn.disabled = false;
@@ -2252,19 +2651,34 @@ async function renderGroupLeaderBanner() {
     }
 
     const releaseLabel = status === "laeuft"
-        ? "🔄 Nächste Runde starten (aktuell: Runde " + round + ")"
+        ? "🔄 Nächste Runde (Runde " + round + ")"
         : "▶️ Spiel freigeben";
 
     groupLeaderBanner.innerHTML =
-        "<strong>🧑‍🏫 Du leitest ein Gruppenquiz — Code: " + escapeHtml(session.code) + "</strong><br>" +
-        "Einstellungen unten werden live an die Mitspieler:innen übertragen.<br>" +
-        "<div style=\"margin-top:8px;\">" +
-        "<button id=\"groupShowQrBtn\" style=\"font-size:13px;padding:6px 10px;margin-right:8px;margin-bottom:6px;\">📱 Code/QR anzeigen</button>" +
-        "<button id=\"groupReleaseBtn\" style=\"font-size:13px;padding:6px 10px;background:#2e7d32;color:#fff;margin-right:8px;margin-bottom:6px;\">" + releaseLabel + "</button>" +
-        "<button id=\"groupShowScoresBtn\" style=\"font-size:13px;padding:6px 10px;margin-right:8px;margin-bottom:6px;\">🏆 Bestenliste</button>" +
-        "<button id=\"groupLeaderCloseBtn\" style=\"font-size:13px;padding:6px 10px;background:#c62828;color:#fff;margin-bottom:6px;\">Gruppe schließen</button>" +
-        "</div>" +
-        "<div id=\"groupRosterList\" style=\"margin-top:10px;padding-top:10px;border-top:1px solid #90caf9;\"></div>";
+        '<div class="glb-head">' +
+            '<div class="glb-title">🧑\u200d🏫 Du leitest ein Gruppenquiz</div>' +
+            '<div class="glb-code-row">' +
+                '<div class="glb-code">' + escapeHtml(session.code) + '</div>' +
+                '<div>' +
+                    '<button id="groupShowQrBtn" style="font-size:12.5px;padding:6px 10px;margin:0;background:rgba(255,255,255,0.9);color:var(--color-primary-dark);">📱 QR anzeigen</button>' +
+                    '<div class="glb-code-hint">Einstellungen unten werden live übertragen</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="glb-tabs">' +
+            '<button class="glb-tab active" data-glbtab="warteraum" type="button">👥 Warteraum</button>' +
+            '<button class="glb-tab" data-glbtab="ergebnisse" type="button">🏆 Live-Ergebnisse</button>' +
+        '</div>' +
+        '<div class="glb-tab-panel active" id="glbPanelWarteraum">' +
+            '<div id="groupRosterList"></div>' +
+        '</div>' +
+        '<div class="glb-tab-panel" id="glbPanelErgebnisse">' +
+            '<div id="groupLiveScores"></div>' +
+        '</div>' +
+        '<div class="glb-actions">' +
+            '<button id="groupReleaseBtn">' + releaseLabel + '</button>' +
+            '<button id="groupLeaderCloseBtn">✕ Schließen</button>' +
+        '</div>';
 
     document.getElementById("groupShowQrBtn").onclick = function () {
         renderGroupCreateModal();
@@ -2280,10 +2694,6 @@ async function renderGroupLeaderBanner() {
         }
         renderGroupLeaderBanner();
     };
-    document.getElementById("groupShowScoresBtn").onclick = function () {
-        groupHighscoreModal.classList.add("open");
-        startGroupHighscoreLive(groupHighscoreModalContent, session.code, () => round);
-    };
     document.getElementById("groupLeaderCloseBtn").onclick = async function () {
         const sure = confirm("Gruppe wirklich schließen? Alle Mitspieler:innen werden auf ihre eigenen Einstellungen zurückgesetzt.");
         if (!sure) return;
@@ -2292,6 +2702,26 @@ async function renderGroupLeaderBanner() {
         renderGroupLeaderBanner();
         updateHighscoreDisplay(); // globale Bestenliste war während der Leitung ausgeblendet
     };
+
+    // Tabs: Warteraum (Teilnehmer:innen live) <-> Live-Ergebnisse (Bestenliste live)
+    const tabButtons = groupLeaderBanner.querySelectorAll(".glb-tab");
+    const panels = {
+        warteraum: document.getElementById("glbPanelWarteraum"),
+        ergebnisse: document.getElementById("glbPanelErgebnisse")
+    };
+    tabButtons.forEach(tabBtn => {
+        tabBtn.onclick = function () {
+            tabButtons.forEach(b => b.classList.remove("active"));
+            Object.values(panels).forEach(p => p.classList.remove("active"));
+            this.classList.add("active");
+            panels[this.dataset.glbtab].classList.add("active");
+            if (this.dataset.glbtab === "ergebnisse") {
+                startGroupHighscoreLive(document.getElementById("groupLiveScores"), session.code, () => round);
+            } else {
+                stopGroupHighscoreLive();
+            }
+        };
+    });
 
     startGroupRosterLive(session.code, document.getElementById("groupRosterList"), () => round);
 }
@@ -2454,7 +2884,8 @@ function calculatePoints(country, tips) {
 }
 
 const TIME_BONUS_WINDOW_MS = 10000; // normale Modi — muss zu den Schwellen in calculateTimeBonus passen
-const SPEED_TIME_BONUS_WINDOW_MS = 5000; // Speedmodus (halbiertes Tempo) — muss ebenfalls zu calculateTimeBonus passen
+const SPEED_TIME_BONUS_WINDOW_MS = 5000; // Speedmodus bei Multiple Choice/Reverse MC
+const SPEED_TEXT_TIME_BONUS_WINDOW_MS = 10000; // Speedmodus bei Texteingabe — doppelt so viel Zeit wie sonst im Speedmodus, da Tippen länger dauert
 let timeBonusIntervalId = null;
 
 // Gruppenquiz: zusätzliches, festes Zeitlimit (unabhängig vom persönlichen Speedmodus), damit
@@ -2463,8 +2894,15 @@ let timeBonusIntervalId = null;
 const GROUP_HARD_TIMEOUT_MS = 20000;
 let groupHardTimeoutId = null;
 
+// Aktuelles Zeitfenster für den Zeitbonus/das Zeitlimit dieser Frage: im Speedmodus normalerweise
+// 5 Sekunden, aber bei Texteingabe 10 Sekunden (Tippen braucht länger als Tippen/Klicken einer Option).
+function currentTimeBonusWindowMs() {
+    if (!settings.speedMode) return TIME_BONUS_WINDOW_MS;
+    return currentMode === "text" ? SPEED_TEXT_TIME_BONUS_WINDOW_MS : SPEED_TIME_BONUS_WINDOW_MS;
+}
+
 function calculateTimeBonus(elapsedSeconds) {
-    if (settings.speedMode) {
+    if (settings.speedMode && currentMode !== "text") {
         if (elapsedSeconds <= 1) return 5;
         if (elapsedSeconds <= 2) return 4;
         if (elapsedSeconds <= 3) return 3;
@@ -2472,6 +2910,8 @@ function calculateTimeBonus(elapsedSeconds) {
         if (elapsedSeconds <= 5) return 1;
         return 0;
     }
+    // Gilt für alle normalen Modi UND für Texteingabe im Speedmodus (dort mit den gleichen
+    // 10-Sekunden-Schwellen wie sonst, da im Textmodus die doppelte Speedmodus-Zeit gilt).
     if (elapsedSeconds <= 2) return 5;
     if (elapsedSeconds <= 4) return 4;
     if (elapsedSeconds <= 6) return 3;
@@ -2490,7 +2930,7 @@ function startTimeBonusBar() {
     timeBonusBarInner.style.transition = "width 0.1s linear";
 
     timeBonusIntervalId = setInterval(() => {
-        const windowMs = settings.speedMode ? SPEED_TIME_BONUS_WINDOW_MS : TIME_BONUS_WINDOW_MS;
+        const windowMs = currentTimeBonusWindowMs();
         const elapsedMs = Date.now() - flagStartTime;
         const pct = Math.max(0, 100 - (elapsedMs / windowMs * 100));
         timeBonusBarInner.style.width = pct + "%";
@@ -2542,6 +2982,8 @@ function loadFlag() {
         solveBtn.disabled = false;
         answer.disabled = false;
         answer.focus();
+    } else {
+        solveBtn.style.display = "none";
     }
 
     const c = planEntry.country;
@@ -3156,15 +3598,14 @@ function renderGroupCreateModal() {
     if (session) {
         groupCreateContent.innerHTML =
             "<p>Deine Gruppe ist aktiv. Code an die Mitspieler:innen weitergeben oder den QR-Code scannen lassen:</p>" +
-            "<div style=\"font-size:32px;font-weight:bold;letter-spacing:5px;text-align:center;margin:12px 0;\">" + escapeHtml(session.code) + "</div>" +
-            "<div id=\"groupQrContainer\" style=\"display:flex;justify-content:center;margin:10px 0;\"></div>" +
-            "<p style=\"font-size:13px;color:#666;\">Die Warteansicht mit den Live-Einstellungen für die Gruppe folgt in einem der nächsten Ausbauschritte.</p>";
+            "<div style=\"font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:6px;text-align:center;margin:14px 0;color:var(--color-primary);\">" + escapeHtml(session.code) + "</div>" +
+            "<div id=\"groupQrContainer\" style=\"display:flex;justify-content:center;margin:10px 0;padding:14px;background:#F8FBFC;border-radius:var(--radius-md);\"></div>";
         const qrDiv = document.getElementById("groupQrContainer");
         const joinUrl = location.origin + location.pathname + "?gruppe=" + session.code;
         if (window.QRCode) {
             new QRCode(qrDiv, { text: joinUrl, width: 160, height: 160 });
         }
-        // Zum Schließen der Gruppe dient ausschließlich der Button im Leiter-Banner
+        // Zum Schließen der Gruppe dient ausschließlich der Button im Leiter-Dashboard
         // (kein zweiter, redundanter "Gruppe schließen"-Button mehr direkt unter dem QR-Code).
     } else {
         groupCreateContent.innerHTML =
@@ -3217,7 +3658,7 @@ function renderGroupJoinModal(prefillCode) {
     groupJoinContent.innerHTML =
         "<p>Code von deiner Lehrkraft bzw. Gruppenleitung eingeben:</p>" +
         "<div style=\"text-align:center;\">" +
-        "<input type=\"text\" id=\"groupCodeInput\" maxlength=\"5\" placeholder=\"z. B. A7K3M\" style=\"font-size:20px;letter-spacing:3px;text-align:center;text-transform:uppercase;padding:8px;width:140px;border:2px solid #ccc;border-radius:6px;\">" +
+        "<input type=\"text\" id=\"groupCodeInput\" maxlength=\"5\" placeholder=\"z. B. A7K3M\" style=\"font-family:var(--font-display);font-size:20px;letter-spacing:3px;text-align:center;text-transform:uppercase;padding:10px;width:160px;border:2px solid #DCE7EA;border-radius:var(--radius-md);\">" +
         "<br><br><button id=\"groupJoinBtn\">Beitreten</button>" +
         "<div id=\"groupJoinFeedback\" style=\"margin-top:10px;font-size:14px;\"></div></div>";
     const input = document.getElementById("groupCodeInput");
