@@ -8,13 +8,13 @@
 <!-- PWA / Homescreen-Unterstützung -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1976D2">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="icon192.png">
 
 <!-- iOS-spezifisch: "Zum Home-Bildschirm hinzufügen" -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Flaggenquiz">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="appletouchicon.png">
 
 <!-- Schriften: Poppins (Überschriften) & Inter (Fließtext) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -254,7 +254,6 @@
         position: relative;
         overflow: hidden;
         border-radius: var(--radius-md);
-        box-shadow: 0 6px 18px rgba(19,54,74,0.15);
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
@@ -325,9 +324,10 @@
         transition: width 0.3s ease;
     }
 
+    #timeBonusRow { margin-top: 8px; }
     #timeBonusBarOuter {
-        width: min(320px, 90vw);
-        margin: 8px auto 0 auto;
+        width: min(280px, 78vw);
+        margin: 0;
         height: 6px;
         background: #E5EEF0;
         border-radius: 3px;
@@ -366,11 +366,45 @@
         color: var(--text-primary);
         font-weight: bold;
     }
-    #timeBonusInfo {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin-top: 4px;
+    #resultCard {
+        margin-top: 10px;
+        padding: 14px 16px 16px 16px;
+        background: #F8FBFC;
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius-md);
+        display: none;
     }
+    #resultCard.visible {
+        display: block;
+        animation: result-card-in 0.3s ease;
+    }
+    @keyframes result-card-in {
+        0% { transform: translateY(6px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    #pointsChips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .result-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #fff;
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius-pill);
+        padding: 5px 12px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+        box-shadow: 0 2px 6px rgba(19,54,74,0.08);
+    }
+    .result-chip.chip-base { color: var(--color-secondary-dark); }
+    .result-chip.chip-time { color: var(--color-primary-dark); }
+    .result-chip.chip-streak { color: var(--color-accent-dark); }
     button {
         font-family: var(--font-body);
         padding: 10px 20px;
@@ -439,7 +473,6 @@
         background-position: center;
         cursor: pointer;
         padding: 0;
-        box-shadow: 0 4px 10px rgba(19,54,74,0.12);
     }
     .reverse-mc-btn.correct { border-color: var(--color-secondary); border-width: 4px; }
     .reverse-mc-btn.wrong { border-color: var(--color-danger); border-width: 4px; }
@@ -505,6 +538,35 @@
         border: 1px solid var(--card-border);
         box-shadow: var(--card-shadow);
     }
+    /* ---------- Rekord-Badges im Abschlussbildschirm (Prestige & Bestserie) ---------- */
+    .record-badge {
+        margin: 10px auto 0 auto;
+        max-width: 380px;
+        padding: 10px 16px;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 14.5px;
+        animation: badge-pop 0.4s ease, badge-glow 1.8s ease-in-out 0.4s 2;
+    }
+    .badge-prestige {
+        background: linear-gradient(135deg, #E0FBFF 0%, #C7F0FA 50%, #E0FBFF 100%);
+        border: 1px solid #8FE0EE;
+        color: #0E6E80;
+    }
+    .badge-streak {
+        background: linear-gradient(135deg, #FFF1E6 0%, #FFDCC2 50%, #FFF1E6 100%);
+        border: 1px solid #FFB877;
+        color: #B9540A;
+    }
+    @keyframes badge-pop {
+        0% { transform: scale(0.9); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes badge-glow {
+        0%, 100% { box-shadow: 0 0 0 rgba(255,255,255,0); }
+        50% { box-shadow: 0 0 16px rgba(255,255,255,0.9); }
+    }
+
     #endScreen h2 { margin-top: 0; font-family: var(--font-display); color: var(--color-primary); }
     #wrongList {
         text-align: left;
@@ -574,9 +636,15 @@
         margin-bottom: 10px;
     }
     .hs-row-list {
-        max-height: 340px;
+        max-height: 430px;
         overflow-y: auto;
         padding-right: 4px;
+    }
+    .hs-prestige {
+        font-size: 12px;
+        color: #0E8FA6;
+        font-weight: 700;
+        white-space: nowrap;
     }
     .hs-row {
         display: flex;
@@ -715,6 +783,7 @@
         max-width: 480px;
         margin: 0 auto;
         display: flex;
+        flex-direction: column;
         gap: 8px;
         padding: 12px 16px max(12px, env(safe-area-inset-bottom)) 16px;
         background: #fff;
@@ -723,9 +792,9 @@
         box-shadow: 0 -8px 24px rgba(19,54,74,0.12);
         z-index: 40;
     }
-    body.leader-mode-active { padding-bottom: 90px; }
+    body.leader-mode-active { padding-bottom: 130px; }
     .glb-actions button {
-        flex: 1;
+        width: 100%;
         margin: 0;
         font-size: 13px;
         padding: 12px 8px;
@@ -733,6 +802,7 @@
         font-weight: 600;
     }
     #groupReleaseBtn { background: var(--gradient-brand); color: #fff; }
+    #groupReleaseGateHint { text-align: center; font-size: 12px; color: var(--text-secondary); margin: -2px 0 0 0; }
     #groupShowQrBtn { background: #F1F6F7; color: var(--text-primary); }
     #groupLeaderCloseBtn { background: var(--color-danger); color: #fff; }
     .glb-roster-row {
@@ -810,14 +880,17 @@
         #progressBarOuter { margin-bottom: 6px; height: 8px; }
         #score { margin-bottom: 4px; }
         #flag { width: min(210px, 52vw); margin: 8px auto; }
-        #timeBonusBarOuter { width: min(210px, 52vw); margin: 6px auto 0 auto; }
+        #timeBonusRow { margin-top: 6px; }
+        #timeBonusBarOuter { width: min(180px, 46vw); margin: 0; }
+        #speedBonusIndicator { font-size: 12px; min-width: 28px; }
         #textInputArea input#answer { padding: 6px; margin-bottom: 2px; }
         #solveBtn { margin: 6px; }
         #tipBtn { margin: 6px; }
         #tip { min-height: 14px; margin-top: 4px; font-size: 14px; }
         #nextBtn { margin: 6px; }
         #points { font-size: 14px; margin-top: 4px; }
-        #timeBonusInfo { font-size: 12px; margin-top: 2px; }
+        #resultCard { margin-top: 6px; padding: 10px 12px 12px 12px; }
+        .result-chip { font-size: 12px; padding: 4px 10px; }
         #emoji { height: 36px; font-size: 32px; margin-top: 4px; }
         #solution { margin-top: 4px; }
         .mc-btn { padding: 10px; margin: 4px 0; }
@@ -844,7 +917,7 @@
 <body>
 
 <div id="titleBlock">
-    <img id="logoImg" src="icon-192.png" alt="Flaggenquiz Logo">
+    <img id="logoImg" src="icon192.png" alt="Flaggenquiz Logo">
     <h1>Flaggenquiz</h1>
     <div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
 </div>
@@ -857,7 +930,10 @@
     <div id="groupPlayerBanner"></div>
 
     <div id="nicknameBlock">
-        <label for="nickname">Dein Name</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+            <label for="nickname" style="margin-bottom:0;">Dein Name</label>
+            <a href="#" id="statsLink" style="font-size:13px;color:var(--color-primary);text-decoration:none;font-weight:600;white-space:nowrap;">📊 Meine Statistik</a>
+        </div>
         <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20">
         <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
     </div>
@@ -898,7 +974,7 @@
             <div class="setting-block-body">
                 <div id="modeButtons">
                     <button class="option-btn selected" data-mode="mc">🔤 Multiple Choice</button>
-                    <button class="option-btn" data-mode="reverse-mc">🏳️ Reverse Multiple Choice</button>
+                    <button class="option-btn" data-mode="reverse-mc">🏳️ Umkehr Multiple Choice</button>
                     <button class="option-btn" data-mode="text">⌨️ Text eingeben</button>
                     <button class="option-btn" data-mode="mixed">🔀 Mixed</button>
                 </div>
@@ -913,17 +989,16 @@
             </summary>
             <div class="setting-block-body">
                 <button class="option-btn" id="learningModeToggle">🎓 Lernmodus: Aus</button>
+                <div class="hint-small" style="margin-bottom:10px;">Kein Zeitdruck und kein Highscore-Eintrag — nur Üben.</div>
                 <button class="option-btn" id="proModeToggle">🎯 Profimodus: Aus</button>
+                <div class="hint-small" style="margin-bottom:10px;">Tippfehler werden strenger bewertet, und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.</div>
                 <button class="option-btn" id="speedModeToggle">⚡ Speedmodus: Aus</button>
-                <div class="hint-small">Im Lernmodus gibt es keinen Zeitdruck und keinen Highscore-Eintrag — nur Üben.<br>Im Profimodus sind Tippfehler strenger bewertet und bei Multiple Choice kommen falsche Antworten nur aus den gewählten Kontinenten.<br>Im Speedmodus wird nach Ablauf des Zeitbonus (5 Sekunden) automatisch zur nächsten Frage gewechselt, falls du nicht rechtzeitig geantwortet hast — ohne Punkte für diese Frage. Speedmodus und Lernmodus schließen sich gegenseitig aus.</div>
-                <div style="margin-top:10px;">
-                    <a href="#" id="statsLink" style="font-size:14px;color:var(--color-primary);text-decoration:none;font-weight:600;">📊 Meine Statistik ansehen</a>
-                </div>
+                <div class="hint-small">Zeit läuft doppelt so schnell (Zeitbonus-Fenster auf 5 Sek. halbiert). Läuft die Zeit ab, zählt die Frage automatisch als nicht beantwortet. Speedmodus und Lernmodus schließen sich gegenseitig aus.</div>
             </div>
         </details>
     </div>
 
-    <details class="highscore-accordion" id="highscoreAccordionWrap">
+    <details class="highscore-accordion" id="highscoreAccordionWrap" open>
         <summary>
             <span class="summary-label">🏆 Bestenliste</span>
             <span class="summary-chevron">▾</span>
@@ -973,68 +1048,80 @@
 
             <p><strong>Antwortmodus</strong><br>
             • <em>Multiple Choice</em>: Du siehst eine Flagge und wählst den richtigen Ländernamen aus 4 Optionen.<br>
-            • <em>Reverse Multiple Choice</em>: Du siehst einen Ländernamen und wählst die richtige Flagge aus 4 Optionen.<br>
+            • <em>Umkehr Multiple Choice</em>: Du siehst einen Ländernamen und wählst die richtige Flagge aus 4 Optionen.<br>
             • <em>Text eingeben</em>: Du siehst eine Flagge und tippst den Ländernamen selbst ein.<br>
             • <em>🔀 Mixed</em>: Bei jeder Frage wird zufällig einer der drei obigen Modi verwendet — über die ganze Runde gesehen ungefähr gleich oft.</p>
 
-            <p><strong>Lernmodus</strong><br>
+            <p><strong>🎓 Lernmodus</strong><br>
             Kein Zeitdruck und keine Punkte — die Runde zählt nicht für die Bestenliste. Ideal zum entspannten Üben.</p>
 
-            <p><strong>Profimodus</strong><br>
-            Tippfehler bei der Texteingabe werden strenger bewertet. Bei Multiple Choice und Reverse Multiple Choice stammen die falschen Antworten dann bevorzugt aus den von dir gewählten Kontinenten, statt aus der ganzen Welt — das macht es schwerer.</p>
+            <p><strong>🎯 Profimodus</strong><br>
+            Tippfehler bei der Texteingabe werden strenger bewertet. Bei Multiple Choice und Umkehr Multiple Choice stammen die falschen Antworten dann bevorzugt aus den von dir gewählten Kontinenten, statt aus der ganzen Welt — das macht es schwerer. Profimodus An/Aus hat außerdem eine eigene Bestenliste, damit die Ergebnisse vergleichbar bleiben.</p>
 
             <p><strong>⚡ Speedmodus</strong><br>
-            Im Speedmodus läuft die Zeit doppelt so schnell wie sonst: Das Zeitfenster für den Zeitbonus ist auf 5 Sekunden halbiert (≤1 Sek.: +5, ≤2 Sek.: +4, ≤3 Sek.: +3, ≤4 Sek.: +2, ≤5 Sek.: +1). Läuft die Zeit ab, ohne dass du geantwortet hast, wird die Frage automatisch als nicht beantwortet gewertet (0 Punkte) und nach kurzer Anzeige der richtigen Lösung (2 Sekunden) automatisch zur nächsten Frage gewechselt. Die Zeitleiste ist in diesem Modus rot statt blau, damit der Zeitdruck sofort erkennbar ist. Speedmodus und Lernmodus schließen sich gegenseitig aus.</p>
+            Im Speedmodus läuft die Zeit doppelt so schnell wie sonst. Läuft die Zeit ab, ohne dass du geantwortet hast, wird die Frage automatisch als nicht beantwortet gewertet (0 Punkte) und nach kurzer Anzeige der richtigen Lösung (2 Sekunden) automatisch zur nächsten Frage gewechselt. Die Zeitleiste ist in diesem Modus rot statt blau, damit der Zeitdruck sofort erkennbar ist. Auch der Speedmodus An/Aus hat eine eigene Bestenliste. Speedmodus und Lernmodus schließen sich gegenseitig aus.</p>
 
             <h3 style="margin-bottom:4px;margin-top:18px;">🧑‍🏫 Gruppenquiz</h3>
 
             <p>Mit dem Gruppenquiz können mehrere Personen (z. B. eine Schulklasse) gemeinsam und gegeneinander spielen — mit denselben, zentral vorgegebenen Einstellungen und einer eigenen Bestenliste nur für diese Gruppe.</p>
 
             <p><strong>Gruppe erstellen (Gruppenleitung)</strong><br>
-            Über „🧑‍🏫 Gruppenquiz starten" unten auf der Startseite legst du eine neue Gruppe an. Du erhältst einen kurzen Code sowie einen QR-Code, den die anderen scannen oder eintippen können, um beizutreten. Solange du eine Gruppe leitest, erscheint oben ein blauer Hinweisbalken mit allen Steuerungsmöglichkeiten.</p>
+            Über „🧑‍🏫 Gruppenquiz starten" unten auf der Startseite legst du eine neue Gruppe an. Du erhältst einen kurzen Code sowie einen QR-Code, den die anderen scannen oder eintippen können, um beizutreten. Solange du eine Gruppe leitest, erscheint oben ein Dashboard mit allen Steuerungsmöglichkeiten — der normale Start-Button entfällt währenddessen.</p>
 
             <p><strong>Einer Gruppe beitreten</strong><br>
             Über „🔗 Gruppenquiz beitreten" den Code eingeben, oder einfach den QR-Code der Gruppenleitung scannen — das öffnet den Beitritt automatisch. Nach dem Beitreten erscheint ein roter Hinweisbalken, und die Einstellungen (Kontinent, Anzahl Flaggen, Modus usw.) werden ausgegraut, da sie ab jetzt von der Gruppenleitung live vorgegeben werden.</p>
 
             <p><strong>Warten & Freigabe</strong><br>
-            Der Start-Button bleibt für alle Mitspieler:innen gesperrt („Warte auf Freigabe …"), bis die Gruppenleitung im blauen Hinweisbalken auf „▶️ Spiel freigeben" tippt. Danach kann jede:r im eigenen Tempo starten.</p>
+            Der Start-Button bleibt für alle Mitspieler:innen gesperrt („Warte auf Freigabe …"), bis die Gruppenleitung im Dashboard auf „▶️ Spiel freigeben" tippt. Danach kann jede:r im eigenen Tempo starten.</p>
 
             <p><strong>👥 Teilnehmer:innen-Liste</strong><br>
-            Im blauen Hinweisbalken sieht die Gruppenleitung live und durchnummeriert, wer bereits beigetreten ist — praktisch, um vor dem Start zu prüfen, ob die ganze Klasse da ist. Ein grünes ✅ hinter einem Namen zeigt an, dass diese Person die aktuelle Runde bereits beendet hat.</p>
+            Im Dashboard sieht die Gruppenleitung live und durchnummeriert, wer bereits beigetreten ist — praktisch, um vor dem Start zu prüfen, ob die ganze Klasse da ist. Ein grünes ✅ hinter einem Namen zeigt an, dass diese Person die aktuelle Runde bereits beendet hat.</p>
 
             <p><strong>🏆 Gruppen-Bestenliste</strong><br>
-            Nach jeder Runde erscheint bei allen Mitspieler:innen automatisch eine eigene Bestenliste nur für diese Gruppe — mit Ergebnissen dieser Runde sowie einer Gesamtwertung über alle bisher gespielten Runden. Die Gruppenleitung kann sich diese Liste jederzeit auch über den Button „🏆 Bestenliste" anzeigen lassen, ohne selbst mitspielen zu müssen. Die normale, weltweite Bestenliste wird während eines Gruppenquiz nicht angezeigt.</p>
+            Nach jeder Runde erscheint bei allen Mitspieler:innen automatisch eine eigene Bestenliste nur für diese Gruppe — mit Ergebnissen dieser Runde sowie einer Gesamtwertung über alle bisher gespielten Runden. Die Gruppenleitung kann sich diese Liste jederzeit auch über den Tab „🏆 Live-Ergebnisse" im Dashboard anzeigen lassen, ohne selbst mitspielen zu müssen. Die normale, weltweite Bestenliste wird während eines Gruppenquiz nicht angezeigt.</p>
 
             <p><strong>Weitere Runden</strong><br>
-            Über denselben Button, der nach der Freigabe zu „🔄 Nächste Runde starten" wird, kann die Gruppenleitung beliebig oft eine neue Runde eröffnen. Die rundenbezogene Bestenliste beginnt dann wieder bei null, während die Gesamtwertung über alle Runden weiterläuft.</p>
+            Über denselben Button, der nach der Freigabe zu „🔄 Nächste Runde" wird, kann die Gruppenleitung beliebig oft eine neue Runde eröffnen. Damit niemand ausgeschlossen wird, ist dieser Button erst wieder nutzbar, wenn entweder alle Teilnehmer:innen ihr Ergebnis eingesendet haben oder seit der Freigabe mindestens 1 Minute vergangen ist — so kommt die Gruppe auch weiter, falls jemand die Verbindung verliert. Die rundenbezogene Bestenliste beginnt mit jeder neuen Runde wieder bei null, während die Gesamtwertung über alle Runden weiterläuft.</p>
 
             <p><strong>Gruppe schließen</strong><br>
-            Beendet die Gruppenleitung die Gruppe, werden alle zugehörigen Daten (Einstellungen, Ergebnisse, Teilnehmerliste) gelöscht, und alle Mitspieler:innen kehren automatisch zu ihren eigenen, persönlichen Einstellungen zurück. Nicht geschlossene Gruppen laufen außerdem nach 12 Stunden automatisch ab.</p>
+            Über den Button „🚪 Gruppenspiel beenden" ganz unten im Dashboard werden alle zugehörigen Daten (Einstellungen, Ergebnisse, Teilnehmerliste) gelöscht, und alle Mitspieler:innen kehren automatisch zu ihren eigenen, persönlichen Einstellungen zurück. Nicht geschlossene Gruppen laufen außerdem nach 12 Stunden automatisch ab.</p>
 
             <p style="color:#666;">Hinweis: Solange du selbst eine Gruppe leitest oder einer beigetreten bist, sind die beiden Gruppenquiz-Links ausgegraut — zuerst die aktuelle Gruppe verlassen bzw. schließen, um eine neue zu starten oder einer anderen beizutreten.</p>
 
+            <h3 style="margin-bottom:4px;margin-top:18px;">🏆 Bestenliste</h3>
+
+            <p>Es gibt jeweils eine eigene, separate Bestenliste für jede Kombination aus Kontinent-Auswahl, Anzahl Flaggen, Antwortmodus, Profimodus (An/Aus) und Speedmodus (An/Aus) — so bleiben die Ergebnisse untereinander vergleichbar. Angezeigt werden bis zu 10 Einträge auf einen Blick, weitere bis Platz 50 lassen sich durch Scrollen einsehen.</p>
+
+            <p><strong>💎 Prestige</strong><br>
+            Erreichst du exakt dieselbe Punktzahl wie dein bisheriger Bestwert erneut, zählt ein Prestige-Zähler hoch (2. Erreichen = 1 💎, 3. Erreichen = 2 💎 usw.) — dein Rang in der Bestenliste bleibt dabei erhalten. Erzielst du hingegen einen neuen, höheren Bestwert, beginnt das Prestige für diese neue Punktzahl wieder bei 0. Haben mehrere Spieler:innen dieselbe Punktzahl und damit denselben Platz, entscheidet bei Gleichstand das höhere Prestige über die Reihenfolge — wer mehr 💎 hat, steht weiter oben.</p>
+
             <h3 style="margin-bottom:4px;margin-top:18px;">Wie die Punkte zustande kommen</h3>
 
-            <p><strong>Basispunkte: 16</strong><br>
-            Für jede richtig beantwortete Flagge gibt es 16 Punkte.</p>
+            <p><strong>Basispunkte: 20</strong><br>
+            Für jede richtig beantwortete Flagge gibt es 20 Punkte.</p>
 
             <p><strong>Tipp-Abzug</strong><br>
-            Nutzt du einen Tipp, halbieren sich die Punkte dieser Frage (8 Punkte). Nutzt du einen zweiten Tipp, werden sie geviertelt (4 Punkte).</p>
+            Nutzt du einen Tipp, halbieren sich die Punkte dieser Frage (10 Punkte). Nutzt du einen zweiten Tipp, werden sie geviertelt (5 Punkte).</p>
 
             <p><strong>⏱️ Zeitbonus</strong><br>
-            Je schneller du richtig antwortest, desto mehr Zusatzpunkte gibt es:</p>
+            Je schneller du richtig antwortest, desto mehr Zusatzpunkte gibt es — bis zu 10 Punkte, die alle 0,5 Sekunden um 1 Punkt sinken:</p>
             <div style="margin:6px 0 10px 10px;">
-                ≤ 2 Sek.: +5 &nbsp;·&nbsp; ≤ 4 Sek.: +4 &nbsp;·&nbsp; ≤ 6 Sek.: +3<br>
-                ≤ 8 Sek.: +2 &nbsp;·&nbsp; ≤ 10 Sek.: +1 &nbsp;·&nbsp; danach: +0
+                ≤ 0,5 Sek.: +10 &nbsp;·&nbsp; ≤ 1,0 Sek.: +9 &nbsp;·&nbsp; ≤ 1,5 Sek.: +8 &nbsp;·&nbsp; ≤ 2,0 Sek.: +7 &nbsp;·&nbsp; ≤ 2,5 Sek.: +6<br>
+                ≤ 3,0 Sek.: +5 &nbsp;·&nbsp; ≤ 3,5 Sek.: +4 &nbsp;·&nbsp; ≤ 4,0 Sek.: +3 &nbsp;·&nbsp; ≤ 4,5 Sek.: +2 &nbsp;·&nbsp; ≤ 5,0 Sek.: +1 &nbsp;·&nbsp; danach: +0
             </div>
-            <p>Im Lernmodus entfällt der Zeitbonus.</p>
+            <p>Im Speedmodus (bei Multiple Choice und Umkehr Multiple Choice) läuft diese Skala doppelt so schnell: der Bonus sinkt alle 0,25 Sekunden um 1 Punkt. Die aktuell erreichbaren Zeitbonus-Punkte werden während der Frage live links neben der Zeitleiste angezeigt (z. B. „⏱️ +7"). Im Lernmodus entfällt der Zeitbonus.</p>
 
             <p><strong>🔥 Siegesserie</strong><br>
-            Beantwortest du 3 Fragen in Folge richtig, <em>ohne</em> dabei einen Tipp zu nutzen, bekommst du bei der 3. richtigen Antwort +1 Punkt Siegesserien-Bonus. Jede weitere richtige Antwort in Folge (wieder ohne Tipp) erhöht diesen Bonus um +1:</p>
+            Beantwortest du Fragen in Folge richtig, <em>ohne</em> dabei einen Tipp zu nutzen, steigt ab der 3. richtigen Antwort in Folge ein Bonus:</p>
             <div style="margin:6px 0 10px 10px;">
-                3 richtige in Folge: +1 &nbsp;·&nbsp; 4 in Folge: +2 &nbsp;·&nbsp; 5 in Folge: +3 &nbsp;·&nbsp; usw.
+                3.–7. Antwort in Folge: Bonus steigt bei jeder Antwort um 1 (also +1 bis +5)<br>
+                8.–19. Antwort in Folge: Bonus steigt nur noch alle 3 Antworten um 1<br>
+                ab der 20. Antwort in Folge: neuer Meilenstein (+1 Sprung), danach steigt der Bonus nur noch alle 5 Antworten um 1
             </div>
-            <p>Sobald du einen Tipp anzeigen lässt oder eine Frage falsch beantwortest, wird die Serie unterbrochen und beginnt danach wieder bei 0 — die bereits erspielten Bonuspunkte bleiben dir aber erhalten. Deine bisher höchste Siegesserie siehst du in deiner persönlichen Statistik.</p>
+            <p>Ein kurzer Ton erklingt jedes Mal, wenn die Serie aktiv wird oder ein neuer Bonuspunkt erreicht wird. Sobald du einen Tipp anzeigen lässt oder eine Frage falsch beantwortest, wird die Serie unterbrochen und beginnt danach wieder bei 0 — die bereits erspielten Bonuspunkte bleiben dir aber erhalten. Erreichst du eine neue persönliche Bestserie, wird das am Ende der Runde besonders hervorgehoben. Deine bisher höchste Siegesserie siehst du außerdem in deiner persönlichen Statistik.</p>
+
+            <p><strong>Punkte-Aufschlüsselung</strong><br>
+            Auf dem Abschlussbildschirm siehst du direkt unter deiner Gesamtpunktzahl, wie sie sich zusammensetzt: ✅ Punkte durch richtige Antworten, ⏱️ Punkte durch Zeitbonus und 🔥 Punkte durch die Siegesserie.</p>
 
         </div>
     </div>
@@ -1093,7 +1180,10 @@
     <div id="score">Punkte: 0</div>
     <div id="flag"><div id="flagError"></div></div>
     <div id="countryNamePrompt"></div>
-    <div id="timeBonusBarOuter"><div id="timeBonusBarInner"></div></div>
+    <div id="timeBonusRow" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+        <div id="speedBonusIndicator" style="font-size:13px;font-weight:700;color:var(--color-primary);min-width:34px;text-align:right;white-space:nowrap;"></div>
+        <div id="timeBonusBarOuter"><div id="timeBonusBarInner"></div></div>
+    </div>
     <div id="loadingInfo" style="font-size:14px;color:#666;min-height:18px;margin-top:4px;"></div>
 
     <div id="textInputArea">
@@ -1103,27 +1193,31 @@
     <div id="mcOptions"></div>
     <div id="reverseMcOptions"></div>
 
-    <button id="tipBtn">Tipp anzeigen</button>
+    <button id="tipBtn">💡 Tipp anzeigen</button>
     <br>
     <button id="solveBtn">Lösen</button>
     <div id="tip"></div>
 
-    <button id="nextBtn" style="display:none;">Nächste</button>
+    <button id="nextBtn" style="display:none;">Weiter ➡️</button>
 
     <div id="points"></div>
-    <div id="timeBonusInfo"></div>
-    <div id="emoji"></div>
-    <div id="solution"></div>
+    <div id="resultCard">
+        <div id="emoji"></div>
+        <div id="solution"></div>
+        <div id="pointsChips"></div>
+    </div>
 </div>
 
 <div id="endScreen">
     <h2>Runde beendet!</h2>
     <div id="finalScoreLine" style="font-size:22px;font-weight:bold;"></div>
+    <div id="scoreBreakdownLine" style="font-size:15px;color:var(--text-secondary);margin-top:4px;font-weight:600;"></div>
+    <div id="recordBadges"></div>
     <div id="highscoreLine"></div>
     <div id="groupHighscoreBox" style="display:none;margin-top:16px;"></div>
     <div id="wrongListTitle" style="font-weight:bold;margin-top:15px;"></div>
     <div id="wrongList"></div>
-    <button id="restartBtn">Neue Runde</button>
+    <button id="restartBtn" title="Zurück zum Hauptmenü">🏠</button>
 </div>
 
 <!-- QR-Code-Erzeugung für den Gruppenquiz-Beitrittslink -->
@@ -1547,6 +1641,13 @@ function playCorrectSound() {
 function playWrongSound() {
     playTone(180, 0.35, "sawtooth");
 }
+// Wird bei jedem neuen Siegesserien-Meilenstein gespielt (Bonuspunkt steigt tatsächlich).
+// Der Ton wird mit höherer Serie etwas höher/heller, damit lange Serien sich besonders anfühlen.
+function playStreakMilestoneSound(level) {
+    const freq = 520 + Math.min(level, 12) * 55;
+    playTone(freq, 0.16, "triangle");
+    setTimeout(() => playTone(freq * 1.35, 0.18, "triangle"), 90);
+}
 
 // ---------- State ----------
 
@@ -1556,6 +1657,10 @@ let settings = { continents: [...continents], length: 20, mode: "mc", learningMo
 let list = [];
 let index = 0;
 let score = 0;
+let roundBaseSum = 0;
+let roundTimeBonusSum = 0;
+let roundStreakSum = 0;
+let roundNewBestStreakValue = null; // gesetzt, wenn in dieser Runde eine neue persönliche Bestserie erreicht wurde
 let tipCount = 0;
 let maxFlags = 20;
 let wrongAnswers = [];
@@ -1627,14 +1732,16 @@ const scoreDiv = document.getElementById("score");
 const emojiDiv = document.getElementById("emoji");
 const solutionDiv = document.getElementById("solution");
 const pointsDiv = document.getElementById("points");
-const timeBonusInfo = document.getElementById("timeBonusInfo");
+const pointsChips = document.getElementById("pointsChips");
 const timeBonusBarInner = document.getElementById("timeBonusBarInner");
+const speedBonusIndicator = document.getElementById("speedBonusIndicator");
 const counterDiv = document.getElementById("counter");
 const progressBarInner = document.getElementById("progressBarInner");
 const endBtn = document.getElementById("endBtn");
 
 const endScreen = document.getElementById("endScreen");
 const finalScoreLine = document.getElementById("finalScoreLine");
+const scoreBreakdownLine = document.getElementById("scoreBreakdownLine");
 const highscoreLine = document.getElementById("highscoreLine");
 const groupHighscoreBox = document.getElementById("groupHighscoreBox");
 const wrongListTitle = document.getElementById("wrongListTitle");
@@ -1694,7 +1801,7 @@ function loadSettingsFromStorage() {
 
 function modeLabel() {
     if (settings.mode === "mc") return "Multiple Choice";
-    if (settings.mode === "reverse-mc") return "Reverse Multiple Choice";
+    if (settings.mode === "reverse-mc") return "Umkehr Multiple Choice";
     if (settings.mode === "mixed") return "Mixed (zufällig gemischt)";
     return "Texteingabe";
 }
@@ -1714,7 +1821,9 @@ function updateContinentSummary() {
     const sel = continents.filter(c => settings.continents.includes(c)); // in fester Reihenfolge
 
     let text;
-    if (sel.length === total) {
+    if (sel.length === 0) {
+        text = "Bitte Kontinent wählen";
+    } else if (sel.length === total) {
         text = "Alle";
     } else if (sel.length === total - 1) {
         const missing = continents.find(c => !sel.includes(c));
@@ -1725,6 +1834,19 @@ function updateContinentSummary() {
         text = sel.slice(0, -1).join(", ") + " und " + sel[sel.length - 1];
     }
     continentSummary.textContent = text;
+    continentSummary.style.color = sel.length === 0 ? "var(--color-danger)" : "";
+    continentSummary.style.fontWeight = sel.length === 0 ? "700" : "";
+}
+
+// Sperrt den Start-Button, solange kein Kontinent ausgewählt ist (Punkt 7).
+function updateStartButtonContinentGate() {
+    if (settings.continents.length === 0) {
+        startBtn.disabled = true;
+        startBtn.dataset.continentGated = "1";
+    } else if (startBtn.dataset.continentGated === "1") {
+        startBtn.disabled = false;
+        delete startBtn.dataset.continentGated;
+    }
 }
 
 // Aktualisiert die Kurz-Zusammenfassungen in den Accordion-Kopfzeilen der Einstellungen.
@@ -1745,19 +1867,19 @@ function updateAllSummaries() {
 }
 
 const CONTINENT_ICONS = {
-    "Europa": "🇪🇺",
-    "Asien": "🌏",
-    "Afrika": "🌍",
-    "Nordamerika": "🌎",
-    "Südamerika": "🌎",
-    "Ozeanien": "🏝️"
+    "Europa": "🏰",
+    "Asien": "🏯",
+    "Afrika": "🦁",
+    "Nordamerika": "🗽",
+    "Südamerika": "🗿",
+    "Ozeanien": "🦘"
 };
 
 function buildSettingsScreen() {
     continentButtons.innerHTML = "";
     const allBtn = document.createElement("button");
     allBtn.className = "option-btn";
-    allBtn.textContent = "🌐 Alle";
+    allBtn.textContent = "🌍 Alle";
     allBtn.dataset.continent = "all";
     continentButtons.appendChild(allBtn);
 
@@ -1778,10 +1900,13 @@ function buildSettingsScreen() {
     }
 
     allBtn.onclick = () => {
-        settings.continents = [...continents];
+        // War "Alle" bereits aktiv, wählt ein erneuter Klick alles ab (schnelleres Wechseln
+        // auf nur einen Kontinent, statt jeden einzeln abzuwählen). Sonst wählt er alles an.
+        settings.continents = (settings.continents.length === continents.length) ? [] : [...continents];
         refreshContinentButtonStyles();
         updateLengthHint();
         updateHighscoreDisplay();
+        updateStartButtonContinentGate();
         saveSettingsToStorage();
     };
 
@@ -1789,21 +1914,20 @@ function buildSettingsScreen() {
         btn.onclick = () => {
             const cont = btn.dataset.continent;
             if (settings.continents.includes(cont)) {
-                // Abwählen, aber mindestens ein Kontinent muss ausgewählt bleiben
-                if (settings.continents.length > 1) {
-                    settings.continents = settings.continents.filter(c => c !== cont);
-                }
+                settings.continents = settings.continents.filter(c => c !== cont);
             } else {
                 settings.continents = [...settings.continents, cont];
             }
             refreshContinentButtonStyles();
             updateLengthHint();
             updateHighscoreDisplay();
+            updateStartButtonContinentGate();
             saveSettingsToStorage();
         };
     });
 
     refreshContinentButtonStyles();
+    updateStartButtonContinentGate();
 
     lengthButtons.innerHTML = "";
     [10, 20, 30, 50].forEach((n) => {
@@ -2007,12 +2131,21 @@ async function updateHighscoreDisplay() {
     }
 
     const medals = ["🥇", "🥈", "🥉"];
-    const rowsHtml = list.slice(0, 50).map((entry, i) => `
-        <div class="hs-row rank-${i + 1}">
-            <div class="hs-medal">${i < 3 ? medals[i] : (i + 1) + "."}</div>
-            <div class="hs-row-name">${escapeHtml(entry.name || "Anonym")}</div>
+    let lastScore = null, lastRank = 0;
+    const rowsHtml = list.slice(0, 50).map((entry, i) => {
+        // Gleiche Punktzahl = gleicher Rang (Punkt 3); die interne Sortierung entscheidet bei
+        // Punktegleichstand bereits per höherem Prestige über die Reihenfolge.
+        const rank = (entry.score === lastScore) ? lastRank : (i + 1);
+        lastScore = entry.score;
+        lastRank = rank;
+        const prestige = entry.prestige || 0;
+        return `
+        <div class="hs-row rank-${rank}">
+            <div class="hs-medal">${rank <= 3 ? medals[rank - 1] : rank + "."}</div>
+            <div class="hs-row-name">${escapeHtml(entry.name || "Anonym")}${prestige > 0 ? ' <span class="hs-prestige" title="Prestige: ' + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
             <div class="hs-row-score">${entry.score} Pkt.</div>
-        </div>`).join("");
+        </div>`;
+    }).join("");
 
     highscoreDisplay.innerHTML = `
         <div class="highscore-card">
@@ -2243,7 +2376,8 @@ async function releaseGroupForPlaying() {
     try {
         await firestoreDb.collection("gruppen").doc(session.code).update({
             leaderToken: session.leaderToken,
-            status: "laeuft"
+            status: "laeuft",
+            releasedAt: firebase.firestore.Timestamp.now()
         });
     } catch (e) {
         console.warn("Spiel konnte nicht freigegeben werden.", e);
@@ -2259,7 +2393,8 @@ async function advanceGroupRound(session, currentRound) {
         await firestoreDb.collection("gruppen").doc(session.code).update({
             leaderToken: session.leaderToken,
             status: "laeuft",
-            round: currentRound + 1
+            round: currentRound + 1,
+            releasedAt: firebase.firestore.Timestamp.now()
         });
     } catch (e) {
         console.warn("Neue Runde konnte nicht gestartet werden.", e);
@@ -2386,6 +2521,7 @@ function renderGroupRosterCombined() {
         '<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-secondary);">👥 ' + groupRosterTeilnehmerDocs.length +
         ' beigetreten · ✅ ' + finishedIds.size + ' fertig (Runde ' + round + ')</div>' +
         '<div style="max-height:220px;overflow-y:auto;">' + rows + '</div>';
+    if (typeof window.__groupUpdateReleaseGate === "function") window.__groupUpdateReleaseGate();
 }
 
 function startGroupRosterLive(code, containerEl, getRound) {
@@ -2536,6 +2672,44 @@ async function unregisterGroupParticipant(code) {
     } catch (e) { /* nicht kritisch, Eintrag verschwindet spätestens beim Aufräumen */ }
 }
 
+let groupPlayerPollTimer = null;
+
+// Holt den aktuellen Gruppenstatus einmalig per direktem Request (statt über den Live-Listener).
+// Wird genutzt, wenn die Seite wieder sichtbar wird oder der Live-Listener (z. B. auf manchen
+// mobilen Browsern nach Standby) die Verbindung verloren haben könnte, damit die Freigabe nicht
+// erst nach einem manuellen Neuladen ankommt (Punkt 21).
+async function refreshGroupPlayerStatus(code, silent) {
+    if (!firestoreDb || !code) return;
+    try {
+        const snap = await firestoreDb.collection("gruppen").doc(code).get();
+        if (!snap.exists) { leaveGroupPlayerMode(true); return; }
+        const data = snap.data();
+        const now = Date.now();
+        const expiresMs = (data.expiresAt && data.expiresAt.toMillis) ? data.expiresAt.toMillis() : 0;
+        if (data.status === "beendet" || expiresMs < now) { leaveGroupPlayerMode(true); return; }
+        applyGroupSettingsFromDoc(data);
+        currentGroupRound = data.round || 1;
+        lastKnownGroupStatus = data.status;
+        renderGroupPlayerBanner(code, data.status);
+        updateGroupStartButtonUI();
+    } catch (e) {
+        if (!silent) console.warn("Statusabgleich mit der Gruppe fehlgeschlagen.", e);
+    }
+}
+
+// Sehr sparsame Sicherheitsabfrage: läuft nur, solange noch auf Freigabe gewartet wird (nicht
+// während des laufenden Spiels), und nur alle 18 Sekunden — hält die Firestore-Zugriffe gering.
+function startGroupPlayerPolling(code) {
+    stopGroupPlayerPolling();
+    groupPlayerPollTimer = setInterval(() => {
+        if (lastKnownGroupStatus !== "laeuft") refreshGroupPlayerStatus(code, true);
+    }, 18000);
+}
+function stopGroupPlayerPolling() {
+    clearInterval(groupPlayerPollTimer);
+    groupPlayerPollTimer = null;
+}
+
 function enterGroupPlayerMode(code) {
     isGroupPlayer = true;
     lastPlayedGroupRound = null;
@@ -2546,6 +2720,7 @@ function enterGroupPlayerMode(code) {
     startBtn.textContent = "Warte auf Freigabe …";
     setGroupPlayerLockUI(true);
     renderGroupPlayerBanner(code, "warten");
+    startGroupPlayerPolling(code);
 
     if (groupPlayerUnsub) groupPlayerUnsub();
     groupPlayerUnsub = firestoreDb.collection("gruppen").doc(code).onSnapshot(
@@ -2571,6 +2746,7 @@ function enterGroupPlayerMode(code) {
 function leaveGroupPlayerMode(closedByLeader) {
     const session = getPlayerGroupSession();
     if (groupPlayerUnsub) { groupPlayerUnsub(); groupPlayerUnsub = null; }
+    stopGroupPlayerPolling();
     stopGroupHighscoreLive();
     isGroupPlayer = false;
     lastPlayedGroupRound = null;
@@ -2581,7 +2757,7 @@ function leaveGroupPlayerMode(closedByLeader) {
     setGroupPlayerLockUI(false);
     document.getElementById("groupPlayerBanner").style.display = "none";
     startBtn.disabled = false;
-    startBtn.textContent = "Start";
+    startBtn.textContent = "🚀 Start";
     updateHighscoreDisplay(); // globale Bestenliste war während des Gruppenquiz ausgeblendet
     if (closedByLeader) {
         alert("Die Gruppe wurde beendet oder ist abgelaufen. Du spielst jetzt wieder mit deinen eigenen Einstellungen.");
@@ -2603,19 +2779,23 @@ function setLeaderLearningModeLock(locked) {
 }
 
 // ---------- Gruppenquiz: Leiter-Banner ----------
+let groupReleaseGateTimer = null;
+
 async function renderGroupLeaderBanner() {
     const groupLeaderBanner = document.getElementById("groupLeaderBanner");
     const session = getLeaderSession();
     stopGroupRosterLive();
     updateGroupEntryLinksState();
+    clearInterval(groupReleaseGateTimer);
     if (!session) {
         groupLeaderBanner.style.display = "none";
         document.body.classList.remove("leader-mode-active");
         stopGroupHighscoreLive();
         setLeaderLearningModeLock(false);
         if (!isGroupPlayer) {
+            startBtn.style.display = "";
             startBtn.disabled = false;
-            startBtn.textContent = "Start";
+            startBtn.textContent = "🚀 Start";
         }
         return;
     }
@@ -2623,16 +2803,19 @@ async function renderGroupLeaderBanner() {
     document.body.classList.add("leader-mode-active");
     setLeaderLearningModeLock(true);
     groupLeaderBanner.innerHTML = '<div class="glb-head"><div class="glb-title">🧑\u200d🏫 Gruppendaten werden geladen …</div></div>';
-    startBtn.disabled = true;
-    startBtn.textContent = "Start (siehe Dashboard oben)";
+    // Punkt 9: Kein ausgegrauter Start-Button mehr — die Leitung steuert alles über das
+    // Freigabe-/Nächste-Runde-Dashboard weiter unten.
+    startBtn.style.display = "none";
 
-    let round = 1, status = "warten";
+    let round = 1, status = "warten", releasedAtMs = 0;
     if (firestoreDb) {
         try {
             const snap = await firestoreDb.collection("gruppen").doc(session.code).get();
             if (snap.exists) {
-                round = snap.data().round || 1;
-                status = snap.data().status || "warten";
+                const data = snap.data();
+                round = data.round || 1;
+                status = data.status || "warten";
+                releasedAtMs = (data.releasedAt && data.releasedAt.toMillis) ? data.releasedAt.toMillis() : 0;
             }
         } catch (e) { /* Anzeige bleibt bei Standardwerten, nicht kritisch */ }
     }
@@ -2644,8 +2827,9 @@ async function renderGroupLeaderBanner() {
         stopGroupHighscoreLive();
         setLeaderLearningModeLock(false);
         if (!isGroupPlayer) {
+            startBtn.style.display = "";
             startBtn.disabled = false;
-            startBtn.textContent = "Start";
+            startBtn.textContent = "🚀 Start";
         }
         return;
     }
@@ -2677,14 +2861,16 @@ async function renderGroupLeaderBanner() {
         '</div>' +
         '<div class="glb-actions">' +
             '<button id="groupReleaseBtn">' + releaseLabel + '</button>' +
-            '<button id="groupLeaderCloseBtn">✕ Schließen</button>' +
+            '<div id="groupReleaseGateHint"></div>' +
+            '<button id="groupLeaderCloseBtn">🚪 Gruppenspiel beenden</button>' +
         '</div>';
 
     document.getElementById("groupShowQrBtn").onclick = function () {
         renderGroupCreateModal();
         groupCreateModal.classList.add("open");
     };
-    document.getElementById("groupReleaseBtn").onclick = async function () {
+    const releaseBtnEl = document.getElementById("groupReleaseBtn");
+    releaseBtnEl.onclick = async function () {
         this.disabled = true;
         this.textContent = status === "laeuft" ? "Wird gestartet …" : "Wird freigegeben …";
         if (status === "laeuft") {
@@ -2702,6 +2888,37 @@ async function renderGroupLeaderBanner() {
         renderGroupLeaderBanner();
         updateHighscoreDisplay(); // globale Bestenliste war während der Leitung ausgeblendet
     };
+
+    // Punkt 11: "Nächste Runde" erst erlauben, wenn entweder alle Teilnehmer:innen ihr Ergebnis
+    // eingesendet haben, oder seit der Freigabe mindestens 1 Minute vergangen ist. So kann die
+    // Gruppe auch weiterspielen, falls ein Gerät die Verbindung verliert.
+    const GROUP_NEXT_ROUND_MIN_WAIT_MS = 60 * 1000;
+    function updateReleaseGate() {
+        if (status !== "laeuft" || !releasedAtMs) {
+            releaseBtnEl.disabled = false;
+            document.getElementById("groupReleaseGateHint").textContent = "";
+            return;
+        }
+        const total = groupRosterTeilnehmerDocs.length;
+        const finished = groupRosterTeilnehmerDocs.filter(d =>
+            groupRosterErgebnisseDocs.some(e => e.id === d.id && String(round) in (e.data().roundScores || {}))
+        ).length;
+        const allDone = total > 0 && finished >= total;
+        const elapsedMs = Date.now() - releasedAtMs;
+        const timeOk = elapsedMs >= GROUP_NEXT_ROUND_MIN_WAIT_MS;
+        const gateHintEl = document.getElementById("groupReleaseGateHint");
+        if (allDone || timeOk) {
+            releaseBtnEl.disabled = false;
+            if (gateHintEl) gateHintEl.textContent = "";
+        } else {
+            releaseBtnEl.disabled = true;
+            const secsLeft = Math.ceil((GROUP_NEXT_ROUND_MIN_WAIT_MS - elapsedMs) / 1000);
+            if (gateHintEl) gateHintEl.textContent = "⏳ " + finished + " von " + total + " fertig — oder noch " + secsLeft + " Sek. warten";
+        }
+    }
+    updateReleaseGate();
+    groupReleaseGateTimer = setInterval(updateReleaseGate, 2000);
+    window.__groupUpdateReleaseGate = updateReleaseGate;
 
     // Tabs: Warteraum (Teilnehmer:innen live) <-> Live-Ergebnisse (Bestenliste live)
     const tabButtons = groupLeaderBanner.querySelectorAll(".glb-tab");
@@ -2854,6 +3071,10 @@ startBtn.onclick = async function () {
     list = shuffle(filtered, groupRng).slice(0, maxFlags);
     index = 0;
     score = 0;
+    roundBaseSum = 0;
+    roundTimeBonusSum = 0;
+    roundStreakSum = 0;
+    roundNewBestStreakValue = null;
     wrongAnswers = [];
     currentStreak = 0;
     mixedBag = [];
@@ -2876,8 +3097,19 @@ startBtn.onclick = async function () {
 
 // ---------- Punkteberechnung ----------
 
+// ---------- Siegesserie: gestaffelter Bonus ----------
+// 3–7 in Folge: Bonus steigt bei jeder Antwort (+1 je Antwort). Ab der 7. bis zur 19. Antwort in
+// Folge steigt der Bonus nur noch alle 3 Antworten um 1. Ab der 20. Antwort in Folge (Meilenstein,
+// direkter Sprung um +1) steigt der Bonus danach nur noch alle 5 Antworten um 1.
+function computeStreakBonus(streak) {
+    if (streak < 3) return 0;
+    if (streak <= 7) return streak - 2;
+    if (streak < 20) return 5 + Math.floor((streak - 7) / 3);
+    return 10 + Math.floor((streak - 20) / 5);
+}
+
 function calculatePoints(country, tips) {
-    const base = 16;
+    const base = 20;
     if (tips === 0) return base;
     if (tips === 1) return base / 2;
     return base / 4;
@@ -2901,23 +3133,18 @@ function currentTimeBonusWindowMs() {
     return currentMode === "text" ? SPEED_TEXT_TIME_BONUS_WINDOW_MS : SPEED_TIME_BONUS_WINDOW_MS;
 }
 
+// Basis 10 Zeitbonus-Punkte, die mit der Zeit linear absinken. Im normalen Tempo sinkt der Bonus
+// alle 0,5 Sek. um 1 Punkt (Fenster 5 Sek.); im Speedmodus (bei MC/Umkehr-MC) doppelt so schnell,
+// alle 0,25 Sek. um 1 Punkt (Fenster 2,5 Sek.), damit sich die Zeitknappheit proportional überträgt.
 function calculateTimeBonus(elapsedSeconds) {
     if (settings.speedMode && currentMode !== "text") {
-        if (elapsedSeconds <= 1) return 5;
-        if (elapsedSeconds <= 2) return 4;
-        if (elapsedSeconds <= 3) return 3;
-        if (elapsedSeconds <= 4) return 2;
-        if (elapsedSeconds <= 5) return 1;
-        return 0;
+        const bonus = 11 - Math.ceil(elapsedSeconds / 0.25);
+        return Math.max(0, Math.min(10, bonus));
     }
     // Gilt für alle normalen Modi UND für Texteingabe im Speedmodus (dort mit den gleichen
-    // 10-Sekunden-Schwellen wie sonst, da im Textmodus die doppelte Speedmodus-Zeit gilt).
-    if (elapsedSeconds <= 2) return 5;
-    if (elapsedSeconds <= 4) return 4;
-    if (elapsedSeconds <= 6) return 3;
-    if (elapsedSeconds <= 8) return 2;
-    if (elapsedSeconds <= 10) return 1;
-    return 0;
+    // Schwellen wie sonst, da im Textmodus die doppelte Speedmodus-Zeit gilt).
+    const bonus = 11 - Math.ceil(elapsedSeconds / 0.5);
+    return Math.max(0, Math.min(10, bonus));
 }
 
 function startTimeBonusBar() {
@@ -2934,6 +3161,10 @@ function startTimeBonusBar() {
         const elapsedMs = Date.now() - flagStartTime;
         const pct = Math.max(0, 100 - (elapsedMs / windowMs * 100));
         timeBonusBarInner.style.width = pct + "%";
+        if (!settings.learningMode) {
+            const currentBonus = calculateTimeBonus(elapsedMs / 1000);
+            speedBonusIndicator.textContent = currentBonus > 0 ? "⏱️ +" + currentBonus : "";
+        }
         if (pct <= 0) {
             clearInterval(timeBonusIntervalId);
             if (settings.speedMode) handleSpeedTimeout();
@@ -2962,7 +3193,9 @@ function loadFlag() {
     tipDiv.innerHTML = "";
     solutionDiv.innerHTML = "";
     emojiDiv.innerHTML = "";
-    timeBonusInfo.innerHTML = "";
+    pointsChips.innerHTML = "";
+    pointsDiv.innerHTML = "";
+    document.getElementById("resultCard").classList.remove("visible");
     nextBtn.style.display = "none";
     answer.value = "";
     tipBtn.disabled = false;
@@ -3016,7 +3249,8 @@ function loadFlag() {
         buildAnswerOptions(c, planEntry.options);
     }
 
-    document.getElementById("timeBonusBarOuter").style.display = settings.learningMode ? "none" : "block";
+    document.getElementById("timeBonusRow").style.display = settings.learningMode ? "none" : "flex";
+    speedBonusIndicator.innerHTML = "";
 
     // Zeitbonus erst starten, wenn die Flaggen tatsächlich geladen sind
     flagStartTime = Date.now(); // Fallback, falls jemand schon vor Ladeende antwortet
@@ -3056,7 +3290,7 @@ function loadFlag() {
 
     // Die kommenden Fragen schon jetzt unauffällig im Hintergrund laden, damit ihre Flaggen
     // beim eigentlichen Wechsel bereits im Browser-Cache liegen und sofort erscheinen. Da Modus
-    // und Antwortoptionen dank questionPlan schon feststehen, werden bei Reverse Multiple Choice
+    // und Antwortoptionen dank questionPlan schon feststehen, werden bei Umkehr Multiple Choice
     // gezielt alle 4 benötigten Flaggenbilder vorgeladen — nicht nur die richtige.
     prefetchUpcomingFlags(index + 1, 4);
 }
@@ -3240,33 +3474,48 @@ function submitAnswer(userInput, forcedCountry) {
 
         let streakBonus = 0;
         if (tipCount === 0) {
+            const prevBonus = computeStreakBonus(currentStreak);
+            const wasNewBest = (currentStreak + 1) > getBestStreak();
             currentStreak++;
             updateBestStreak(currentStreak);
-            if (currentStreak >= 3) streakBonus = currentStreak - 2;
+            if (wasNewBest && !settings.learningMode) roundNewBestStreakValue = currentStreak;
+            streakBonus = computeStreakBonus(currentStreak);
+            if (!settings.learningMode && streakBonus > prevBonus) {
+                playStreakMilestoneSound(streakBonus);
+            }
         }
 
         if (!settings.learningMode) {
             score += basePoints + bonus + streakBonus;
+            roundBaseSum += basePoints;
+            roundTimeBonusSum += bonus;
+            roundStreakSum += streakBonus;
         }
         emojiDiv.innerHTML = "😀";
         solutionDiv.innerHTML = settings.learningMode
             ? (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!")
-            : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)! +" + basePoints + " Punkte" : "Richtig! +" + basePoints + " Punkte");
-        timeBonusInfo.innerHTML =
-            (bonus > 0 ? "Zeitbonus: +" + bonus + " Punkte" : "") +
-            (streakBonus > 0 ? (bonus > 0 ? "<br>" : "") + "🔥 Siegesserie (" + currentStreak + "): +" + streakBonus + " Punkt" + (streakBonus > 1 ? "e" : "") : "");
+            : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!");
+        if (settings.learningMode) {
+            pointsChips.innerHTML = "";
+        } else {
+            let chips = '<span class="result-chip chip-base">✅ +' + basePoints + '</span>';
+            if (bonus > 0) chips += '<span class="result-chip chip-time">⏱️ +' + bonus + '</span>';
+            if (streakBonus > 0) chips += '<span class="result-chip chip-streak">🔥 +' + streakBonus + ' (' + currentStreak + 'er Serie)</span>';
+            pointsChips.innerHTML = chips;
+        }
         playCorrectSound();
     } else {
         wrongAnswers.push({ name: c.name, given: userInput || "(keine Antwort)" });
         currentStreak = 0; // Falsche Antwort unterbricht die Siegesserie
         emojiDiv.innerHTML = "😢";
         solutionDiv.innerHTML = "Richtig wäre: " + c.name;
-        timeBonusInfo.innerHTML = "";
+        pointsChips.innerHTML = "";
         playWrongSound();
     }
 
     scoreDiv.innerHTML = "Punkte: " + score;
     nextBtn.style.display = "inline-block";
+    document.getElementById("resultCard").classList.add("visible");
 }
 
 solveBtn.onclick = function () {
@@ -3310,7 +3559,30 @@ function highscoreKey() {
     const continentPart = settings.continents.length === continents.length
         ? "all"
         : [...settings.continents].sort().join("+");
-    return "flagquiz_highscore_" + continentPart + "_" + settings.length + "_" + settings.mode;
+    const proPart = settings.proMode ? "proAn" : "proAus";
+    const speedPart = settings.speedMode ? "speedAn" : "speedAus";
+    return "flagquiz_highscore_" + continentPart + "_" + settings.length + "_" + settings.mode + "_" + proPart + "_" + speedPart;
+}
+
+// ---------- Rundenende: Punkte-Aufschlüsselung & Rekord-Badges (Punkte 5, 22-Konzept) ----------
+function buildScoreBreakdownHtml() {
+    const parts = ["✅ " + roundBaseSum];
+    if (roundTimeBonusSum > 0) parts.push("⏱️ " + roundTimeBonusSum);
+    if (roundStreakSum > 0) parts.push("🔥 " + roundStreakSum);
+    return parts.join(" &nbsp;·&nbsp; ");
+}
+
+function renderRecordBadges(prestigeLevel) {
+    const container = document.getElementById("recordBadges");
+    if (!container) return;
+    let html = "";
+    if (prestigeLevel) {
+        html += '<div class="record-badge badge-prestige">💎 Neues Prestige erreicht! (jetzt ' + prestigeLevel + '× ' + score + ' Punkte)</div>';
+    }
+    if (roundNewBestStreakValue) {
+        html += '<div class="record-badge badge-streak">🔥 Neue persönliche Bestserie: ' + roundNewBestStreakValue + ' in Folge!</div>';
+    }
+    container.innerHTML = html;
 }
 
 async function showEndScreen() {
@@ -3320,17 +3592,22 @@ async function showEndScreen() {
     stopGroupHighscoreLive();
     groupHighscoreBox.style.display = "none";
     groupHighscoreBox.innerHTML = "";
+    document.getElementById("recordBadges").innerHTML = "";
 
     if (settings.learningMode) {
         finalScoreLine.innerHTML = "🎓 Lernrunde abgeschlossen!";
+        scoreBreakdownLine.innerHTML = "";
         highscoreLine.innerHTML = "Im Lernmodus werden keine Punkte gezählt und kein Highscore-Eintrag gespeichert — nur zum Üben.";
     } else if (isGroupPlayer) {
         // Im Gruppenmodus zählt nur die Gruppen-Bestenliste weiter unten — die globale
         // Bestenliste wird hier bewusst weder abgerufen noch angezeigt, um nicht zu verwirren.
         finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+        scoreBreakdownLine.innerHTML = buildScoreBreakdownHtml();
         highscoreLine.innerHTML = "🚩 Deine Punkte fließen in die Gruppen-Bestenliste weiter unten ein.";
+        renderRecordBadges(null);
     } else {
         finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+        scoreBreakdownLine.innerHTML = buildScoreBreakdownHtml();
         highscoreLine.innerHTML = "Bestenliste wird aktualisiert …";
 
         const rawName = nicknameInput.value.trim();
@@ -3347,37 +3624,51 @@ async function showEndScreen() {
         }
 
         let didUpdate = false;
+        let prestigeLeveledUp = null; // gesetzte Zahl, falls in dieser Runde ein neues Prestige-Level erreicht wurde
+        let isFreshEntryOrImprovement = true;
         if (existingIdx !== -1) {
-            if (score > list[existingIdx].score) {
+            const existing = list[existingIdx];
+            if (score > existing.score) {
+                // Neuer, höherer Bestwert -> Prestige beginnt wieder bei 0
                 list.splice(existingIdx, 1);
-                list.push({ name: playerName, score: score, deviceId: deviceId, __new: true });
+                list.push({ name: playerName, score: score, deviceId: deviceId, prestige: 0 });
                 didUpdate = true;
+            } else if (score === existing.score) {
+                // Exakt gleiche Punktzahl erneut erreicht -> Prestige zählt hoch (2. Erreichen = 1 💎, usw.)
+                const newPrestige = (existing.prestige || 0) + 1;
+                list[existingIdx] = { name: playerName, score: existing.score, deviceId: deviceId, prestige: newPrestige };
+                prestigeLeveledUp = newPrestige;
+                didUpdate = true;
+                isFreshEntryOrImprovement = false;
             }
-            // sonst: bestehender, mindestens gleich guter Eintrag bleibt unverändert stehen
+            // score < existing.score: bestehender, besserer Eintrag bleibt unverändert stehen
         } else {
-            list.push({ name: playerName, score: score, deviceId: deviceId, __new: true });
+            list.push({ name: playerName, score: score, deviceId: deviceId, prestige: 0 });
             didUpdate = true;
         }
 
-        list.sort((a, b) => b.score - a.score);
+        // Bei Punktegleichstand entscheidet höheres Prestige über die Reihenfolge (Punkt 3)
+        list.sort((a, b) => b.score - a.score || (b.prestige || 0) - (a.prestige || 0));
         list = list.slice(0, 50);
-        const newRankIdx = list.findIndex(e => e.__new);
-        list.forEach(e => delete e.__new);
+        const rank = list.findIndex(e => e.deviceId === deviceId);
 
-        let rank, savedOnline = true;
-        if (didUpdate) {
+        let savedOnline = true;
+        if (didUpdate && rank !== -1) {
             savedOnline = await saveTopList(key, list);
             setHighscoreCache(key, list, savedOnline);
-            rank = newRankIdx;
-        } else {
-            rank = existingIdx; // Liste war bereits sortiert, Rang bleibt unverändert gültig
         }
         const onlineNote = savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
 
-        if (!didUpdate) {
+        if (rank === -1) {
+            highscoreLine.innerHTML = "Kein Platz in den Top 50." + onlineNote;
+        } else if (!didUpdate) {
             const medal = rank === 0 ? "🥇 " : rank === 1 ? "🥈 " : rank === 2 ? "🥉 " : "";
             highscoreLine.innerHTML = medal + "Dein bisheriger Bestwert (Platz " + (rank + 1) + ", " +
                 list[rank].score + " Punkte) ist bereits mindestens genauso gut — Eintrag bleibt unverändert." + onlineNote;
+        } else if (!isFreshEntryOrImprovement) {
+            // Prestige-Fall: Punktzahl unverändert, aber erneut erreicht
+            const medal = rank === 0 ? "🥇 " : rank === 1 ? "🥈 " : rank === 2 ? "🥉 " : "";
+            highscoreLine.innerHTML = medal + "Platz " + (rank + 1) + " mit " + score + " Punkten erneut erreicht!" + onlineNote;
         } else if (rank === 0) {
             highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>' + onlineNote;
         } else if (rank === 1) {
@@ -3392,6 +3683,8 @@ async function showEndScreen() {
                 ? "Knapp kein Platz in den Top 50 — Platz 50 liegt bei " + last.score + " Punkten."
                 : "Kein Platz in den Top 50.") + onlineNote;
         }
+
+        renderRecordBadges(prestigeLeveledUp);
     }
 
     // Gruppenquiz: eigenes Ergebnis einsenden und Live-Bestenliste der Gruppe anzeigen
@@ -3503,6 +3796,15 @@ renderGroupLeaderBanner();
         enterGroupPlayerMode(playerSession.code);
     }
 })();
+
+// Punkt 21: Wird die Seite nach Standby/Hintergrund wieder sichtbar (typisches Firefox-Mobil-
+// Problem), einmalig direkt den Gruppenstatus nachladen, statt auf den Live-Listener zu warten,
+// dessen Wiederverbindung sich in solchen Fällen verzögern kann.
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !isGroupPlayer) return;
+    const playerSession = getPlayerGroupSession();
+    if (playerSession && playerSession.code) refreshGroupPlayerStatus(playerSession.code, true);
+});
 
 // ---------- Verbindungs-Check auf der Startseite ----------
 const offlineWarning = document.getElementById("offlineWarning");
