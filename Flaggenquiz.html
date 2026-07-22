@@ -2110,6 +2110,20 @@ function continentLabel() {
     return settings.continents.join(", ");
 }
 
+// Kontinent-Auswahl als Emoji-Kürzel für den kompakten Bestenlisten-Titel (statt Klartext).
+function continentIconLabel() {
+    if (settings.continents.length === continents.length) return "🌍";
+    return continents.filter(c => settings.continents.includes(c)).map(c => CONTINENT_ICONS[c] || "🌐").join(" ");
+}
+
+// Profi-/Speedmodus als Emoji-Kürzel für den kompakten Bestenlisten-Titel.
+function specialModeIconLabel() {
+    const icons = [];
+    if (settings.proMode) icons.push("🎯");
+    if (settings.speedMode) icons.push("⚡");
+    return icons.join(" ");
+}
+
 async function updateHighscoreDisplay() {
     // Im Gruppenquiz zählt nur die Gruppen-Bestenliste — die globale Bestenliste wird
     // hier weder angezeigt noch abgerufen (spart unnötige Firestore-Anfragen).
@@ -2123,7 +2137,10 @@ async function updateHighscoreDisplay() {
 
     const key = highscoreKey();
     const modeLabelText = modeLabel();
-    const subtitle = `${settings.length} Flaggen · ${continentLabel()} · ${modeLabelText}`;
+    const modeIcons = specialModeIconLabel();
+    // Kompakter Titel: 🚩 Anzahl · Kontinent-Emoji(s) · Antwortmodus ausgeschrieben · Profi-/Speed-Emoji
+    // "Bestenliste" entfällt hier bewusst, da das Aufklapp-Menü direkt darüber bereits "🏆 Bestenliste" zeigt.
+    const subtitle = `🚩 ${settings.length} · ${continentIconLabel()} · ${modeLabelText}` + (modeIcons ? ` · ${modeIcons}` : "");
 
     highscoreDisplay.innerHTML = `
         <div class="highscore-card hs-empty">
@@ -2166,7 +2183,7 @@ async function updateHighscoreDisplay() {
 
     highscoreDisplay.innerHTML = `
         <div class="highscore-card">
-            <div class="hs-card-title">🏆 Bestenliste — ${subtitle}</div>
+            <div class="hs-card-title">${subtitle}</div>
             <div class="hs-row-list">${rowsHtml}</div>
             <div class="hs-status">${statusLine}</div>
         </div>`;
