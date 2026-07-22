@@ -3,7 +3,7 @@
 // Version vom Server geladen. Der Cache wird nur genutzt, wenn das Netzwerk nicht erreichbar ist.
 // (Vorherige Version nutzte "Cache First" - dadurch kamen Updates immer erst mit Verzögerung an.)
 
-const CACHE_NAME = "flaggenquiz-cache-v4";
+const CACHE_NAME = "flaggenquiz-cache-v5";
 const APP_SHELL = [
     "./Flaggenquiz.html",
     "./index.html",
