@@ -3023,9 +3023,11 @@ function renderStatsModal() {
     const accuracy = totalSeen > 0 ? Math.round((totalCorrect / totalSeen) * 100) : 0;
     const bestStreak = getBestStreak();
 
-    // Länder mit den meisten Fehlern zuerst (mindestens 2x gesehen, damit Zufallstreffer nicht verzerren)
+    // Länder mit den meisten Fehlern zuerst (mindestens 2x gesehen, damit Zufallstreffer nicht
+    // verzerren; Länder ohne einen einzigen Fehler werden ausgeblendet, da "X von Y richtig"
+    // mit X = Y sonst verwirrend in einer "hier häufen sich Fehler"-Liste auftauchen würde).
     const worst = entries
-        .filter(([, v]) => v.seen >= 2)
+        .filter(([, v]) => v.seen >= 2 && v.correct < v.seen)
         .map(([name, v]) => ({ name, ratio: v.correct / v.seen, seen: v.seen, correct: v.correct }))
         .sort((a, b) => a.ratio - b.ratio)
         .slice(0, 12);
@@ -3046,7 +3048,10 @@ function renderStatsModal() {
                 <div class="stats-ratio">${w.correct} von ${w.seen} richtig</div>
             </div>`).join("");
     } else {
-        html += `<div style="margin-top:14px;color:#666;">Noch nicht genug Daten für eine Schwachstellen-Auswertung — spiel weiter!</div>`;
+        const anyEligible = entries.some(([, v]) => v.seen >= 2);
+        html += anyEligible
+            ? `<div style="margin-top:14px;color:#666;">Bisher keine Schwächen erkennbar — alle mehrfach gezeigten Länder wurden immer richtig beantwortet. Stark! 🎉</div>`
+            : `<div style="margin-top:14px;color:#666;">Noch nicht genug Daten für eine Schwachstellen-Auswertung — spiel weiter!</div>`;
     }
 
     statsContent.innerHTML = html;
