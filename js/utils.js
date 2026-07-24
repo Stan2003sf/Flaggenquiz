@@ -143,11 +143,13 @@ function checkAnswer(userRaw, correctName) {
 }
 
 // ---------- Sound Mute ----------
+// Standardmäßig AN (Ton An), außer der/die Spieler:in hat aktiv "Aus" gewählt.
 let soundMuted = localStorage.getItem("flagquiz_muted") === "true";
 
 function updateMuteButton() {
-    muteBtn.textContent = soundMuted ? "🔇" : "🔊";
+    muteBtn.textContent = soundMuted ? "🔇 Ton: Aus" : "🔊 Ton: An";
     muteBtn.title = soundMuted ? "Sound einschalten" : "Sound ausschalten";
+    muteBtn.classList.toggle("selected", !soundMuted);
 }
 
 function playTone(freq, dur, type) {
