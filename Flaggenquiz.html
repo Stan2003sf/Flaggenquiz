@@ -182,13 +182,9 @@
         </p>
         <button id="ladderStartBtn">🚀 Start</button>
     </div>
-    <details class="highscore-accordion" id="ladderHighscoreAccordionWrap" open style="margin-top:16px;">
-        <summary>
-            <span class="summary-label">🏆 Gipfelsturm-Bestenliste (von 195)</span>
-            <span class="summary-chevron">▾</span>
-        </summary>
-        <div id="ladderHighscoreDisplay"></div>
-    </details>
+    <div style="text-align:center;margin-top:14px;">
+        <a href="#" id="ladderHighscoreHubLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;">🏆 Gipfelsturm-Bestenliste ansehen</a>
+    </div>
 </div>
 
 <!-- ================= Ebene 3: Ladder-Spielbildschirm ================= -->
@@ -258,13 +254,9 @@
         </div>
         <div id="battleWaitingBox" style="display:none;margin-top:16px;"></div>
     </div>
-    <details class="highscore-accordion" id="battleHighscoreAccordionWrap" open style="margin-top:16px;">
-        <summary>
-            <span class="summary-label">🏆 Battle-Bestenliste (Siege)</span>
-            <span class="summary-chevron">▾</span>
-        </summary>
-        <div id="battleHighscoreDisplay"></div>
-    </details>
+    <div style="text-align:center;margin-top:14px;">
+        <a href="#" id="battleHighscoreHubLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;">🏆 Battle-Bestenliste ansehen</a>
+    </div>
 </div>
 
 <!-- ================= Ebene 3: 1vs1 Battle — Kontinentwahl ================= -->
@@ -389,13 +381,10 @@
         </details>
     </div>
 
-    <details class="highscore-accordion" id="highscoreAccordionWrap" open>
-        <summary>
-            <span class="summary-label">🏆 Bestenliste</span>
-            <span class="summary-chevron">▾</span>
-        </summary>
-        <div id="highscoreDisplay"></div>
-    </details>
+    <div id="highscoreDisplay" style="display:none;"></div>
+    <div style="text-align:center;margin-top:14px;">
+        <a href="#" id="standardHighscoreHubLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;">🏆 Bestenliste ansehen</a>
+    </div>
 
     <!-- groupCreateLink / groupJoinLink: unsichtbare Anker, technisch weiterhin vorhanden,
          da bestehende Firestore-Logik über diese IDs angesprochen wird. Die sichtbaren
