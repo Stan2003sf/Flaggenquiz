@@ -273,6 +273,15 @@
 
     .menu-tile.selected-battle-tile { border-color: var(--color-primary); background: var(--gradient-brand-soft); }
 
+    .screen-heading {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 21px;
+        color: var(--color-primary-dark);
+        margin: 0 0 14px 0;
+        text-align: left;
+    }
+
     .back-arrow-row {
         text-align: left;
         margin-bottom: 14px;
