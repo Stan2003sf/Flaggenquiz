@@ -3,6 +3,7 @@
 const BATTLE_SESSION_KEY = "flagquiz_battle_session"; // { code, role: "A"|"B" }
 const BATTLE_HIGHSCORE_KEY = "flagquiz_battle_bestenliste";
 const BATTLE_EXPIRY_HOURS = 3;
+const BATTLE_MAX_LIVES = 5; // Schritt 5: 5 statt 3 Leben pro Spieler:in
 
 function getBattleSession() {
     try { const raw = localStorage.getItem(BATTLE_SESSION_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -42,7 +43,7 @@ async function createBattle() {
             sequenceA: null, sequenceB: null,
             lastSeenA: Date.now(), lastSeenB: null,
             suddenDeathSequence: null,
-            livesA: 3, livesB: 3,
+            livesA: BATTLE_MAX_LIVES, livesB: BATTLE_MAX_LIVES,
             currentRound: 0,
             rounds: {},
             winner: null
@@ -152,7 +153,7 @@ async function tryResolveBattleStart(code) {
                 sequenceA: sequenceA, sequenceB: sequenceB,
                 suddenDeathSequence: suddenDeathSequence,
                 status: "laeuft", currentRound: 1,
-                livesA: 3, livesB: 3
+                livesA: BATTLE_MAX_LIVES, livesB: BATTLE_MAX_LIVES
             });
         });
     } catch (e) { console.warn("Battle-Start konnte nicht aufgelöst werden.", e); }
@@ -256,6 +257,8 @@ let battleLocalAnswered = false;
 let battleCountdownTimer = null;
 let battleSelectedContinents = [];
 let battleSelectedPoison = [];
+let battleLastKnownMyLives = null;       // Schritt 5: für Trefferanimation bei eigenem Lebensverlust
+let battleLastKnownOpponentLives = null; // Schritt 5: für Trefferanimation bei Gegner-Lebensverlust
 let battleLastData = null;
 let battleHeartbeatTimer = null;
 let battleWatchdogTimer = null;
@@ -324,8 +327,60 @@ function battleCurrentFlagFor(data, roundNum) {
 
 function renderBattleHearts(el, lives) {
     let html = "";
-    for (let i = 0; i < 3; i++) html += i < lives ? '<span class="heart">❤️</span>' : '<span class="heart heart-lost">🤍</span>';
+    for (let i = 0; i < BATTLE_MAX_LIVES; i++) html += i < lives ? '<span class="heart">❤️</span>' : '<span class="heart heart-lost">🤍</span>';
     el.innerHTML = html;
+}
+
+// ---------- Schritt 5: Trefferanimationen ----------
+function playBattleOwnHitSound() {
+    // Tiefer, dumpfer "Treffer"-Ton (eigenes Leben verloren)
+    playTone(160, 0.22, "sawtooth");
+    setTimeout(() => playTone(110, 0.28, "sawtooth"), 90);
+}
+function playBattleOpponentHitSound() {
+    // Heller, positiver Ton (Gegner-Leben verloren)
+    playTone(700, 0.14, "sine");
+    setTimeout(() => playTone(950, 0.16, "sine"), 90);
+}
+
+function flashBattleScreen(colorClass) {
+    const overlay = document.getElementById("battleHitFlash");
+    if (!overlay) return;
+    overlay.classList.remove("flash-red", "flash-green");
+    void overlay.offsetWidth; // Reflow erzwingen, damit die Animation bei wiederholtem Trigger neu startet
+    overlay.classList.add(colorClass);
+    setTimeout(() => overlay.classList.remove(colorClass), 450);
+}
+
+// Letztes noch aktives Herz in einer Herzreihe animiert "zerbrechen" lassen.
+function breakLastActiveHeart(containerId, extraClass) {
+    const hearts = Array.from(document.getElementById(containerId).querySelectorAll(".heart"));
+    const target = hearts.slice().reverse().find(h => !h.classList.contains("heart-lost"));
+    if (!target) return;
+    target.classList.add("heart-breaking");
+    if (extraClass) target.classList.add(extraClass);
+}
+
+// Eigenes Leben verloren: Herz zerbricht, roter Bildschirm-Blitz, dumpfer Ton, kurze Vibration
+// (Vibration funktioniert nur auf Geräten/Browsern, die die Vibration-API unterstützen — z. B.
+// Android-Chrome. iOS/Safari unterstützt das grundsätzlich nicht; dort passiert einfach nichts,
+// kein Fehler, keine Beeinträchtigung — "Progressive Enhancement".)
+function triggerBattleOwnHitAnimation() {
+    breakLastActiveHeart("battleOwnHearts");
+    flashBattleScreen("flash-red");
+    playBattleOwnHitSound();
+    if (window.navigator && typeof navigator.vibrate === "function") {
+        try { navigator.vibrate(140); } catch (e) { /* ignorieren */ }
+    }
+}
+
+// Gegner-Leben verloren: Herz beim Gegner zerbricht + wackelt kurz, grüner Bildschirm-Blitz
+// (positives Feedback für dich), heller Ton. Keine Vibration — die ist bewusst nur für den
+// eigenen Treffer reserviert, sonst wäre die Bedeutung nicht eindeutig unterscheidbar.
+function triggerBattleOpponentHitAnimation() {
+    breakLastActiveHeart("battleOpponentHearts", "heart-shake");
+    flashBattleScreen("flash-green");
+    playBattleOpponentHitSound();
 }
 
 function stopBattleListener() {
@@ -334,6 +389,8 @@ function stopBattleListener() {
     clearInterval(battleHeartbeatTimer); battleHeartbeatTimer = null;
     clearInterval(battleWatchdogTimer); battleWatchdogTimer = null;
     battleLastData = null;
+    battleLastKnownMyLives = null;
+    battleLastKnownOpponentLives = null;
     const banner = document.getElementById("battleConnectionBanner");
     if (banner) banner.style.display = "none";
 }
@@ -514,8 +571,34 @@ function showBattleGameScreen(data) {
         document.getElementById("battleGameScreen").style.display = "block";
     }
 
-    renderBattleHearts(document.getElementById("battleOwnHearts"), battleGetMyLives(data));
-    renderBattleHearts(document.getElementById("battleOpponentHearts"), battleGetOpponentLives(data));
+    const myLivesNow = battleGetMyLives(data);
+    const opponentLivesNow = battleGetOpponentLives(data);
+
+    // Schritt 5: Lebensverlust seit dem letzten bekannten Stand erkennen und animieren.
+    // battleLastKnownXLives ist beim allerersten Rendern noch null (kein Vergleich möglich/nötig).
+    const myJustLost = battleLastKnownMyLives !== null && myLivesNow < battleLastKnownMyLives;
+    const opponentJustLost = battleLastKnownOpponentLives !== null && opponentLivesNow < battleLastKnownOpponentLives;
+
+    if (myJustLost) {
+        // Erst mit dem ALTEN (höheren) Herz-Stand rendern, damit das Herz, das gerade "zerbricht",
+        // überhaupt noch da ist — sonst würde renderBattleHearts es sofort wieder wegrationalisieren.
+        renderBattleHearts(document.getElementById("battleOwnHearts"), battleLastKnownMyLives);
+        triggerBattleOwnHitAnimation();
+        setTimeout(() => renderBattleHearts(document.getElementById("battleOwnHearts"), myLivesNow), 480);
+    } else {
+        renderBattleHearts(document.getElementById("battleOwnHearts"), myLivesNow);
+    }
+
+    if (opponentJustLost) {
+        renderBattleHearts(document.getElementById("battleOpponentHearts"), battleLastKnownOpponentLives);
+        triggerBattleOpponentHitAnimation();
+        setTimeout(() => renderBattleHearts(document.getElementById("battleOpponentHearts"), opponentLivesNow), 480);
+    } else {
+        renderBattleHearts(document.getElementById("battleOpponentHearts"), opponentLivesNow);
+    }
+
+    battleLastKnownMyLives = myLivesNow;
+    battleLastKnownOpponentLives = opponentLivesNow;
 
     const roundNum = data.currentRound;
     document.getElementById("battleRoundLabel").textContent =
