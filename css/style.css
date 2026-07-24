@@ -181,11 +181,32 @@
         animation: ladderConfetti 1.4s ease-in forwards;
     }
     /* ---------- 1vs1 Battle ---------- */
+    /* Zusätzlicher Puffer oben, damit Herzen/Namen bei iPhones mit Dynamic Island nicht darunter
+       verschwinden -- reiner env(safe-area-inset-top) reicht dafür in der Praxis nicht immer aus. */
+    #battleGameScreen {
+        padding-top: max(18px, calc(env(safe-area-inset-top) + 22px));
+    }
     #battleHeader {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         margin-bottom: 10px;
+    }
+    .battle-heart-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+    }
+    .battle-player-label {
+        font-family: var(--font-family);
+        font-weight: var(--weight-hint);
+        font-size: 11.5px;
+        color: var(--text-secondary);
+        max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .battle-hearts { font-size: 20px; letter-spacing: 2px; }
     .battle-hearts .heart-lost { opacity: 0.25; filter: grayscale(1); }
@@ -208,12 +229,12 @@
         opacity: 0;
     }
     #battleHitFlash.flash-red {
-        background: radial-gradient(ellipse at center, rgba(214,69,69,0) 45%, rgba(214,69,69,0.35) 100%);
-        animation: battleFlashFade 0.45s ease-out;
+        background: radial-gradient(ellipse at center, rgba(214,69,69,0) 25%, rgba(214,69,69,0.5) 100%);
+        animation: battleFlashFade 0.6s ease-out;
     }
     #battleHitFlash.flash-green {
-        background: radial-gradient(ellipse at center, rgba(38,166,91,0) 45%, rgba(38,166,91,0.30) 100%);
-        animation: battleFlashFade 0.45s ease-out;
+        background: radial-gradient(ellipse at center, rgba(38,166,91,0) 25%, rgba(38,166,91,0.42) 100%);
+        animation: battleFlashFade 0.6s ease-out;
     }
     @keyframes battleFlashFade {
         0% { opacity: 1; }
@@ -321,6 +342,42 @@
         margin: 0 0 14px 0;
         text-align: left;
     }
+
+    /* ---------- Bestenlisten-Hub ---------- */
+    .hub-tab-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+    .hub-tab-btn {
+        flex: 1;
+        font-family: var(--font-family);
+        font-weight: var(--weight-button);
+        font-size: 12.5px;
+        padding: 10px 6px;
+        border-radius: var(--radius-md);
+        border: 2px solid var(--card-border);
+        background: #fff;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+    .hub-tab-btn.selected {
+        border-color: var(--color-primary);
+        background: var(--gradient-brand-soft);
+        color: var(--color-primary-dark);
+    }
+    .hub-picker-label {
+        font-family: var(--font-family);
+        font-weight: var(--weight-button);
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        margin: 10px 0 6px 0;
+    }
+    #hubContinentButtons .menu-tile {
+        padding: 8px 10px;
+    }
+    #hubContinentButtons .menu-tile-icon { font-size: 18px; }
+    #hubContinentButtons .menu-tile-title { font-size: 13px; }
 
     .back-arrow-row {
         text-align: left;
