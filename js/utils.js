@@ -147,7 +147,7 @@ function checkAnswer(userRaw, correctName) {
 let soundMuted = localStorage.getItem("flagquiz_muted") === "true";
 
 function updateMuteButton() {
-    muteBtn.textContent = soundMuted ? "🔇 Ton: Aus" : "🔊 Ton: An";
+    muteBtn.textContent = soundMuted ? "🔇 Ton: AUS" : "🔊 Ton: AN";
     muteBtn.title = soundMuted ? "Sound einschalten" : "Sound ausschalten";
     muteBtn.classList.toggle("selected", !soundMuted);
 }
