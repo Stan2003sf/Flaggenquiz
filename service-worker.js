@@ -3,14 +3,27 @@
 // Version vom Server geladen. Der Cache wird nur genutzt, wenn das Netzwerk nicht erreichbar ist.
 // (Vorherige Version nutzte "Cache First" - dadurch kamen Updates immer erst mit Verzögerung an.)
 
-const CACHE_NAME = "flaggenquiz-cache-v8";
+const CACHE_NAME = "flaggenquiz-cache-v9";
 const APP_SHELL = [
     "./Flaggenquiz.html",
     "./index.html",
     "./manifest.json",
     "./icon192.png",
     "./icon512.png",
-    "./appletouchicon.png"
+    "./appletouchicon.png",
+    "./css/style.css",
+    "./js/firebase-init.js",
+    "./js/data-countries.js",
+    "./js/utils.js",
+    "./js/core-state.js",
+    "./js/navigation.js",
+    "./js/standard-settings.js",
+    "./js/highscore-ladder-stats.js",
+    "./js/group-quiz.js",
+    "./js/standard-game.js",
+    "./js/ladder-mode.js",
+    "./js/battle-mode.js",
+    "./js/init.js"
 ];
 
 self.addEventListener("install", (event) => {
