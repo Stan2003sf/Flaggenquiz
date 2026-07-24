@@ -92,7 +92,7 @@
         font-size: 14.5px;
     }
 
-    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #ladderPlaceholder {
+    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #ladderPlaceholder, #ladderGame, #ladderEndScreen {
         display: none;
         max-width: 480px;
         margin: 0 auto;
@@ -105,7 +105,93 @@
         text-align: left;
     }
 
-    /* ---------- Zurück-Pfeil (konsistent auf allen Unter-Ebenen) ---------- */
+    /* ---------- Ladder-Modus ---------- */
+    #ladderHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    #ladderHearts {
+        font-size: 22px;
+        letter-spacing: 2px;
+    }
+    #ladderHearts .heart-lost { opacity: 0.25; filter: grayscale(1); }
+    #ladderHearts .heart-breaking {
+        display: inline-block;
+        animation: heartBreak 0.5s ease forwards;
+    }
+    @keyframes heartBreak {
+        0% { transform: scale(1); opacity: 1; }
+        40% { transform: scale(1.3) rotate(-10deg); }
+        100% { transform: scale(0.6) rotate(12deg); opacity: 0.25; filter: grayscale(1); }
+    }
+    #ladderProgressLabel {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+    }
+    #ladderProgressBarOuter {
+        width: 100%;
+        height: 10px;
+        background: #E5EEF0;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+    #ladderProgressBarInner {
+        height: 100%;
+        width: 0%;
+        background: var(--gradient-brand);
+        transition: width .25s ease;
+    }
+    #ladderFlag {
+        width: min(320px, 90vw);
+        aspect-ratio: 320 / 213;
+        margin: 16px auto;
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--radius-md);
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-color: transparent;
+    }
+    #ladderFlagError {
+        display: none;
+        position: absolute;
+        inset: 0;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: #900;
+        font-weight: bold;
+        padding: 10px;
+        text-align: center;
+    }
+    #ladderMcOptions .mc-btn { width: 100%; }
+    #ladderEndContent {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: 26px 22px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--card-border);
+        margin-bottom: 16px;
+    }
+    #ladderEndContent .ladder-end-emoji { font-size: 46px; margin-bottom: 8px; }
+    #ladderEndContent h2 { margin: 0 0 8px 0; }
+    @keyframes ladderConfetti {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(160px) rotate(360deg); opacity: 0; }
+    }
+    .ladder-confetti-piece {
+        position: absolute;
+        top: -10px;
+        font-size: 20px;
+        animation: ladderConfetti 1.4s ease-in forwards;
+    }
     .back-arrow-row {
         text-align: left;
         margin-bottom: 14px;
@@ -1079,14 +1165,42 @@
     </div>
 </div>
 
-<!-- ================= Ebene 2a (Detail-Platzhalter): Ladder ================= -->
+<!-- ================= Ebene 2a (Detail): Ladder ================= -->
 <div id="ladderPlaceholder">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromLadderPlaceholder" type="button">⬅️ Zurück</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <div style="font-size:40px;margin-bottom:10px;">🪜</div>
         <h2 style="margin:0 0 8px 0;">Ladder-Modus</h2>
-        <p style="color:var(--text-secondary);font-size:14.5px;">Kommt in einer der nächsten Versionen. Du durchläufst dann alle 195 Flaggen, sortiert von bekannt nach unbekannt — mit Leben-System und eigener Ladder-Bestenliste.</p>
+        <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
+            Du durchläufst alle 195 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.
+        </p>
+        <button id="ladderStartBtn">🚀 Start</button>
     </div>
+    <details class="highscore-accordion" id="ladderHighscoreAccordionWrap" open style="margin-top:16px;">
+        <summary>
+            <span class="summary-label">🏆 Ladder-Bestenliste (von 195)</span>
+            <span class="summary-chevron">▾</span>
+        </summary>
+        <div id="ladderHighscoreDisplay"></div>
+    </details>
+</div>
+
+<!-- ================= Ebene 3: Ladder-Spielbildschirm ================= -->
+<div id="ladderGame">
+    <div id="ladderHeader">
+        <button id="ladderEndBtn">⬅️ Hauptmenü</button>
+        <div id="ladderHearts"></div>
+    </div>
+    <div id="ladderProgressLabel"></div>
+    <div id="ladderProgressBarOuter"><div id="ladderProgressBarInner"></div></div>
+    <div id="ladderFlag"><div id="ladderFlagError"></div></div>
+    <div id="ladderMcOptions"></div>
+</div>
+
+<!-- ================= Ladder: Rundenende ================= -->
+<div id="ladderEndScreen">
+    <div id="ladderEndContent"></div>
+    <button id="ladderRestartBtn">⬅️ Zurück zum Modus-Menü</button>
 </div>
 
 <!-- ================= Ebene 2b: Mehrspieler-Untermenü ================= -->
@@ -1322,7 +1436,10 @@
         <p style="text-align:left;font-size:14px;line-height:1.5;">
             Wenn du eine Runde beendest, werden dein eingetragener <strong>Spielername</strong> und deine
             erreichte <strong>Punktzahl</strong> in der zentralen, für alle Spieler:innen sichtbaren
-            Bestenliste gespeichert. Weitere personenbezogene Daten werden nicht erhoben.
+            Bestenliste gespeichert. Im Ladder-Modus gilt das Gleiche für deinen Namen und die
+            <strong>erreichte Anzahl Flaggen</strong>. Außerdem wird pro Land ein rein zahlenmäßiger,
+            anonymer Zähler geführt (wie oft eine Flagge gezeigt und wie oft sie richtig erkannt wurde) —
+            ohne Bezug zu einzelnen Spieler:innen. Weitere personenbezogene Daten werden nicht erhoben.
             Alle übrigen Angaben (z. B. bevorzugte Einstellungen oder deine persönliche Lernstatistik)
             bleiben ausschließlich auf deinem eigenen Gerät gespeichert und werden nicht übertragen.
         </p>
@@ -1899,6 +2016,8 @@ function hideAllScreens() {
     singlePlayerMenu.style.display = "none";
     multiPlayerMenu.style.display = "none";
     ladderPlaceholder.style.display = "none";
+    document.getElementById("ladderGame").style.display = "none";
+    document.getElementById("ladderEndScreen").style.display = "none";
     settingsDiv.style.display = "none";
     document.getElementById("game").style.display = "none";
     document.getElementById("endScreen").style.display = "none";
@@ -1938,6 +2057,7 @@ function goToLadderPlaceholder() {
     hideAllScreens();
     setChromeVisible(true);
     ladderPlaceholder.style.display = "block";
+    updateLadderHighscoreDisplay();
 }
 
 // Zeigt die (bisherige) Standard-Einstellungsseite — dient sowohl dem Standard-Einzelspiel
@@ -2351,6 +2471,76 @@ async function saveTopList(key, list) {
     }
 }
 
+// ---------- Ladder-Modus: globale Flaggen-Statistik (Baustein 1 des Konzepts) ----------
+// Nutzt bewusst dieselbe "highscores"-Collection wie die bestehende Bestenliste (unter einem
+// eigenen Schlüssel), statt eine komplett neue Firestore-Collection anzulegen — dafür sind
+// dann keine zusätzlichen Firestore-Sicherheitsregeln nötig. Struktur des Dokuments:
+// { stats: { "de": { gesehen: 12, richtig: 9 }, "fr": { ... }, ... } }
+const FLAG_STATS_KEY = "flagquiz_flaggenstatistik";
+const FLAG_STATS_LOCAL_KEY = "flagquiz_flaggenstatistik_lokal"; // Offline-Fallback
+
+function getLocalFlagStats() {
+    try {
+        const raw = localStorage.getItem(FLAG_STATS_LOCAL_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+}
+function saveLocalFlagStats(stats) {
+    try { localStorage.setItem(FLAG_STATS_LOCAL_KEY, JSON.stringify(stats)); } catch (e) { /* ignorieren */ }
+}
+
+// Lädt die globale Flaggen-Statistik (einmalig pro Ladder-Rundenstart, siehe Konzept Punkt 1).
+async function fetchFlagStats() {
+    if (!firestoreDb) return { stats: getLocalFlagStats(), online: false };
+    try {
+        const doc = await firestoreDb.collection("highscores").doc(FLAG_STATS_KEY).get();
+        const stats = (doc.exists && doc.data().stats && typeof doc.data().stats === "object") ? doc.data().stats : {};
+        saveLocalFlagStats(stats);
+        return { stats: stats, online: true };
+    } catch (e) {
+        console.warn("Globale Flaggen-Statistik nicht erreichbar, nutze lokalen Stand.", e);
+        return { stats: getLocalFlagStats(), online: false };
+    }
+}
+
+// Erhöht "gesehen" (und ggf. "richtig") für ein Land um 1. Läuft im Hintergrund (nicht
+// abgewartet) und darf ruhig scheitern — die Statistik ist bewusst unkritisch (siehe Konzept:
+// Manipulierbarkeit wird in Kauf genommen). Läuft nebenbei auch als lokaler Fallback-Zähler mit.
+async function incrementFlagStat(iso, wasCorrect) {
+    const local = getLocalFlagStats();
+    if (!local[iso]) local[iso] = { gesehen: 0, richtig: 0 };
+    local[iso].gesehen++;
+    if (wasCorrect) local[iso].richtig++;
+    saveLocalFlagStats(local);
+
+    if (!firestoreDb) return;
+    try {
+        const inc = firebase.firestore.FieldValue.increment(1);
+        const update = {};
+        update[iso + ".gesehen"] = inc;
+        if (wasCorrect) update[iso + ".richtig"] = inc;
+        await firestoreDb.collection("highscores").doc(FLAG_STATS_KEY).set({ stats: update }, { merge: true });
+    } catch (e) {
+        // Unkritisch — Statistik darf ruhig mal einen Eintrag verpassen.
+        console.warn("Flaggen-Statistik konnte nicht zentral aktualisiert werden.", e);
+    }
+}
+
+// Berechnet die Ladder-Reihenfolge "bekannt -> unbekannt" aus der globalen Statistik.
+// Bekanntheit = richtig / gesehen; noch nie gesehene Länder gelten als am wenigsten bekannt
+// (Kaltstart-Problem wird laut Konzept bewusst in Kauf genommen).
+function computeLadderOrder(stats) {
+    const scored = countries.map(c => {
+        const s = stats[c.iso];
+        const gesehen = (s && typeof s.gesehen === "number") ? s.gesehen : 0;
+        const richtig = (s && typeof s.richtig === "number") ? s.richtig : 0;
+        const bekanntheit = gesehen > 0 ? (richtig / gesehen) : -1;
+        return { name: c.name, iso: c.iso, continent: c.continent, gesehen: gesehen, richtig: richtig, bekanntheit: bekanntheit };
+    });
+    scored.sort((a, b) => b.bekanntheit - a.bekanntheit || a.iso.localeCompare(b.iso));
+    return scored;
+}
+
 // ---------- Kurzzeitiger Zwischenspeicher für die Bestenliste (spart Firestore-Anfragen) ----------
 // Wird z. B. beim schnellen Durchklicken der Einstellungen genutzt, statt bei jedem Klick
 // erneut die zentrale Liste zu laden. Nach Ablauf der TTL wird wieder frisch geladen.
@@ -2417,6 +2607,7 @@ async function updateHighscoreDisplay() {
         </div>`;
 
     const { list, online } = await fetchTopListCached(key);
+    const crownedIds = await getCrownedDeviceIdSet();
     const statusLine = online
         ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
         : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
@@ -2441,10 +2632,11 @@ async function updateHighscoreDisplay() {
         lastScore = entry.score;
         lastRank = rank;
         const prestige = entry.prestige || 0;
+        const crown = crownedIds.has(entry.deviceId) ? '👑 ' : '';
         return `
         <div class="hs-row rank-${rank}">
             <div class="hs-medal">${rank <= 3 ? medals[rank - 1] : rank + "."}</div>
-            <div class="hs-row-name">${escapeHtml(entry.name || "Anonym")}${prestige > 0 ? ' <span class="hs-prestige" title="Prestige: ' + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
+            <div class="hs-row-name">${crown}${escapeHtml(entry.name || "Anonym")}${prestige > 0 ? ' <span class="hs-prestige" title="Prestige: ' + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
             <div class="hs-row-score">${entry.score} Pkt.</div>
         </div>`;
     }).join("");
@@ -3819,6 +4011,7 @@ function submitAnswer(userInput, forcedCountry) {
     }
     tipBtn.disabled = true;
     recordAnswerStat(c.name, result.correct);
+    if (!settings.learningMode) incrementFlagStat(c.iso, result.correct);
 
     if (result.correct) {
         const basePoints = calculatePoints(c, tipCount);
@@ -4072,6 +4265,332 @@ endBtn.onclick = function () {
 
 restartBtn.onclick = function () {
     backToModeMenu();
+};
+
+// ================= Ladder-Modus =================
+
+const LADDER_HIGHSCORE_KEY = "flagquiz_ladder_bestenliste"; // wiederverwendet die "highscores"-Collection
+
+const ladderStartBtn = document.getElementById("ladderStartBtn");
+const ladderEndBtn = document.getElementById("ladderEndBtn");
+const ladderRestartBtn = document.getElementById("ladderRestartBtn");
+const ladderHeartsEl = document.getElementById("ladderHearts");
+const ladderProgressLabelEl = document.getElementById("ladderProgressLabel");
+const ladderProgressBarInnerEl = document.getElementById("ladderProgressBarInner");
+const ladderFlagDiv = document.getElementById("ladderFlag");
+const ladderFlagErrorEl = document.getElementById("ladderFlagError");
+const ladderMcOptionsDiv = document.getElementById("ladderMcOptions");
+const ladderEndContentEl = document.getElementById("ladderEndContent");
+const ladderHighscoreDisplayEl = document.getElementById("ladderHighscoreDisplay");
+
+let ladderOrder = [];
+let ladderPos = 0;
+let ladderLives = 5;
+let ladderCorrectCount = 0;
+let ladderMilestonesUsed = 0;
+let ladderAnswering = false;
+let ladderRoundActive = false;
+let ladderLoadToken = 0;
+
+// Nur für die Testphase (siehe Konzept): Rundenstart ab einem bestimmten Rang statt Rang 1,
+// z. B. über die URL ?ladder_debug=190 — damit lässt sich Game-Over/Sieg schnell durchspielen.
+function ladderDebugStartIndex(total) {
+    try {
+        const params = new URLSearchParams(location.search);
+        const raw = params.get("ladder_debug");
+        if (!raw) return 0;
+        const rank = parseInt(raw, 10);
+        if (!Number.isFinite(rank) || rank < 1 || rank > total) return 0;
+        return rank - 1;
+    } catch (e) { return 0; }
+}
+
+function playLadderHeartBreakSound() { playTone(220, 0.18, "sawtooth"); }
+function playLadderGameOverSound() {
+    playTone(200, 0.25, "sawtooth");
+    setTimeout(() => playTone(140, 0.35, "sawtooth"), 180);
+}
+function playLadderVictorySound() {
+    playTone(660, 0.18, "sine");
+    setTimeout(() => playTone(880, 0.18, "sine"), 140);
+    setTimeout(() => playTone(1100, 0.32, "sine"), 280);
+}
+
+function renderLadderHearts() {
+    let html = "";
+    for (let i = 0; i < 5; i++) {
+        html += i < ladderLives ? '<span class="heart">❤️</span>' : '<span class="heart heart-lost">🤍</span>';
+    }
+    ladderHeartsEl.innerHTML = html;
+}
+
+// Distraktor-Pool: ±20 Ränge um die Frageflagge, an den Rändern einseitig erweitert (Konzept Punkt 2).
+function pickLadderDistractors(posIndex, correctCountry) {
+    const n = ladderOrder.length;
+    const radius = 20;
+    let lo = posIndex - radius;
+    let hi = posIndex + radius;
+    if (lo < 0) { hi += (-lo); lo = 0; }
+    if (hi > n - 1) { lo -= (hi - (n - 1)); hi = n - 1; }
+    lo = Math.max(0, lo);
+    hi = Math.min(n - 1, hi);
+    const pool = ladderOrder.slice(lo, hi + 1).filter(c => c.iso !== correctCountry.iso);
+    return shuffle(pool).slice(0, 3);
+}
+
+function loadLadderFlag() {
+    ladderAnswering = false;
+    ladderLoadToken++;
+    const myToken = ladderLoadToken;
+    const c = ladderOrder[ladderPos];
+
+    ladderProgressLabelEl.textContent = "Flagge " + (ladderPos + 1) + " von " + ladderOrder.length;
+    ladderProgressBarInnerEl.style.width = (ladderPos / ladderOrder.length * 100) + "%";
+
+    const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
+    ladderFlagErrorEl.style.display = "none";
+    ladderFlagErrorEl.textContent = "";
+    ladderFlagDiv.style.backgroundImage = "url('" + flagUrl + "')";
+    const testImg = new Image();
+    testImg.onerror = function () {
+        if (myToken !== ladderLoadToken) return;
+        ladderFlagErrorEl.textContent = "Flagge konnte nicht geladen werden — bitte Internetverbindung prüfen";
+        ladderFlagErrorEl.style.display = "flex";
+    };
+    testImg.src = flagUrl;
+
+    const options = shuffle([c, ...pickLadderDistractors(ladderPos, c)]);
+    ladderMcOptionsDiv.innerHTML = "";
+    options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "mc-btn";
+        btn.textContent = opt.name;
+        btn.dataset.iso = opt.iso;
+        btn.onclick = () => submitLadderAnswer(opt.iso, c);
+        ladderMcOptionsDiv.appendChild(btn);
+    });
+}
+
+// Alle 50 korrekt beantwortete Flaggen (50/100/150) +1 Leben, gedeckelt auf 5 (Konzept Punkt 2).
+function maybeRefillLadderLife() {
+    const milestonesPossible = Math.floor(ladderCorrectCount / 50);
+    if (milestonesPossible > ladderMilestonesUsed && milestonesPossible <= 3) {
+        ladderMilestonesUsed = milestonesPossible;
+        if (ladderLives < 5) {
+            ladderLives++;
+            renderLadderHearts();
+        }
+    }
+}
+
+function submitLadderAnswer(selectedIso, correctCountry) {
+    if (!ladderRoundActive || ladderAnswering) return;
+    ladderAnswering = true;
+    const wasCorrect = selectedIso === correctCountry.iso;
+
+    Array.from(ladderMcOptionsDiv.querySelectorAll(".mc-btn")).forEach(btn => {
+        btn.disabled = true;
+        if (btn.dataset.iso === correctCountry.iso) btn.classList.add("correct");
+        else if (btn.dataset.iso === selectedIso && !wasCorrect) btn.classList.add("wrong");
+    });
+
+    incrementFlagStat(correctCountry.iso, wasCorrect); // globale Flaggen-Statistik weiter mitschreiben
+
+    if (wasCorrect) {
+        ladderCorrectCount++;
+        playCorrectSound();
+        maybeRefillLadderLife();
+        setTimeout(() => {
+            if (!ladderRoundActive) return;
+            advanceLadder();
+        }, 700);
+    } else {
+        playWrongSound();
+        setTimeout(() => {
+            if (!ladderRoundActive) return;
+            const hearts = Array.from(ladderHeartsEl.querySelectorAll(".heart"));
+            const target = hearts[ladderLives - 1];
+            if (target) target.classList.add("heart-breaking");
+            playLadderHeartBreakSound();
+            setTimeout(() => {
+                if (!ladderRoundActive) return;
+                ladderLives--;
+                renderLadderHearts();
+                if (ladderLives <= 0) {
+                    endLadderRound(false);
+                } else {
+                    advanceLadder();
+                }
+            }, 480);
+        }, 500);
+    }
+}
+
+function advanceLadder() {
+    ladderPos++;
+    if (ladderPos >= ladderOrder.length) {
+        endLadderRound(true);
+    } else {
+        loadLadderFlag();
+    }
+}
+
+function spawnLadderConfetti() {
+    const pieces = ["🎉", "🎊", "✨", "👑", "⭐"];
+    for (let i = 0; i < 18; i++) {
+        const span = document.createElement("span");
+        span.className = "ladder-confetti-piece";
+        span.textContent = pieces[Math.floor(Math.random() * pieces.length)];
+        span.style.left = Math.random() * 100 + "%";
+        span.style.animationDelay = (Math.random() * 0.4) + "s";
+        ladderEndContentEl.style.position = "relative";
+        ladderEndContentEl.appendChild(span);
+        setTimeout(() => span.remove(), 2000);
+    }
+}
+
+// Speichert das Ergebnis in der Ladder-Bestenliste (nur persönlicher Bestwert, siehe Konzept).
+// Wiederverwendet bewusst fetchTopList/saveTopList (dieselbe "highscores"-Collection).
+async function saveLadderResult(playerName, reachedCount, won) {
+    const deviceId = getDeviceId();
+    const { list: currentList } = await fetchTopList(LADDER_HIGHSCORE_KEY);
+    let list = currentList.slice();
+    let existingIdx = list.findIndex(e => e.deviceId === deviceId);
+    let didUpdate = false;
+
+    if (existingIdx !== -1) {
+        const existing = list[existingIdx];
+        if (reachedCount > (existing.best || 0)) {
+            list[existingIdx] = { name: playerName, deviceId: deviceId, best: reachedCount, achievedAt: Date.now(), crown: won || !!existing.crown };
+            didUpdate = true;
+        } else if (won && !existing.crown) {
+            list[existingIdx] = Object.assign({}, existing, { name: playerName, crown: true });
+            didUpdate = true;
+        } else if (existing.name !== playerName) {
+            list[existingIdx] = Object.assign({}, existing, { name: playerName });
+            didUpdate = true;
+        }
+    } else {
+        list.push({ name: playerName, deviceId: deviceId, best: reachedCount, achievedAt: Date.now(), crown: won });
+        didUpdate = true;
+    }
+
+    // Bei Punktegleichstand steht der Spieler, der den Stand zuerst erreicht hat, weiter oben.
+    list.sort((a, b) => (b.best - a.best) || ((a.achievedAt || 0) - (b.achievedAt || 0)));
+    list = list.slice(0, 50);
+    const rank = list.findIndex(e => e.deviceId === deviceId);
+
+    let savedOnline = true;
+    if (didUpdate) {
+        savedOnline = await saveTopList(LADDER_HIGHSCORE_KEY, list);
+        setHighscoreCache(LADDER_HIGHSCORE_KEY, list, savedOnline);
+    }
+    return { rank: rank, savedOnline: savedOnline };
+}
+
+function buildLadderResultLine(result, total) {
+    const onlineNote = result.savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
+    if (result.rank === -1) {
+        return '<p>Kein Platz in den Top 50 der Ladder-Bestenliste.' + onlineNote + '</p>';
+    }
+    const medal = result.rank === 0 ? "🥇 " : result.rank === 1 ? "🥈 " : result.rank === 2 ? "🥉 " : "";
+    return '<p>' + medal + 'Platz ' + (result.rank + 1) + ' in der Ladder-Bestenliste (von ' + total + ').</p>';
+}
+
+async function endLadderRound(won) {
+    ladderRoundActive = false;
+    hideAllScreens();
+    setChromeVisible(true);
+    document.getElementById("ladderEndScreen").style.display = "block";
+
+    const reachedCount = won ? ladderOrder.length : ladderPos;
+    if (won) playLadderVictorySound(); else playLadderGameOverSound();
+
+    let html = won
+        ? '<div class="ladder-end-emoji">👑</div><h2>Geschafft — du trägst jetzt die Krone!</h2><p>Alle ' + ladderOrder.length + ' Flaggen durchlaufen. 👑</p>'
+        : '<div class="ladder-end-emoji">💔</div><h2>Runde beendet</h2><p>' + reachedCount + ' von ' + ladderOrder.length + ' Flaggen geschafft.</p>';
+    ladderEndContentEl.innerHTML = html;
+
+    const rawName = nicknameInput.value.trim();
+    const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
+    const result = await saveLadderResult(playerName, reachedCount, won);
+    ladderEndContentEl.innerHTML += buildLadderResultLine(result, ladderOrder.length);
+
+    if (won) spawnLadderConfetti();
+}
+
+async function updateLadderHighscoreDisplay() {
+    ladderHighscoreDisplayEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Bestenliste wird geladen …</div></div>';
+    const { list, online } = await fetchTopListCached(LADDER_HIGHSCORE_KEY);
+    const statusLine = online
+        ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
+        : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
+
+    if (list.length === 0) {
+        ladderHighscoreDisplayEl.innerHTML =
+            '<div class="highscore-card hs-empty"><span class="trophy">🏆</span>' +
+            '<div class="hs-card-title" style="margin-bottom:4px;">Noch kein Ladder-Ergebnis</div>' +
+            '<div>Sei der Erste!</div><div class="hs-status">' + statusLine + '</div></div>';
+        return;
+    }
+    const medals = ["🥇", "🥈", "🥉"];
+    let lastBest = null, lastRank = 0;
+    const rowsHtml = list.slice(0, 50).map((entry, i) => {
+        const rank = (entry.best === lastBest) ? lastRank : (i + 1);
+        lastBest = entry.best; lastRank = rank;
+        const crown = entry.crown ? '👑 ' : '';
+        return '<div class="hs-row rank-' + rank + '">' +
+            '<div class="hs-medal">' + (rank <= 3 ? medals[rank - 1] : rank + ".") + '</div>' +
+            '<div class="hs-row-name">' + crown + escapeHtml(entry.name || "Anonym") + '</div>' +
+            '<div class="hs-row-score">' + entry.best + ' / 195</div></div>';
+    }).join("");
+    ladderHighscoreDisplayEl.innerHTML =
+        '<div class="highscore-card"><div class="hs-row-list">' + rowsHtml + '</div><div class="hs-status">' + statusLine + '</div></div>';
+}
+
+// Krone: einmal in der Ladder-Bestenliste gewonnen, wird sie fortan neben dem Namen in JEDER
+// Bestenliste angezeigt (Konzept Punkt 2, Schlussbildschirm "Gewonnen"). Über deviceId abgeglichen.
+async function getCrownedDeviceIdSet() {
+    const { list } = await fetchTopListCached(LADDER_HIGHSCORE_KEY);
+    return new Set(list.filter(e => e.crown).map(e => e.deviceId));
+}
+
+async function startLadderRound() {
+    ladderStartBtn.disabled = true;
+    ladderStartBtn.textContent = "Wird geladen …";
+    try {
+        const { stats } = await fetchFlagStats();
+        ladderOrder = computeLadderOrder(stats);
+        ladderPos = ladderDebugStartIndex(ladderOrder.length);
+        ladderLives = 5;
+        ladderCorrectCount = 0;
+        ladderMilestonesUsed = 0;
+        ladderAnswering = false;
+        ladderRoundActive = true;
+        renderLadderHearts();
+
+        hideAllScreens();
+        setChromeVisible(false);
+        document.getElementById("ladderGame").style.display = "block";
+        loadLadderFlag();
+    } finally {
+        ladderStartBtn.disabled = false;
+        ladderStartBtn.textContent = "🚀 Start";
+    }
+}
+
+ladderStartBtn.onclick = startLadderRound;
+
+ladderEndBtn.onclick = function () {
+    const sure = confirm("Möchtest du den Ladder-Modus wirklich beenden? Dein Fortschritt in dieser Runde geht verloren.");
+    if (!sure) return;
+    ladderRoundActive = false;
+    ladderLoadToken++;
+    goToSinglePlayerMenu();
+};
+
+ladderRestartBtn.onclick = function () {
+    goToSinglePlayerMenu();
 };
 
 // ---------- Init ----------
