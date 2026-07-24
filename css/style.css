@@ -189,6 +189,36 @@
     }
     .battle-hearts { font-size: 20px; letter-spacing: 2px; }
     .battle-hearts .heart-lost { opacity: 0.25; filter: grayscale(1); }
+    .battle-hearts .heart-breaking { display: inline-block; animation: heartBreak 0.5s ease forwards; }
+    .battle-hearts .heart-shake { animation: heartBreak 0.5s ease forwards, battleHeartShake 0.4s ease; }
+    @keyframes battleHeartShake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-3px); }
+        40% { transform: translateX(3px); }
+        60% { transform: translateX(-2px); }
+        80% { transform: translateX(2px); }
+    }
+
+    /* Bildschirm-Blitz bei Treffern: Rot = ich wurde getroffen, Grün = Gegner wurde getroffen */
+    #battleHitFlash {
+        position: fixed;
+        inset: 0;
+        z-index: 45;
+        pointer-events: none;
+        opacity: 0;
+    }
+    #battleHitFlash.flash-red {
+        background: radial-gradient(ellipse at center, rgba(214,69,69,0) 45%, rgba(214,69,69,0.35) 100%);
+        animation: battleFlashFade 0.45s ease-out;
+    }
+    #battleHitFlash.flash-green {
+        background: radial-gradient(ellipse at center, rgba(38,166,91,0) 45%, rgba(38,166,91,0.30) 100%);
+        animation: battleFlashFade 0.45s ease-out;
+    }
+    @keyframes battleFlashFade {
+        0% { opacity: 1; }
+        100% { opacity: 0; }
+    }
     #battleRoundLabel {
         font-family: var(--font-display);
         font-weight: var(--weight-heading);
