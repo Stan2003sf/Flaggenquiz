@@ -1367,6 +1367,7 @@
 
 <!-- ================= Ebene 3: 1vs1 Battle — Kontinentwahl ================= -->
 <div id="battleContinentScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="forfeitFromBattleContinent" type="button">🚪 Battle verlassen</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <div id="battleOpponentJoinedNote" style="font-weight:600;color:var(--color-secondary-dark);margin-bottom:10px;"></div>
         <h3 style="margin:0 0 10px 0;">🌍 Wählt gemeinsam 2 von 3 Kontinenten</h3>
@@ -1379,6 +1380,7 @@
 
 <!-- ================= Ebene 3: 1vs1 Battle — Giftflaggen-Wahl ================= -->
 <div id="battlePoisonScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="forfeitFromBattlePoison" type="button">🚪 Battle verlassen</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <h3 style="margin:0 0 6px 0;">☠️ Wähle 3 Giftflaggen für deinen Gegner</h3>
         <p class="hint-small" style="margin-bottom:10px;">Diese Flaggen bekommt dein Gegner untergemischt — deine Wahl bleibt geheim.</p>
@@ -1396,6 +1398,7 @@
         <div id="battleRoundLabel"></div>
         <div id="battleOpponentHearts" class="battle-hearts"></div>
     </div>
+    <div style="text-align:right;margin-bottom:6px;"><button class="back-arrow-btn" id="forfeitFromBattleGame" type="button" style="font-size:12px;padding:4px 8px;">🚪 verlassen</button></div>
     <div id="battleGiftBanner" style="display:none;"></div>
     <div id="battleFlag"><div id="battleFlagError"></div></div>
     <div id="battleTimerRow" style="display:none;"><div id="battleTimerBarOuter"><div id="battleTimerBarInner"></div></div></div>
@@ -1494,6 +1497,9 @@
 
 <!-- Lautstärke-Umschalter, auf allen Bildschirmen sichtbar -->
 <button id="muteBtn" title="Sound an/aus" style="position:fixed;top:max(25px, calc(env(safe-area-inset-top) + 14px));right:14px;z-index:50;background:#fff;border:2px solid #ccc;border-radius:50%;width:42px;height:42px;font-size:18px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,0.15);">🔊</button>
+
+<!-- Battle-Modus: schwebendes Verbindungs-Warnbanner, sichtbar über allen Battle-Bildschirmen -->
+<div id="battleConnectionBanner" style="display:none;position:fixed;top:max(75px, calc(env(safe-area-inset-top) + 64px));left:50%;transform:translateX(-50%);z-index:49;max-width:min(420px,92vw);background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.15);"></div>
 
 <!-- Statistik-Modal -->
 <div id="statsModal" class="modal-overlay">
@@ -4815,6 +4821,7 @@ async function createBattle() {
             pool: null,
             poisonChoiceA: null, poisonChoiceB: null,
             sequenceA: null, sequenceB: null,
+            lastSeenA: Date.now(), lastSeenB: null,
             suddenDeathSequence: null,
             livesA: 3, livesB: 3,
             currentRound: 0,
@@ -4847,7 +4854,7 @@ async function joinBattleByCode(rawCode) {
             if (expMs && expMs < Date.now()) return;
             if (data.playerA && data.playerA.deviceId === deviceId) return; // eigenes Battle, kann nicht selbst beitreten
             if (data.playerB && data.playerB.deviceId && data.playerB.deviceId !== deviceId) return; // schon vergeben
-            tx.update(ref, { playerB: { deviceId: deviceId, name: playerName }, status: "kontinentwahl" });
+            tx.update(ref, { playerB: { deviceId: deviceId, name: playerName }, status: "kontinentwahl", lastSeenB: Date.now() });
             joined = true;
         });
     } catch (e) {
@@ -5030,6 +5037,57 @@ let battleLocalAnswered = false;
 let battleCountdownTimer = null;
 let battleSelectedContinents = [];
 let battleSelectedPoison = [];
+let battleLastData = null;
+let battleHeartbeatTimer = null;
+let battleWatchdogTimer = null;
+const BATTLE_STALE_WARNING_MS = 12000; // ab hier: dezenter Hinweis "Verbindung könnte unterbrochen sein"
+const BATTLE_STALE_CLAIM_MS = 45000;   // ab hier: aktive Möglichkeit, das Battle für sich zu werten
+
+// Zeigt/versteckt das schwebende Verbindungs-Warnbanner anhand des zuletzt bekannten
+// Herzschlag-Zeitstempels des Gegners (siehe Konzept-Offener-Punkt "Verbindungsabbruch").
+function updateBattleConnectionWarning(data) {
+    const banner = document.getElementById("battleConnectionBanner");
+    if (!banner) return;
+    if (!data || data.status === "beendet" || data.status === "warten_spielerB") {
+        banner.style.display = "none";
+        return;
+    }
+    const oppLastSeen = battleRole === "A" ? data.lastSeenB : data.lastSeenA;
+    if (!oppLastSeen) { banner.style.display = "none"; return; }
+    const age = Date.now() - oppLastSeen;
+    if (age < BATTLE_STALE_WARNING_MS) {
+        banner.style.display = "none";
+        return;
+    }
+    banner.style.display = "block";
+    const oppName = escapeHtml(battleGetOpponentName(data));
+    if (age >= BATTLE_STALE_CLAIM_MS) {
+        banner.innerHTML = "⚠️ Verbindung zu " + oppName + " scheint abgebrochen zu sein." +
+            '<br><button id="battleClaimWinBtn" style="margin-top:8px;">🏆 Battle für dich werten</button>';
+        const claimBtn = document.getElementById("battleClaimWinBtn");
+        if (claimBtn) claimBtn.onclick = () => claimBattleWinByDisconnect(battleCode);
+    } else {
+        banner.innerHTML = "⚠️ Verbindung zu " + oppName + " könnte unterbrochen sein — warte noch kurz …";
+    }
+}
+
+// Erlaubt es, ein Battle für sich zu werten, wenn der Gegner seit längerem (siehe
+// BATTLE_STALE_CLAIM_MS) keinen Herzschlag mehr gesendet hat. Prüft den Zeitstempel innerhalb
+// der Transaktion nochmal nach, damit ein zwischenzeitlich doch wieder aktiver Gegner nicht
+// fälschlich als "abgebrochen" gewertet wird.
+async function claimBattleWinByDisconnect(code) {
+    const ref = firestoreDb.collection("battles").doc(code);
+    try {
+        await firestoreDb.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const data = snap.data();
+            if (!data || data.status === "beendet") return;
+            const oppLastSeen = battleRole === "A" ? data.lastSeenB : data.lastSeenA;
+            if (!oppLastSeen || (Date.now() - oppLastSeen) < BATTLE_STALE_CLAIM_MS) return;
+            tx.update(ref, { status: "beendet", winner: battleRole });
+        });
+    } catch (e) { console.warn("Sieg wegen Verbindungsabbruch konnte nicht gewertet werden.", e); }
+}
 
 function battleGetMyLives(data) { return battleRole === "A" ? data.livesA : data.livesB; }
 function battleGetOpponentLives(data) { return battleRole === "A" ? data.livesB : data.livesA; }
@@ -5053,8 +5111,12 @@ function renderBattleHearts(el, lives) {
 
 function stopBattleListener() {
     if (battleUnsub) { battleUnsub(); battleUnsub = null; }
-    clearInterval(battleCountdownTimer);
-    battleCountdownTimer = null;
+    clearInterval(battleCountdownTimer); battleCountdownTimer = null;
+    clearInterval(battleHeartbeatTimer); battleHeartbeatTimer = null;
+    clearInterval(battleWatchdogTimer); battleWatchdogTimer = null;
+    battleLastData = null;
+    const banner = document.getElementById("battleConnectionBanner");
+    if (banner) banner.style.display = "none";
 }
 
 function startBattleListener(code, role) {
@@ -5064,18 +5126,42 @@ function startBattleListener(code, role) {
     const ref = firestoreDb.collection("battles").doc(code);
     battleUnsub = ref.onSnapshot((snap) => {
         if (!snap.exists) {
+            stopBattleListener();
             clearBattleSession();
             alert("Dieses Battle existiert nicht mehr (abgelaufen oder abgebrochen).");
             goToMultiPlayerMenu();
             return;
         }
-        renderBattleFromData(snap.data());
+        battleLastData = snap.data();
+        renderBattleFromData(battleLastData);
     }, (e) => console.warn("Battle-Verbindung verloren.", e));
+
+    // Herzschlag: eigenen Zeitstempel regelmäßig aktualisieren — Grundlage dafür, dass der Gegner
+    // eine abgebrochene Verbindung erkennen kann (siehe Konzept, offener Punkt "Verbindungsabbruch").
+    const myField = role === "A" ? "lastSeenA" : "lastSeenB";
+    ref.update({ [myField]: Date.now() }).catch(() => {});
+    battleHeartbeatTimer = setInterval(() => {
+        ref.update({ [myField]: Date.now() }).catch(() => {});
+    }, 5000);
+
+    // Watchdog: regelmäßig prüfen, ob der Gegner seit längerem keinen Herzschlag mehr gesendet hat.
+    battleWatchdogTimer = setInterval(() => {
+        if (battleLastData) updateBattleConnectionWarning(battleLastData);
+    }, 3000);
 }
 
 function renderBattleFromData(data) {
-    if (data.status === "warten_spielerB") return; // bleibt auf dem Einstiegsbildschirm (Code/QR)
-
+    if (data.status === "warten_spielerB") {
+        // Reload-sicher: Bildschirm samt Code/QR erneut aufbauen, falls er (z. B. nach einem
+        // Browser-Reload während der Wartephase) noch nicht sichtbar ist.
+        if (document.getElementById("battleEntryScreen").style.display !== "block") {
+            hideAllScreens();
+            setChromeVisible(true);
+            document.getElementById("battleEntryScreen").style.display = "block";
+        }
+        renderBattleWaitingBox(battleCode);
+        return;
+    }
     if (data.status === "kontinentwahl") {
         if (data.continentChoiceA && data.continentChoiceB && !data.pool) tryResolveBattlePool(battleCode);
         showBattleContinentScreen(data);
@@ -5142,7 +5228,7 @@ function showBattleContinentScreen(data) {
         });
     }
     submitBtn.style.display = "block";
-    submitBtn.disabled = true;
+    submitBtn.disabled = battleSelectedContinents.length !== 2;
     submitBtn.onclick = () => {
         submitBtn.disabled = true;
         submitBattleContinents(battleCode, battleRole, battleSelectedContinents.slice());
@@ -5195,7 +5281,7 @@ function showBattlePoisonScreen(data) {
     }
     counterEl.textContent = battleSelectedPoison.length + " / 3 gewählt";
     submitBtn.style.display = "block";
-    submitBtn.disabled = true;
+    submitBtn.disabled = battleSelectedPoison.length !== 3;
     submitBtn.onclick = () => {
         submitBtn.disabled = true;
         submitBattlePoison(battleCode, battleRole, battleSelectedPoison.slice());
@@ -5339,6 +5425,8 @@ function goToBattleEntryScreen() {
 
 function renderBattleWaitingBox(code) {
     const box = document.getElementById("battleWaitingBox");
+    if (box.dataset.renderedFor === code) return; // schon aufgebaut — eigene Herzschlag-Updates lösen sonst unnötig oft neu aus
+    box.dataset.renderedFor = code;
     box.style.display = "block";
     box.innerHTML =
         '<p>Code an deinen Gegner weitergeben oder QR-Code scannen lassen:</p>' +
@@ -5351,6 +5439,21 @@ function renderBattleWaitingBox(code) {
     document.getElementById("battleCreateBtn").style.display = "none";
     document.getElementById("battleJoinBtn").style.display = "none";
     document.getElementById("battleJoinInputRow").style.display = "none";
+}
+
+// Sauberes Verlassen während einer laufenden Battle-Phase (Kontinent-/Gift-/Duell-Bildschirm):
+// zählt als Aufgabe — der Gegner gewinnt automatisch, statt einfach im Ungewissen zu bleiben.
+async function forfeitBattle() {
+    if (!battleCode || !battleRole) { goToMultiPlayerMenu(); return; }
+    const sure = confirm("Battle wirklich verlassen? Das zählt als Niederlage für dich.");
+    if (!sure) return;
+    const opponentRole = battleRole === "A" ? "B" : "A";
+    try {
+        await firestoreDb.collection("battles").doc(battleCode).update({ status: "beendet", winner: opponentRole });
+    } catch (e) { console.warn("Battle konnte nicht sauber verlassen werden.", e); }
+    stopBattleListener();
+    clearBattleSession();
+    goToMultiPlayerMenu();
 }
 
 document.getElementById("tileBattle").onclick = () => goToBattleEntryScreen();
@@ -5404,6 +5507,9 @@ document.getElementById("battleJoinConfirmBtn").onclick = async function () {
 document.getElementById("battleCodeInput").addEventListener("input", function () { this.value = this.value.toUpperCase(); });
 
 document.getElementById("battleEndRestartBtn").onclick = function () { goToMultiPlayerMenu(); };
+document.getElementById("forfeitFromBattleContinent").onclick = () => forfeitBattle();
+document.getElementById("forfeitFromBattlePoison").onclick = () => forfeitBattle();
+document.getElementById("forfeitFromBattleGame").onclick = () => forfeitBattle();
 
 // Automatischer Beitritt über den Battle-QR-Code-Link (?battle=CODE in der URL)
 (function checkBattleUrlParam() {
@@ -5548,6 +5654,16 @@ renderGroupLeaderBanner();
     const playerSession = getPlayerGroupSession();
     if (playerSession && playerSession.code && firestoreDb) {
         enterGroupPlayerMode(playerSession.code);
+    }
+})();
+
+// ---------- 1vs1 Battle: Sitzung nach Reload wiederherstellen (Reconnect) ----------
+// Der Renderpfad (startBattleListener -> renderBattleFromData) übernimmt danach selbst die
+// korrekte Bildschirm-Navigation, sobald der erste Firestore-Snapshot eintrifft.
+(function restoreBattleSession() {
+    const session = getBattleSession();
+    if (session && session.code && firestoreDb) {
+        startBattleListener(session.code, session.role);
     }
 })();
 
