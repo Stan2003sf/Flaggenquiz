@@ -250,15 +250,16 @@ async function endLadderRound(won) {
     if (won) spawnLadderConfetti();
 }
 
-async function updateLadderHighscoreDisplay() {
-    ladderHighscoreDisplayEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Bestenliste wird geladen …</div></div>';
+async function updateLadderHighscoreDisplay(targetEl) {
+    const el = targetEl || ladderHighscoreDisplayEl;
+    el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Bestenliste wird geladen …</div></div>';
     const { list, online } = await fetchTopListCached(LADDER_HIGHSCORE_KEY);
     const statusLine = online
         ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
         : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
 
     if (list.length === 0) {
-        ladderHighscoreDisplayEl.innerHTML =
+        el.innerHTML =
             '<div class="highscore-card hs-empty"><span class="trophy">🏆</span>' +
             '<div class="hs-card-title" style="margin-bottom:4px;">Noch kein Gipfelsturm-Ergebnis</div>' +
             '<div>Sei der Erste!</div><div class="hs-status">' + statusLine + '</div></div>';
@@ -275,7 +276,7 @@ async function updateLadderHighscoreDisplay() {
             '<div class="hs-row-name">' + crown + escapeHtml(entry.name || "Anonym") + '</div>' +
             '<div class="hs-row-score">' + entry.best + ' / 195</div></div>';
     }).join("");
-    ladderHighscoreDisplayEl.innerHTML =
+    el.innerHTML =
         '<div class="highscore-card"><div class="hs-row-list">' + rowsHtml + '</div><div class="hs-status">' + statusLine + '</div></div>';
 }
 

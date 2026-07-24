@@ -223,8 +223,8 @@ async function recordBattleWin() {
     setHighscoreCache(BATTLE_HIGHSCORE_KEY, list, saved);
 }
 
-async function updateBattleHighscoreDisplay() {
-    const el = document.getElementById("battleHighscoreDisplay");
+async function updateBattleHighscoreDisplay(targetId) {
+    const el = document.getElementById(targetId || "battleHighscoreDisplay");
     el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Bestenliste wird geladen …</div></div>';
     const { list, online } = await fetchTopListCached(BATTLE_HIGHSCORE_KEY);
     const statusLine = online
@@ -313,6 +313,9 @@ async function claimBattleWinByDisconnect(code) {
 
 function battleGetMyLives(data) { return battleRole === "A" ? data.livesA : data.livesB; }
 function battleGetOpponentLives(data) { return battleRole === "A" ? data.livesB : data.livesA; }
+function battleGetMyName(data) {
+    return battleRole === "A" ? (data.playerA ? data.playerA.name : "Du") : (data.playerB ? data.playerB.name : "Du");
+}
 function battleGetOpponentName(data) {
     return battleRole === "A" ? (data.playerB ? data.playerB.name : "Gegner") : (data.playerA ? data.playerA.name : "Gegner");
 }
@@ -349,7 +352,7 @@ function flashBattleScreen(colorClass) {
     overlay.classList.remove("flash-red", "flash-green");
     void overlay.offsetWidth; // Reflow erzwingen, damit die Animation bei wiederholtem Trigger neu startet
     overlay.classList.add(colorClass);
-    setTimeout(() => overlay.classList.remove(colorClass), 450);
+    setTimeout(() => overlay.classList.remove(colorClass), 620);
 }
 
 // Letztes noch aktives Herz in einer Herzreihe animiert "zerbrechen" lassen.
@@ -570,6 +573,9 @@ function showBattleGameScreen(data) {
         setChromeVisible(false);
         document.getElementById("battleGameScreen").style.display = "block";
     }
+
+    document.getElementById("battleOwnName").textContent = battleGetMyName(data);
+    document.getElementById("battleOpponentName").textContent = battleGetOpponentName(data);
 
     const myLivesNow = battleGetMyLives(data);
     const opponentLivesNow = battleGetOpponentLives(data);

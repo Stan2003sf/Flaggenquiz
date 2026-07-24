@@ -541,13 +541,14 @@ async function checkNameCollision(name) {
     ) || null;
 }
 
-function highscoreKey() {
-    const continentPart = settings.continents.length === continents.length
+function highscoreKey(s) {
+    s = s || settings;
+    const continentPart = s.continents.length === continents.length
         ? "all"
-        : [...settings.continents].sort().join("+");
-    const proPart = settings.proMode ? "proAn" : "proAus";
-    const speedPart = settings.speedMode ? "speedAn" : "speedAus";
-    return "flagquiz_highscore_" + continentPart + "_" + settings.length + "_" + settings.mode + "_" + proPart + "_" + speedPart;
+        : [...s.continents].sort().join("+");
+    const proPart = s.proMode ? "proAn" : "proAus";
+    const speedPart = s.speedMode ? "speedAn" : "speedAus";
+    return "flagquiz_highscore_" + continentPart + "_" + s.length + "_" + s.mode + "_" + proPart + "_" + speedPart;
 }
 
 // ---------- Rundenende: Punkte-Aufschlüsselung & Rekord-Badges (Punkte 5, 22-Konzept) ----------

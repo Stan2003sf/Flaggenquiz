@@ -89,12 +89,11 @@ document.getElementById("tileSettingsMenu").onclick = () => {
     document.getElementById("settingsMenuScreen").style.display = "block";
 };
 document.getElementById("backFromSettingsMenu").onclick = () => goToMainMenu();
-document.getElementById("tileHighscoreHub").onclick = () => {
-    hideAllScreens();
-    setChromeVisible(true);
-    document.getElementById("highscoreHubScreen").style.display = "block";
-};
+document.getElementById("tileHighscoreHub").onclick = () => goToHighscoreHub();
 document.getElementById("backFromHighscoreHub").onclick = () => goToMainMenu();
+document.getElementById("hubTabStandard").onclick = () => selectHubTab("standard");
+document.getElementById("hubTabLadder").onclick = () => selectHubTab("ladder");
+document.getElementById("hubTabBattle").onclick = () => selectHubTab("battle");
 document.getElementById("backFromSinglePlayerMenu").onclick = () => goToMainMenu();
 document.getElementById("backFromMultiPlayerMenu").onclick = () => goToMainMenu();
 document.getElementById("backFromLadderPlaceholder").onclick = () => goToSinglePlayerMenu();
