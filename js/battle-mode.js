@@ -728,7 +728,7 @@ function goToBattleEntryScreen() {
     document.getElementById("battleCreateBtn").style.display = "block";
     document.getElementById("battleJoinBtn").style.display = "block";
     document.getElementById("battleJoinInputRow").style.display = "none";
-    updateBattleHighscoreDisplay();
+    saveCurrentScreen("battleEntry");
 }
 
 function renderBattleWaitingBox(code) {

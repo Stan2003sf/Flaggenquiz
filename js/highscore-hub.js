@@ -63,7 +63,12 @@ function buildHubLengthButtons() {
 function buildHubModeButtons() {
     const container = document.getElementById("hubModeButtons");
     container.innerHTML = "";
-    [["mc", "🎮 Multiple Choice"], ["reverse-mc", "🔄 Umkehr-MC"], ["mixed", "🔀 Mixed"]].forEach(([value, label]) => {
+    [
+        ["mc", "🔤 Multiple Choice"],
+        ["reverse-mc", "🏳️ Umkehr Multiple Choice"],
+        ["text", "⌨️ Text eingeben"],
+        ["mixed", "🔀 Mixed"]
+    ].forEach(([value, label]) => {
         const btn = document.createElement("button");
         btn.className = "option-btn" + (value === hubBrowseSettings.mode ? " selected" : "");
         btn.textContent = label;
@@ -122,6 +127,7 @@ function selectHubTab(tab) {
     });
     if (tab === "ladder") updateLadderHighscoreDisplay(document.getElementById("hubLadderHighscoreDisplay"));
     if (tab === "battle") updateBattleHighscoreDisplay("hubBattleHighscoreDisplay");
+    saveCurrentScreen("highscoreHub:" + tab);
 }
 
 function goToHighscoreHub() {

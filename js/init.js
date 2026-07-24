@@ -87,10 +87,28 @@ document.getElementById("tileSettingsMenu").onclick = () => {
     hideAllScreens();
     setChromeVisible(true);
     document.getElementById("settingsMenuScreen").style.display = "block";
+    saveCurrentScreen("settingsMenuScreen");
 };
 document.getElementById("backFromSettingsMenu").onclick = () => goToMainMenu();
 document.getElementById("tileHighscoreHub").onclick = () => goToHighscoreHub();
 document.getElementById("backFromHighscoreHub").onclick = () => goToMainMenu();
+
+// Kurzlinks von den einzelnen Modi zum zentralen Bestenlisten-Hub (Schritt: Highscore-Konsolidierung)
+document.getElementById("standardHighscoreHubLink").onclick = function (e) {
+    e.preventDefault();
+    goToHighscoreHub();
+    selectHubTab("standard");
+};
+document.getElementById("ladderHighscoreHubLink").onclick = function (e) {
+    e.preventDefault();
+    goToHighscoreHub();
+    selectHubTab("ladder");
+};
+document.getElementById("battleHighscoreHubLink").onclick = function (e) {
+    e.preventDefault();
+    goToHighscoreHub();
+    selectHubTab("battle");
+};
 document.getElementById("hubTabStandard").onclick = () => selectHubTab("standard");
 document.getElementById("hubTabLadder").onclick = () => selectHubTab("ladder");
 document.getElementById("hubTabBattle").onclick = () => selectHubTab("battle");
@@ -127,11 +145,35 @@ document.getElementById("tileGroupJoin").onclick = () => groupJoinLink.click();
 
 // Bestehende Gruppensitzung (Leitung oder Mitspieler:in)? Dann direkt zur gemeinsamen
 // Einstellungsseite statt ins neue Hauptmenü — sonst würde man aus der laufenden Gruppe "fallen".
+// Ohne aktive Gruppe: den zuletzt besuchten Menü-/Übersichtsbildschirm wiederherstellen, damit ein
+// Browser-Reload nicht mehr grundsätzlich auf das Hauptmenü zurückspringt (Battle-Sitzungen werden
+// weiter unten separat und vorrangig behandelt, da sie einen eigenen Live-Zustand mitbringen).
 if (getLeaderSession() || getPlayerGroupSession()) {
     goToStandardSettings("multi");
-} else {
-    goToMainMenu();
+} else if (!getBattleSession()) {
+    const lastScreen = localStorage.getItem(LAST_SCREEN_KEY);
+    if (lastScreen === "singlePlayerMenu") goToSinglePlayerMenu();
+    else if (lastScreen === "multiPlayerMenu") goToMultiPlayerMenu();
+    else if (lastScreen === "standardSettings") goToStandardSettings("single");
+    else if (lastScreen === "ladderPlaceholder") goToLadderPlaceholder();
+    else if (lastScreen === "settingsMenuScreen") {
+        hideAllScreens(); setChromeVisible(true);
+        document.getElementById("settingsMenuScreen").style.display = "block";
+    }
+    else if (lastScreen === "statsScreen") {
+        hideAllScreens(); setChromeVisible(true);
+        renderStatsModal();
+        document.getElementById("statsScreen").style.display = "block";
+    }
+    else if (lastScreen === "battleEntry") goToBattleEntryScreen();
+    else if (lastScreen && lastScreen.indexOf("highscoreHub:") === 0) {
+        goToHighscoreHub();
+        selectHubTab(lastScreen.split(":")[1] || "standard");
+    }
+    else goToMainMenu();
 }
+// (Falls eine Battle-Sitzung existiert, übernimmt restoreBattleSession weiter unten die Navigation
+// vollständig selbst, sobald der erste Firestore-Snapshot eintrifft — hier daher nichts tun.)
 
 // ---------- Gruppenquiz: Status beim Laden wiederherstellen ----------
 renderGroupLeaderBanner();
@@ -180,6 +222,7 @@ document.getElementById("tileStats").onclick = function () {
     setChromeVisible(true);
     renderStatsModal();
     document.getElementById("statsScreen").style.display = "block";
+    saveCurrentScreen("statsScreen");
 };
 document.getElementById("backFromStats").onclick = () => goToMainMenu();
 statsResetBtn.onclick = function () {

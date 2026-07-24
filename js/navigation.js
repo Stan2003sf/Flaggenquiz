@@ -4,6 +4,16 @@
 // Wird für den "Zurück zum Modus-Menü"-Link am Rundenende sowie den Abbruch-Button im Spiel benötigt.
 let originMenu = "single";
 
+// Merkt sich den zuletzt angezeigten Menü-/Übersichtsbildschirm, damit ein Browser-Reload nicht
+// mehr auf das Hauptmenü zurückspringt, egal in welchem Menü man gerade war. Bewusst NUR für
+// Menü-/Übersichtsbildschirme, NICHT für laufende Spielrunden (Standard/Gipfelsturm) — dort gilt
+// weiterhin: kein Fortschritt wird gespeichert, ein Reload führt zurück zum jeweiligen Einstiegs-
+// bildschirm. Aktive Gruppen-/Battle-Sitzungen haben ohnehin ihre eigene, vorrangige Wiederherstellung.
+const LAST_SCREEN_KEY = "flagquiz_last_screen";
+function saveCurrentScreen(name) {
+    try { localStorage.setItem(LAST_SCREEN_KEY, name); } catch (e) { /* ignorieren */ }
+}
+
 function hideAllScreens() {
     mainMenu.style.display = "none";
     singlePlayerMenu.style.display = "none";
@@ -39,12 +49,14 @@ function goToMainMenu() {
     hideAllScreens();
     setChromeVisible(true);
     mainMenu.style.display = "block";
+    saveCurrentScreen("mainMenu");
 }
 
 function goToSinglePlayerMenu() {
     hideAllScreens();
     setChromeVisible(true);
     singlePlayerMenu.style.display = "block";
+    saveCurrentScreen("singlePlayerMenu");
 }
 
 function goToMultiPlayerMenu() {
@@ -52,13 +64,14 @@ function goToMultiPlayerMenu() {
     setChromeVisible(true);
     updateGroupEntryLinksState();
     multiPlayerMenu.style.display = "block";
+    saveCurrentScreen("multiPlayerMenu");
 }
 
 function goToLadderPlaceholder() {
     hideAllScreens();
     setChromeVisible(true);
     ladderPlaceholder.style.display = "block";
-    updateLadderHighscoreDisplay();
+    saveCurrentScreen("ladderPlaceholder");
 }
 
 // Zeigt die (bisherige) Standard-Einstellungsseite — dient sowohl dem Standard-Einzelspiel
@@ -72,6 +85,9 @@ function goToStandardSettings(origin) {
     updateHighscoreDisplay();
     updateGroupStartButtonUI();
     checkConnection();
+    // Nur den Solo-Einstieg merken -- der Gruppen-Fall ("multi") wird bereits vorrangig über die
+    // eigene Leiter-/Mitspieler-Sitzung wiederhergestellt (siehe Init), das würde sich sonst doppeln.
+    if (origin === "single") saveCurrentScreen("standardSettings");
 }
 
 // Zurück-Navigation von Spielrunde (Ebene 3) bzw. Rundenende zum passenden Modus-Menü.
