@@ -19,7 +19,7 @@
 <!-- Schriften: Poppins (Überschriften) & Inter (Fließtext) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 
 
@@ -97,8 +97,8 @@
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSettingsMenu" type="button">⬅️ Zurück</button></div>
     <h2 class="screen-heading">⚙️ Einstellungen</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:22px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <button class="option-btn" id="muteBtn" style="width:100%;justify-content:center;margin-bottom:10px;">🔊 Ton: An</button>
-        <button class="option-btn" id="languageToggle" disabled title="Bald verfügbar" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed;">🌐 Sprache: DE <span style="font-weight:400;font-size:12px;">(bald verfügbar)</span></button>
+        <button class="option-btn" id="muteBtn" style="width:100%;justify-content:center;margin-bottom:10px;">🔊 Ton: AN</button>
+        <button class="option-btn" id="languageToggle" disabled title="Bald verfügbar" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed;">🌐 Sprache: DE <span style="font-weight:var(--weight-hint);font-size:12px;">(bald verfügbar)</span></button>
     </div>
 </div>
 
@@ -244,12 +244,12 @@
 <div id="battleContinentScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="forfeitFromBattleContinent" type="button">🚪 Battle verlassen</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <div id="battleOpponentJoinedNote" style="font-weight:600;color:var(--color-secondary-dark);margin-bottom:10px;"></div>
+        <div id="battleOpponentJoinedNote" style="font-weight:var(--weight-heading);color:var(--color-secondary-dark);margin-bottom:10px;"></div>
         <h3 style="margin:0 0 10px 0;">🌍 Wählt gemeinsam 2 von 3 Kontinenten</h3>
         <p class="hint-small" style="margin-bottom:10px;">Deine Wahl bleibt geheim, bis euer Gegner ebenfalls gewählt hat.</p>
         <div id="battleContinentButtons" class="menu-tile-grid"></div>
         <button id="battleContinentSubmitBtn" style="width:100%;margin-top:14px;" disabled>Bestätigen</button>
-        <div id="battleContinentWaitNote" style="display:none;margin-top:12px;font-weight:600;"></div>
+        <div id="battleContinentWaitNote" style="display:none;margin-top:12px;font-weight:var(--weight-heading);"></div>
     </div>
 </div>
 
@@ -259,10 +259,10 @@
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <h3 style="margin:0 0 6px 0;">☠️ Wähle 3 Giftflaggen für deinen Gegner</h3>
         <p class="hint-small" style="margin-bottom:10px;">Diese Flaggen bekommt dein Gegner untergemischt — deine Wahl bleibt geheim.</p>
-        <div id="battlePoisonCounter" style="font-weight:600;margin-bottom:8px;"></div>
+        <div id="battlePoisonCounter" style="font-weight:var(--weight-heading);margin-bottom:8px;"></div>
         <div id="battlePoisonGrid" class="battle-poison-grid"></div>
         <button id="battlePoisonSubmitBtn" style="width:100%;margin-top:14px;" disabled>Bestätigen</button>
-        <div id="battlePoisonWaitNote" style="display:none;margin-top:12px;font-weight:600;"></div>
+        <div id="battlePoisonWaitNote" style="display:none;margin-top:12px;font-weight:var(--weight-heading);"></div>
     </div>
 </div>
 
@@ -289,7 +289,7 @@
 
 <div id="settings">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromStandardSettings" type="button">⬅️ Zurück</button></div>
-    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
+    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:var(--weight-heading);">
         ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
     </div>
     <div id="groupLeaderBanner"></div>
@@ -371,7 +371,7 @@
 </div>
 
 <!-- Battle-Modus: schwebendes Verbindungs-Warnbanner, sichtbar über allen Battle-Bildschirmen -->
-<div id="battleConnectionBanner" style="display:none;position:fixed;top:max(25px, calc(env(safe-area-inset-top) + 14px));left:50%;transform:translateX(-50%);z-index:49;max-width:min(420px,92vw);background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.15);"></div>
+<div id="battleConnectionBanner" style="display:none;position:fixed;top:max(25px, calc(env(safe-area-inset-top) + 14px));left:50%;transform:translateX(-50%);z-index:49;max-width:min(420px,92vw);background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:var(--weight-heading);text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.15);"></div>
 
 <!-- Statistik-Modal -->
 <!-- Hilfe-Modal -->
@@ -529,7 +529,7 @@
     <div id="flag"><div id="flagError"></div></div>
     <div id="countryNamePrompt"></div>
     <div id="timeBonusRow" style="display:flex;align-items:center;justify-content:center;gap:8px;">
-        <div id="speedBonusIndicator" style="font-size:13px;font-weight:700;color:var(--color-primary);min-width:34px;text-align:right;white-space:nowrap;"></div>
+        <div id="speedBonusIndicator" style="font-size:13px;font-weight:var(--weight-heading);color:var(--color-primary);min-width:34px;text-align:right;white-space:nowrap;"></div>
         <div id="timeBonusBarOuter"><div id="timeBonusBarInner"></div></div>
     </div>
     <div id="loadingInfo" style="font-size:14px;color:#666;min-height:18px;margin-top:4px;"></div>
@@ -561,12 +561,12 @@
 
 <div id="endScreen">
     <h2>Runde beendet!</h2>
-    <div id="finalScoreLine" style="font-size:22px;font-weight:bold;"></div>
-    <div id="scoreBreakdownLine" style="font-size:15px;color:var(--text-secondary);margin-top:4px;font-weight:600;"></div>
+    <div id="finalScoreLine" style="font-size:22px;font-weight:var(--weight-heading);"></div>
+    <div id="scoreBreakdownLine" style="font-size:15px;color:var(--text-secondary);margin-top:4px;font-weight:var(--weight-heading);"></div>
     <div id="recordBadges"></div>
     <div id="highscoreLine"></div>
     <div id="groupHighscoreBox" style="display:none;margin-top:16px;"></div>
-    <div id="wrongListTitle" style="font-weight:bold;margin-top:15px;"></div>
+    <div id="wrongListTitle" style="font-weight:var(--weight-heading);margin-top:15px;"></div>
     <div id="wrongList"></div>
     <button id="restartBtn">⬅️ Zurück zum Modus-Menü</button>
 </div>
