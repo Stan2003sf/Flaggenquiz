@@ -92,10 +92,93 @@
         font-size: 14.5px;
     }
 
-    #settings, #game, #endScreen {
+    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #ladderPlaceholder {
         display: none;
         max-width: 480px;
         margin: 0 auto;
+    }
+
+    /* ---------- Ebene 0: geräteweit sichtbare Leiste ---------- */
+    #ebene0Bar {
+        max-width: 480px;
+        margin: 0 auto 18px auto;
+        text-align: left;
+    }
+
+    /* ---------- Zurück-Pfeil (konsistent auf allen Unter-Ebenen) ---------- */
+    .back-arrow-row {
+        text-align: left;
+        margin-bottom: 14px;
+    }
+    .back-arrow-btn {
+        font-family: var(--font-body);
+        font-weight: 600;
+        font-size: 14px;
+        background: none;
+        border: none;
+        color: var(--color-primary);
+        padding: 8px 6px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .back-arrow-btn:hover { text-decoration: underline; }
+
+    /* ---------- Menü-Kacheln (Ebene 1 / 2a / 2b) ---------- */
+    .menu-tile-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 6px;
+    }
+    .menu-tile {
+        font-family: var(--font-display);
+        text-align: left;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius-lg);
+        padding: 20px 20px;
+        box-shadow: var(--card-shadow);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: transform .12s ease, box-shadow .12s ease;
+        width: 100%;
+    }
+    .menu-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 26px rgba(19,54,74,0.14);
+    }
+    .menu-tile:disabled, .menu-tile.disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: none !important;
+        box-shadow: var(--card-shadow) !important;
+    }
+    .menu-tile-icon {
+        font-size: 30px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+    .menu-tile-text { flex: 1; }
+    .menu-tile-title {
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+    .menu-tile-sub {
+        font-family: var(--font-body);
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    .menu-tile-chevron {
+        color: var(--text-muted);
+        font-size: 18px;
+        flex-shrink: 0;
     }
     #settings {
         background: var(--card-bg);
@@ -935,13 +1018,8 @@
     <div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
 </div>
 
-<div id="settings">
-    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
-        ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
-    </div>
-    <div id="groupLeaderBanner"></div>
-    <div id="groupPlayerBanner"></div>
-
+<!-- ================= Ebene 0: geräteweit, immer sichtbar ================= -->
+<div id="ebene0Bar">
     <div id="nicknameBlock">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
             <label for="nickname" style="margin-bottom:0;">Dein Name</label>
@@ -950,6 +1028,105 @@
         <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20">
         <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
     </div>
+    <div style="text-align:center;margin-top:14px;">
+        <a href="#" id="helpLink" style="font-size:12px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
+        <a href="#" id="privacyLink" style="font-size:12px;color:var(--text-muted);text-decoration:underline;">🔒 Datenschutz</a>
+    </div>
+</div>
+
+<!-- ================= Ebene 1: Hauptmenü ================= -->
+<div id="mainMenu">
+    <div class="menu-tile-grid">
+        <button class="menu-tile" id="tileSinglePlayer" type="button">
+            <span class="menu-tile-icon">🎮</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Einzelspieler</span>
+                <span class="menu-tile-sub">Standard oder Ladder — allein spielen</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+        <button class="menu-tile" id="tileMultiPlayer" type="button">
+            <span class="menu-tile-icon">👥</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Mehrspieler</span>
+                <span class="menu-tile-sub">Gruppenquiz oder 1vs1 Battle</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+    </div>
+</div>
+
+<!-- ================= Ebene 2a: Einzelspieler-Untermenü ================= -->
+<div id="singlePlayerMenu">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSinglePlayerMenu" type="button">⬅️ Zurück</button></div>
+    <div class="menu-tile-grid">
+        <button class="menu-tile" id="tileStandard" type="button">
+            <span class="menu-tile-icon">🌍</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Standard</span>
+                <span class="menu-tile-sub">Kontinent, Länge, Modus frei wählbar</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+        <button class="menu-tile" id="tileLadder" type="button">
+            <span class="menu-tile-icon">🪜</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Ladder</span>
+                <span class="menu-tile-sub">Alle 195 Flaggen, von bekannt nach unbekannt</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+    </div>
+</div>
+
+<!-- ================= Ebene 2a (Detail-Platzhalter): Ladder ================= -->
+<div id="ladderPlaceholder">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromLadderPlaceholder" type="button">⬅️ Zurück</button></div>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <div style="font-size:40px;margin-bottom:10px;">🪜</div>
+        <h2 style="margin:0 0 8px 0;">Ladder-Modus</h2>
+        <p style="color:var(--text-secondary);font-size:14.5px;">Kommt in einer der nächsten Versionen. Du durchläufst dann alle 195 Flaggen, sortiert von bekannt nach unbekannt — mit Leben-System und eigener Ladder-Bestenliste.</p>
+    </div>
+</div>
+
+<!-- ================= Ebene 2b: Mehrspieler-Untermenü ================= -->
+<div id="multiPlayerMenu">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromMultiPlayerMenu" type="button">⬅️ Zurück</button></div>
+    <div class="menu-tile-grid">
+        <button class="menu-tile" id="tileGroupCreate" type="button">
+            <span class="menu-tile-icon">🧑‍🏫</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Gruppenspiel leiten</span>
+                <span class="menu-tile-sub">Code erstellen, Klasse einladen</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+        <button class="menu-tile" id="tileGroupJoin" type="button">
+            <span class="menu-tile-icon">🔗</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Gruppenspiel beitreten</span>
+                <span class="menu-tile-sub">Code oder QR von der Leitung eingeben</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+        <button class="menu-tile disabled" id="tileBattle" type="button" disabled>
+            <span class="menu-tile-icon">⚔️</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">1vs1 Battle</span>
+                <span class="menu-tile-sub">Bald verfügbar</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+    </div>
+</div>
+
+<div id="settings">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromStandardSettings" type="button">⬅️ Zurück</button></div>
+    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:bold;">
+        ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
+    </div>
+    <div id="groupLeaderBanner"></div>
+    <div id="groupPlayerBanner"></div>
 
     <button id="startBtn">🚀 Start</button>
 
@@ -1019,14 +1196,11 @@
         <div id="highscoreDisplay"></div>
     </details>
 
-    <div style="text-align:center;margin-top:18px;">
-        <a href="#" id="helpLink" style="font-size:12px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
-        <a href="#" id="privacyLink" style="font-size:12px;color:var(--text-muted);text-decoration:underline;">🔒 Datenschutz</a>
-    </div>
-    <div style="text-align:center;margin-top:14px;">
-        <a href="#" id="groupCreateLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">🧑‍🏫 Gruppenquiz starten</a>
-        <a href="#" id="groupJoinLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;">🔗 Gruppenquiz beitreten</a>
-    </div>
+    <!-- groupCreateLink / groupJoinLink: unsichtbare Anker, technisch weiterhin vorhanden,
+         da bestehende Firestore-Logik über diese IDs angesprochen wird. Die sichtbaren
+         Einstiege dafür liegen jetzt als Kacheln in Ebene 2b (Mehrspieler-Untermenü). -->
+    <a href="#" id="groupCreateLink" style="display:none;"></a>
+    <a href="#" id="groupJoinLink" style="display:none;"></a>
 </div>
 
 <!-- Lautstärke-Umschalter, auf allen Bildschirmen sichtbar -->
@@ -1233,7 +1407,7 @@
     <div id="groupHighscoreBox" style="display:none;margin-top:16px;"></div>
     <div id="wrongListTitle" style="font-weight:bold;margin-top:15px;"></div>
     <div id="wrongList"></div>
-    <button id="restartBtn">⬅️ Hauptmenü</button>
+    <button id="restartBtn">⬅️ Zurück zum Modus-Menü</button>
 </div>
 
 <!-- QR-Code-Erzeugung für den Gruppenquiz-Beitrittslink -->
@@ -1708,6 +1882,100 @@ function updateBestStreak(value) {
 
 const settingsDiv = document.getElementById("settings");
 const titleBlock = document.getElementById("titleBlock");
+const ebene0Bar = document.getElementById("ebene0Bar");
+const mainMenu = document.getElementById("mainMenu");
+const singlePlayerMenu = document.getElementById("singlePlayerMenu");
+const multiPlayerMenu = document.getElementById("multiPlayerMenu");
+const ladderPlaceholder = document.getElementById("ladderPlaceholder");
+
+// ---------- Neue Menüstruktur: Navigation zwischen den Ebenen ----------
+// originMenu merkt sich, über welches Ebene-2-Untermenü die aktuelle Standard-/Gruppenrunde
+// gestartet wurde ("single" = Einzelspieler > Standard, "multi" = Mehrspieler > Gruppe).
+// Wird für den "Zurück zum Modus-Menü"-Link am Rundenende sowie den Abbruch-Button im Spiel benötigt.
+let originMenu = "single";
+
+function hideAllScreens() {
+    mainMenu.style.display = "none";
+    singlePlayerMenu.style.display = "none";
+    multiPlayerMenu.style.display = "none";
+    ladderPlaceholder.style.display = "none";
+    settingsDiv.style.display = "none";
+    document.getElementById("game").style.display = "none";
+    document.getElementById("endScreen").style.display = "none";
+}
+// (game/endScreen werden hier bewusst per getElementById geholt, da die entsprechenden
+// const-Deklarationen an dieser Stelle im Skript noch nicht ausgeführt wurden — hideAllScreens
+// selbst wird aber erst zur Laufzeit nach vollständigem Skriptdurchlauf aufgerufen.)
+
+// Ebene 0 (Name/Statistik/Hilfe/Datenschutz) ist auf allen Menü-Ebenen sichtbar,
+// nur während der eigentlichen Spielrunde (Ebene 3) ausgeblendet.
+function setChromeVisible(visible) {
+    titleBlock.style.display = visible ? "flex" : "none";
+    ebene0Bar.style.display = visible ? "block" : "none";
+}
+
+function goToMainMenu() {
+    stopGroupHighscoreLive();
+    hideAllScreens();
+    setChromeVisible(true);
+    mainMenu.style.display = "block";
+}
+
+function goToSinglePlayerMenu() {
+    hideAllScreens();
+    setChromeVisible(true);
+    singlePlayerMenu.style.display = "block";
+}
+
+function goToMultiPlayerMenu() {
+    hideAllScreens();
+    setChromeVisible(true);
+    updateGroupEntryLinksState();
+    multiPlayerMenu.style.display = "block";
+}
+
+function goToLadderPlaceholder() {
+    hideAllScreens();
+    setChromeVisible(true);
+    ladderPlaceholder.style.display = "block";
+}
+
+// Zeigt die (bisherige) Standard-Einstellungsseite — dient sowohl dem Standard-Einzelspiel
+// als auch weiterhin (unverändert) dem gesamten Gruppenquiz-Ablauf (Leitung & Mitspieler:innen).
+function goToStandardSettings(origin) {
+    originMenu = origin;
+    hideAllScreens();
+    setChromeVisible(true);
+    settingsDiv.style.display = "block";
+    updateLengthHint();
+    updateHighscoreDisplay();
+    updateGroupStartButtonUI();
+    checkConnection();
+}
+
+// Zurück-Navigation von Spielrunde (Ebene 3) bzw. Rundenende zum passenden Modus-Menü.
+// Solange eine Gruppe geleitet wird oder das Gerät Gruppen-Mitspieler ist, bleibt das Verhalten
+// wie bisher (zurück zur gemeinsamen Einstellungsseite) — das ist technisch weiterhin Ebene 2b.
+//
+// HINWEIS: Der Zurück-Pfeil auf der Standard-Einstellungsseite wurde früher bei aktiver Gruppe
+// unsichtbar/inaktiv geschaltet. Problem dabei: Wurde die Gruppe im Hintergrund automatisch
+// beendet (Ablauf, Schließung durch die Leitung), blieb der Pfeil trotzdem gesperrt, obwohl der
+// Bildschirm wieder wie eine normale Standard-Runde aussah — ein toter Button ohne Ausweg.
+// Jetzt bleibt der Pfeil immer sichtbar UND klickbar; die eigentliche Logik (Gruppe ggf. sauber
+// verlassen/schließen, bevor navigiert wird) steckt im Klick-Handler weiter unten.
+function updateStandardBackArrowVisibility() { /* bewusst leer gelassen, siehe Hinweis oben */ }
+
+function backToModeMenu() {
+    if (getLeaderSession() || isGroupPlayer) {
+        goToStandardSettings("multi");
+        return;
+    }
+    if (originMenu === "multi") {
+        goToMultiPlayerMenu();
+    } else {
+        goToSinglePlayerMenu();
+    }
+}
 const nicknameInput = document.getElementById("nickname");
 const nicknameHint = document.getElementById("nicknameHint");
 const highscoreDisplay = document.getElementById("highscoreDisplay");
@@ -2606,6 +2874,15 @@ function updateGroupEntryLinksState() {
         link.style.opacity = locked ? "0.4" : "";
         link.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst verlassen bzw. schließen" : "";
     });
+    // Sichtbare Kacheln in Ebene 2b (Mehrspieler-Untermenü) ebenfalls sperren, damit ein
+    // Klick nicht einfach folgenlos ins Leere läuft (siehe Hinweis bei backFromStandardSettings).
+    ["tileGroupCreate", "tileGroupJoin"].forEach(id => {
+        const tile = document.getElementById(id);
+        if (!tile) return;
+        tile.disabled = locked;
+        tile.classList.toggle("disabled", locked);
+        tile.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst über \"Zurück\" auf der Einstellungsseite verlassen bzw. schließen" : "";
+    });
 }
 
 // ---------- Gruppenquiz: Sperr-UI für Mitspieler:innen ----------
@@ -2634,6 +2911,7 @@ function setGroupPlayerLockUI(locked) {
         el.style.pointerEvents = locked ? "none" : "";
         el.style.opacity = locked ? "0.5" : "";
     });
+    updateStandardBackArrowVisibility();
     // Mitspieler:innen brauchen keine eigenen Einstellungen zu sehen — die Accordion-Karten
     // werden für sie komplett ausgeblendet, damit die Seite minimal bleibt.
     const accordion = document.querySelector(".settings-accordion");
@@ -2789,6 +3067,7 @@ function leaveGroupPlayerMode(closedByLeader) {
     clearPlayerGroupSession();
     if (!closedByLeader && session) unregisterGroupParticipant(session.code);
     setGroupPlayerLockUI(false);
+    updateStandardBackArrowVisibility();
     document.getElementById("groupPlayerBanner").style.display = "none";
     startBtn.disabled = false;
     startBtn.textContent = "🚀 Start";
@@ -2826,6 +3105,7 @@ async function renderGroupLeaderBanner() {
         document.body.classList.remove("leader-mode-active");
         stopGroupHighscoreLive();
         setLeaderLearningModeLock(false);
+        updateStandardBackArrowVisibility();
         if (!isGroupPlayer) {
             startBtn.style.display = "";
             startBtn.disabled = false;
@@ -2836,6 +3116,7 @@ async function renderGroupLeaderBanner() {
     groupLeaderBanner.style.display = "block";
     document.body.classList.add("leader-mode-active");
     setLeaderLearningModeLock(true);
+    updateStandardBackArrowVisibility();
     groupLeaderBanner.innerHTML = '<div class="glb-head"><div class="glb-title">🧑\u200d🏫 Gruppendaten werden geladen …</div></div>';
     // Punkt 9: Kein ausgegrauter Start-Button mehr — die Leitung steuert alles über das
     // Freigabe-/Nächste-Runde-Dashboard weiter unten.
@@ -2860,6 +3141,7 @@ async function renderGroupLeaderBanner() {
         stopGroupRosterLive();
         stopGroupHighscoreLive();
         setLeaderLearningModeLock(false);
+        updateStandardBackArrowVisibility();
         if (!isGroupPlayer) {
             startBtn.style.display = "";
             startBtn.disabled = false;
@@ -3129,7 +3411,7 @@ startBtn.onclick = async function () {
 
     settingsDiv.style.display = "none";
     endScreen.style.display = "none";
-    titleBlock.style.display = "none";
+    setChromeVisible(false);
     game.style.display = "block";
     loadFlag();
 };
@@ -3631,7 +3913,7 @@ function renderRecordBadges(prestigeLevel) {
 
 async function showEndScreen() {
     game.style.display = "none";
-    titleBlock.style.display = "block";
+    setChromeVisible(true);
     endScreen.style.display = "block";
     stopGroupHighscoreLive();
     groupHighscoreBox.style.display = "none";
@@ -3759,25 +4041,11 @@ endBtn.onclick = function () {
     if (!sure) return;
     flagLoadToken++;
     stopTimeBonusBar();
-    stopGroupHighscoreLive();
-    game.style.display = "none";
-    endScreen.style.display = "none";
-    titleBlock.style.display = "block";
-    settingsDiv.style.display = "block";
-    updateLengthHint();
-    updateHighscoreDisplay();
-    updateGroupStartButtonUI();
-    checkConnection();
+    backToModeMenu();
 };
 
 restartBtn.onclick = function () {
-    stopGroupHighscoreLive();
-    endScreen.style.display = "none";
-    settingsDiv.style.display = "block";
-    updateLengthHint();
-    updateHighscoreDisplay();
-    updateGroupStartButtonUI();
-    checkConnection();
+    backToModeMenu();
 };
 
 // ---------- Init ----------
@@ -3830,7 +4098,14 @@ nicknameInput.addEventListener("blur", function () {
 
 loadSettingsFromStorage();
 buildSettingsScreen();
-settingsDiv.style.display = "block";
+
+// Bestehende Gruppensitzung (Leitung oder Mitspieler:in)? Dann direkt zur gemeinsamen
+// Einstellungsseite statt ins neue Hauptmenü — sonst würde man aus der laufenden Gruppe "fallen".
+if (getLeaderSession() || getPlayerGroupSession()) {
+    goToStandardSettings("multi");
+} else {
+    goToMainMenu();
+}
 
 // ---------- Gruppenquiz: Status beim Laden wiederherstellen ----------
 renderGroupLeaderBanner();
@@ -3880,6 +4155,40 @@ function checkConnection() {
 window.addEventListener("offline", () => { offlineWarning.style.display = "block"; });
 window.addEventListener("online", checkConnection);
 checkConnection();
+
+// ---------- Neue Menüstruktur: Kacheln & Zurück-Pfeile ----------
+document.getElementById("tileSinglePlayer").onclick = () => goToSinglePlayerMenu();
+document.getElementById("tileMultiPlayer").onclick = () => goToMultiPlayerMenu();
+document.getElementById("backFromSinglePlayerMenu").onclick = () => goToMainMenu();
+document.getElementById("backFromMultiPlayerMenu").onclick = () => goToMainMenu();
+document.getElementById("backFromLadderPlaceholder").onclick = () => goToSinglePlayerMenu();
+document.getElementById("backFromStandardSettings").onclick = async function () {
+    const btn = this;
+    if (getLeaderSession()) {
+        const sure = confirm("Gruppe wirklich schließen? Alle Mitspieler:innen werden auf ihre eigenen Einstellungen zurückgesetzt.");
+        if (!sure) return;
+        btn.disabled = true;
+        await closeGroup();
+        renderGroupLeaderBanner();
+        updateHighscoreDisplay();
+        btn.disabled = false;
+        goToMultiPlayerMenu();
+        return;
+    }
+    if (isGroupPlayer) {
+        const sure = confirm("Gruppenquiz wirklich verlassen? Du spielst danach wieder mit deinen eigenen Einstellungen.");
+        if (!sure) return;
+        leaveGroupPlayerMode(false);
+        goToMultiPlayerMenu();
+        return;
+    }
+    // Weder Leitung noch Mitspieler:in — normaler Standard-Einzelspieler-Fall.
+    goToSinglePlayerMenu();
+};
+document.getElementById("tileStandard").onclick = () => goToStandardSettings("single");
+document.getElementById("tileLadder").onclick = () => goToLadderPlaceholder();
+document.getElementById("tileGroupCreate").onclick = () => groupCreateLink.click();
+document.getElementById("tileGroupJoin").onclick = () => groupJoinLink.click();
 
 // ---------- Mute-Button ----------
 updateMuteButton();
@@ -3968,6 +4277,7 @@ function renderGroupCreateModal() {
             saveSettingsToStorage();
             const newSession = await createGroup();
             if (newSession) {
+                goToStandardSettings("multi");
                 renderGroupCreateModal();
                 renderGroupLeaderBanner();
                 updateHighscoreDisplay();
@@ -4020,6 +4330,7 @@ function renderGroupJoinModal(prefillCode) {
         this.disabled = false;
         if (result.ok) {
             groupJoinModal.classList.remove("open");
+            goToStandardSettings("multi");
             enterGroupPlayerMode(result.code);
         } else {
             let msg = "Code nicht gefunden oder Gruppe bereits geschlossen.";
