@@ -116,8 +116,35 @@
 <div id="highscoreHubScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromHighscoreHub" type="button">⬅️ Zurück</button></div>
     <h2 class="screen-heading">🏆 Bestenliste</h2>
-    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <p style="color:var(--text-secondary);font-size:14.5px;">Eine zentrale Übersicht aller Ranglisten (Entdecker-Modus, Gipfelsturm, Battle) folgt hier in Kürze.</p>
+
+    <div class="hub-tab-row">
+        <button class="hub-tab-btn selected" id="hubTabStandard" type="button">🧭 Entdecker-Modus</button>
+        <button class="hub-tab-btn" id="hubTabLadder" type="button">⛰️ Gipfelsturm</button>
+        <button class="hub-tab-btn" id="hubTabBattle" type="button">⚔️ Battle</button>
+    </div>
+
+    <!-- Reiter: Entdecker-Modus -->
+    <div id="hubPaneStandard" class="hub-pane">
+        <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:18px 16px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);margin-bottom:14px;">
+            <p class="hint-small" style="margin-top:0;">Wähle eine Kombination, um die passende Bestenliste zu sehen — startet mit deinen zuletzt gespielten Einstellungen.</p>
+            <div class="hub-picker-label">Kontinente</div>
+            <div id="hubContinentButtons" class="menu-tile-grid" style="gap:6px;margin-bottom:12px;"></div>
+            <div class="hub-picker-label">Anzahl Flaggen</div>
+            <div id="hubLengthButtons" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+            <div class="hub-picker-label">Antwortmodus</div>
+            <div id="hubModeButtons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+        <div id="hubStandardHighscoreDisplay"></div>
+    </div>
+
+    <!-- Reiter: Gipfelsturm -->
+    <div id="hubPaneLadder" class="hub-pane" style="display:none;">
+        <div id="hubLadderHighscoreDisplay"></div>
+    </div>
+
+    <!-- Reiter: Battle -->
+    <div id="hubPaneBattle" class="hub-pane" style="display:none;">
+        <div id="hubBattleHighscoreDisplay"></div>
     </div>
 </div>
 
@@ -270,9 +297,15 @@
 <div id="battleGameScreen">
     <div id="battleHitFlash"></div>
     <div id="battleHeader">
-        <div id="battleOwnHearts" class="battle-hearts"></div>
+        <div class="battle-heart-col">
+            <div id="battleOwnName" class="battle-player-label"></div>
+            <div id="battleOwnHearts" class="battle-hearts"></div>
+        </div>
         <div id="battleRoundLabel"></div>
-        <div id="battleOpponentHearts" class="battle-hearts"></div>
+        <div class="battle-heart-col">
+            <div id="battleOpponentName" class="battle-player-label"></div>
+            <div id="battleOpponentHearts" class="battle-hearts"></div>
+        </div>
     </div>
     <div style="text-align:right;margin-bottom:6px;"><button class="back-arrow-btn" id="forfeitFromBattleGame" type="button" style="font-size:12px;padding:4px 8px;">🚪 verlassen</button></div>
     <div id="battleGiftBanner" style="display:none;"></div>
@@ -593,6 +626,7 @@
 <script src="js/standard-game.js"></script>
 <script src="js/ladder-mode.js"></script>
 <script src="js/battle-mode.js"></script>
+<script src="js/highscore-hub.js"></script>
 <script src="js/init.js"></script>
 
 </body>
