@@ -4125,6 +4125,35 @@ nicknameInput.addEventListener("blur", function () {
 loadSettingsFromStorage();
 buildSettingsScreen();
 
+// Verbindungs-Check: MUSS vor der Navigations-Initialisierung stehen, da goToStandardSettings()
+// weiter unten sofort checkConnection() aufruft (u. a. beim direkten Wiedereinstieg in eine
+// laufende Gruppe nach einem Browser-Reload).
+const offlineWarning = document.getElementById("offlineWarning");
+let connectionCheckToken = 0;
+
+function checkConnection() {
+    // Sofort warnen, wenn das Gerät offline meldet (z. B. Flugmodus)
+    if (!navigator.onLine) {
+        offlineWarning.style.display = "block";
+        return;
+    }
+    // Zusätzlich ein winziges Testbild laden, um langsame oder blockierte Verbindungen zu erkennen
+    const myToken = ++connectionCheckToken;
+    const img = new Image();
+    const timer = setTimeout(() => {
+        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
+    }, 5000);
+    img.onload = () => {
+        clearTimeout(timer);
+        if (myToken === connectionCheckToken) offlineWarning.style.display = "none";
+    };
+    img.onerror = () => {
+        clearTimeout(timer);
+        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
+    };
+    img.src = "https://flagcdn.com/w20/de.png?t=" + Date.now();
+}
+
 // ---------- Neue Menüstruktur: Kacheln & Zurück-Pfeile ----------
 // Bewusst VOR der Gruppen-Sitzungs-Wiederherstellung verdrahtet: Sollte dort unerwartet ein
 // Fehler auftreten, bleiben Navigation und "Zurück"-Buttons trotzdem in jedem Fall nutzbar.
@@ -4188,32 +4217,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // ---------- Verbindungs-Check auf der Startseite ----------
-const offlineWarning = document.getElementById("offlineWarning");
-let connectionCheckToken = 0;
-
-function checkConnection() {
-    // Sofort warnen, wenn das Gerät offline meldet (z. B. Flugmodus)
-    if (!navigator.onLine) {
-        offlineWarning.style.display = "block";
-        return;
-    }
-    // Zusätzlich ein winziges Testbild laden, um langsame oder blockierte Verbindungen zu erkennen
-    const myToken = ++connectionCheckToken;
-    const img = new Image();
-    const timer = setTimeout(() => {
-        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
-    }, 5000);
-    img.onload = () => {
-        clearTimeout(timer);
-        if (myToken === connectionCheckToken) offlineWarning.style.display = "none";
-    };
-    img.onerror = () => {
-        clearTimeout(timer);
-        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
-    };
-    img.src = "https://flagcdn.com/w20/de.png?t=" + Date.now();
-}
-
 window.addEventListener("offline", () => { offlineWarning.style.display = "block"; });
 window.addEventListener("online", checkConnection);
 checkConnection();
