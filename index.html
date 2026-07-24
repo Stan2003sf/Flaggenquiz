@@ -95,18 +95,18 @@
 <!-- ================= Ebene 1 (Detail): Einstellungen ================= -->
 <div id="settingsMenuScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSettingsMenu" type="button">⬅️ Zurück</button></div>
-    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <div style="font-size:40px;margin-bottom:10px;">⚙️</div>
-        <h2 style="margin:0 0 8px 0;">Einstellungen</h2>
-        <p style="color:var(--text-secondary);font-size:14.5px;">Ton- und Sprachoptionen folgen hier in Kürze.</p>
+    <h2 class="screen-heading">⚙️ Einstellungen</h2>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:22px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <button class="option-btn" id="muteBtn" style="width:100%;justify-content:center;margin-bottom:10px;">🔊 Ton: An</button>
+        <button class="option-btn" id="languageToggle" disabled title="Bald verfügbar" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed;">🌐 Sprache: DE <span style="font-weight:400;font-size:12px;">(bald verfügbar)</span></button>
     </div>
 </div>
 
 <!-- ================= Ebene 1 (Detail): Meine Statistik ================= -->
 <div id="statsScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromStats" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">📊 Meine Statistik</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <h2 style="margin:0 0 12px 0;">📊 Meine Statistik</h2>
         <div id="statsContent"></div>
         <button id="statsResetBtn" style="margin-top:14px;background:#eee;font-size:13px;padding:8px 14px;">Statistik zurücksetzen</button>
     </div>
@@ -115,9 +115,8 @@
 <!-- ================= Ebene 1 (Detail): Bestenliste ================= -->
 <div id="highscoreHubScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromHighscoreHub" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">🏆 Bestenliste</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <div style="font-size:40px;margin-bottom:10px;">🏆</div>
-        <h2 style="margin:0 0 8px 0;">Bestenliste</h2>
         <p style="color:var(--text-secondary);font-size:14.5px;">Eine zentrale Übersicht aller Ranglisten (Entdecker-Modus, Gipfelsturm, Battle) folgt hier in Kürze.</p>
     </div>
 </div>
@@ -125,6 +124,7 @@
 <!-- ================= Ebene 2a: Einzelspieler-Untermenü ================= -->
 <div id="singlePlayerMenu">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSinglePlayerMenu" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">🎮 Einzelspieler</h2>
     <div class="menu-tile-grid">
         <button class="menu-tile" id="tileStandard" type="button">
             <span class="menu-tile-icon">🧭</span>
@@ -148,9 +148,8 @@
 <!-- ================= Ebene 2a (Detail): Ladder ================= -->
 <div id="ladderPlaceholder">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromLadderPlaceholder" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">⛰️ Gipfelsturm</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <div style="font-size:40px;margin-bottom:10px;">🪜</div>
-        <h2 style="margin:0 0 8px 0;">Gipfelsturm</h2>
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
             Du durchläufst alle 195 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.
         </p>
@@ -186,6 +185,7 @@
 <!-- ================= Ebene 2b: Mehrspieler-Untermenü ================= -->
 <div id="multiPlayerMenu">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromMultiPlayerMenu" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">👥 Mehrspieler</h2>
     <div class="menu-tile-grid">
         <button class="menu-tile" id="tileBattle" type="button">
             <span class="menu-tile-icon">⚔️</span>
@@ -217,9 +217,8 @@
 <!-- ================= Ebene 2b (Detail): 1vs1 Battle — Einstieg ================= -->
 <div id="battleEntryScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromBattleEntry" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">⚔️ 1vs1 Battle</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <div style="font-size:40px;margin-bottom:10px;">⚔️</div>
-        <h2 style="margin:0 0 8px 0;">1vs1 Battle</h2>
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
             Fordere jemanden zum Duell heraus: gemeinsam gewählter Kontinent, geheime Giftflaggen für den Gegner, 3 Leben — wer länger durchhält, gewinnt.
         </p>
@@ -371,11 +370,8 @@
     <a href="#" id="groupJoinLink" style="display:none;"></a>
 </div>
 
-<!-- Lautstärke-Umschalter, auf allen Bildschirmen sichtbar -->
-<button id="muteBtn" title="Sound an/aus" style="position:fixed;top:max(25px, calc(env(safe-area-inset-top) + 14px));right:14px;z-index:50;background:#fff;border:2px solid #ccc;border-radius:50%;width:42px;height:42px;font-size:18px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,0.15);">🔊</button>
-
 <!-- Battle-Modus: schwebendes Verbindungs-Warnbanner, sichtbar über allen Battle-Bildschirmen -->
-<div id="battleConnectionBanner" style="display:none;position:fixed;top:max(75px, calc(env(safe-area-inset-top) + 64px));left:50%;transform:translateX(-50%);z-index:49;max-width:min(420px,92vw);background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.15);"></div>
+<div id="battleConnectionBanner" style="display:none;position:fixed;top:max(25px, calc(env(safe-area-inset-top) + 14px));left:50%;transform:translateX(-50%);z-index:49;max-width:min(420px,92vw);background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.15);"></div>
 
 <!-- Statistik-Modal -->
 <!-- Hilfe-Modal -->
