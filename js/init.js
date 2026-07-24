@@ -83,6 +83,18 @@ function checkConnection() {
 // Fehler auftreten, bleiben Navigation und "Zurück"-Buttons trotzdem in jedem Fall nutzbar.
 document.getElementById("tileSinglePlayer").onclick = () => goToSinglePlayerMenu();
 document.getElementById("tileMultiPlayer").onclick = () => goToMultiPlayerMenu();
+document.getElementById("tileSettingsMenu").onclick = () => {
+    hideAllScreens();
+    setChromeVisible(true);
+    document.getElementById("settingsMenuScreen").style.display = "block";
+};
+document.getElementById("backFromSettingsMenu").onclick = () => goToMainMenu();
+document.getElementById("tileHighscoreHub").onclick = () => {
+    hideAllScreens();
+    setChromeVisible(true);
+    document.getElementById("highscoreHubScreen").style.display = "block";
+};
+document.getElementById("backFromHighscoreHub").onclick = () => goToMainMenu();
 document.getElementById("backFromSinglePlayerMenu").onclick = () => goToMainMenu();
 document.getElementById("backFromMultiPlayerMenu").onclick = () => goToMainMenu();
 document.getElementById("backFromLadderPlaceholder").onclick = () => goToSinglePlayerMenu();
@@ -163,18 +175,14 @@ muteBtn.onclick = function () {
     updateMuteButton();
 };
 
-// ---------- Statistik-Modal ----------
-statsLink.onclick = function (e) {
-    e.preventDefault();
+// ---------- Statistik-Bildschirm ----------
+document.getElementById("tileStats").onclick = function () {
+    hideAllScreens();
+    setChromeVisible(true);
     renderStatsModal();
-    statsModal.classList.add("open");
+    document.getElementById("statsScreen").style.display = "block";
 };
-statsCloseBtn.onclick = function () {
-    statsModal.classList.remove("open");
-};
-statsModal.onclick = function (e) {
-    if (e.target === statsModal) statsModal.classList.remove("open");
-};
+document.getElementById("backFromStats").onclick = () => goToMainMenu();
 statsResetBtn.onclick = function () {
     const sure = confirm("Deine persönliche Lernstatistik wirklich löschen? Das betrifft nur diesen Browser, nicht die zentrale Bestenliste.");
     if (!sure) return;

@@ -33,19 +33,12 @@
     <div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
 </div>
 
-<!-- ================= Ebene 0: geräteweit, immer sichtbar ================= -->
+<!-- ================= Ebene 0: geräteweit, immer sichtbar (nur Namensfeld) ================= -->
 <div id="ebene0Bar">
     <div id="nicknameBlock">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
-            <label for="nickname" style="margin-bottom:0;">Dein Name</label>
-            <a href="#" id="statsLink" style="font-size:13px;color:var(--color-primary);text-decoration:none;font-weight:600;white-space:nowrap;">📊 Meine Statistik</a>
-        </div>
+        <label for="nickname">Dein Name</label>
         <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20">
         <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
-    </div>
-    <div style="text-align:center;margin-top:14px;">
-        <a href="#" id="helpLink" style="font-size:12px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
-        <a href="#" id="privacyLink" style="font-size:12px;color:var(--text-muted);text-decoration:underline;">🔒 Datenschutz</a>
     </div>
 </div>
 
@@ -56,7 +49,7 @@
             <span class="menu-tile-icon">🎮</span>
             <span class="menu-tile-text">
                 <span class="menu-tile-title">Einzelspieler</span>
-                <span class="menu-tile-sub">Standard oder Ladder — allein spielen</span>
+                <span class="menu-tile-sub">Entdecker-Modus oder Gipfelsturm — allein spielen</span>
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
@@ -68,6 +61,64 @@
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
+        <button class="menu-tile" id="tileSettingsMenu" type="button">
+            <span class="menu-tile-icon">⚙️</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Einstellungen</span>
+                <span class="menu-tile-sub">Ton, Sprache und mehr</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+        <button class="menu-tile" id="tileStats" type="button">
+            <span class="menu-tile-icon">📊</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Meine Statistik</span>
+                <span class="menu-tile-sub">Deine persönliche Lernauswertung</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+        <button class="menu-tile" id="tileHighscoreHub" type="button">
+            <span class="menu-tile-icon">🏆</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Bestenliste</span>
+                <span class="menu-tile-sub">Alle Ranglisten an einem Ort</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+    </div>
+    <div style="text-align:center;margin-top:18px;">
+        <a href="#" id="helpLink" style="font-size:12px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
+        <a href="#" id="privacyLink" style="font-size:12px;color:var(--text-muted);text-decoration:underline;">🔒 Datenschutz</a>
+    </div>
+</div>
+
+<!-- ================= Ebene 1 (Detail): Einstellungen ================= -->
+<div id="settingsMenuScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSettingsMenu" type="button">⬅️ Zurück</button></div>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <div style="font-size:40px;margin-bottom:10px;">⚙️</div>
+        <h2 style="margin:0 0 8px 0;">Einstellungen</h2>
+        <p style="color:var(--text-secondary);font-size:14.5px;">Ton- und Sprachoptionen folgen hier in Kürze.</p>
+    </div>
+</div>
+
+<!-- ================= Ebene 1 (Detail): Meine Statistik ================= -->
+<div id="statsScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromStats" type="button">⬅️ Zurück</button></div>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <h2 style="margin:0 0 12px 0;">📊 Meine Statistik</h2>
+        <div id="statsContent"></div>
+        <button id="statsResetBtn" style="margin-top:14px;background:#eee;font-size:13px;padding:8px 14px;">Statistik zurücksetzen</button>
+    </div>
+</div>
+
+<!-- ================= Ebene 1 (Detail): Bestenliste ================= -->
+<div id="highscoreHubScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromHighscoreHub" type="button">⬅️ Zurück</button></div>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <div style="font-size:40px;margin-bottom:10px;">🏆</div>
+        <h2 style="margin:0 0 8px 0;">Bestenliste</h2>
+        <p style="color:var(--text-secondary);font-size:14.5px;">Eine zentrale Übersicht aller Ranglisten (Entdecker-Modus, Gipfelsturm, Battle) folgt hier in Kürze.</p>
     </div>
 </div>
 
@@ -76,17 +127,17 @@
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSinglePlayerMenu" type="button">⬅️ Zurück</button></div>
     <div class="menu-tile-grid">
         <button class="menu-tile" id="tileStandard" type="button">
-            <span class="menu-tile-icon">🌍</span>
+            <span class="menu-tile-icon">🧭</span>
             <span class="menu-tile-text">
-                <span class="menu-tile-title">Standard</span>
+                <span class="menu-tile-title">Entdecker-Modus</span>
                 <span class="menu-tile-sub">Kontinent, Länge, Modus frei wählbar</span>
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
         <button class="menu-tile" id="tileLadder" type="button">
-            <span class="menu-tile-icon">🪜</span>
+            <span class="menu-tile-icon">⛰️</span>
             <span class="menu-tile-text">
-                <span class="menu-tile-title">Ladder</span>
+                <span class="menu-tile-title">Gipfelsturm</span>
                 <span class="menu-tile-sub">Alle 195 Flaggen, von bekannt nach unbekannt</span>
             </span>
             <span class="menu-tile-chevron">›</span>
@@ -99,7 +150,7 @@
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromLadderPlaceholder" type="button">⬅️ Zurück</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <div style="font-size:40px;margin-bottom:10px;">🪜</div>
-        <h2 style="margin:0 0 8px 0;">Ladder-Modus</h2>
+        <h2 style="margin:0 0 8px 0;">Gipfelsturm</h2>
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
             Du durchläufst alle 195 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.
         </p>
@@ -107,7 +158,7 @@
     </div>
     <details class="highscore-accordion" id="ladderHighscoreAccordionWrap" open style="margin-top:16px;">
         <summary>
-            <span class="summary-label">🏆 Ladder-Bestenliste (von 195)</span>
+            <span class="summary-label">🏆 Gipfelsturm-Bestenliste (von 195)</span>
             <span class="summary-chevron">▾</span>
         </summary>
         <div id="ladderHighscoreDisplay"></div>
@@ -136,6 +187,14 @@
 <div id="multiPlayerMenu">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromMultiPlayerMenu" type="button">⬅️ Zurück</button></div>
     <div class="menu-tile-grid">
+        <button class="menu-tile" id="tileBattle" type="button">
+            <span class="menu-tile-icon">⚔️</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">1vs1 Battle</span>
+                <span class="menu-tile-sub">Duell mit Giftflaggen — wer übersteht mehr?</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
         <button class="menu-tile" id="tileGroupCreate" type="button">
             <span class="menu-tile-icon">🧑‍🏫</span>
             <span class="menu-tile-text">
@@ -149,14 +208,6 @@
             <span class="menu-tile-text">
                 <span class="menu-tile-title">Gruppenspiel beitreten</span>
                 <span class="menu-tile-sub">Code oder QR von der Leitung eingeben</span>
-            </span>
-            <span class="menu-tile-chevron">›</span>
-        </button>
-        <button class="menu-tile" id="tileBattle" type="button">
-            <span class="menu-tile-icon">⚔️</span>
-            <span class="menu-tile-text">
-                <span class="menu-tile-title">1vs1 Battle</span>
-                <span class="menu-tile-sub">Duell mit Giftflaggen — wer übersteht mehr?</span>
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
@@ -327,15 +378,6 @@
 <div id="battleConnectionBanner" style="display:none;position:fixed;top:max(75px, calc(env(safe-area-inset-top) + 64px));left:50%;transform:translateX(-50%);z-index:49;max-width:min(420px,92vw);background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.15);"></div>
 
 <!-- Statistik-Modal -->
-<div id="statsModal" class="modal-overlay">
-    <div class="modal-card">
-        <button class="modal-close" id="statsCloseBtn">✕</button>
-        <h2>📊 Meine Statistik</h2>
-        <div id="statsContent"></div>
-        <button id="statsResetBtn" style="margin-top:14px;background:#eee;font-size:13px;padding:8px 14px;">Statistik zurücksetzen</button>
-    </div>
-</div>
-
 <!-- Hilfe-Modal -->
 <div id="helpModal" class="modal-overlay">
     <div class="modal-card">
@@ -442,7 +484,7 @@
         <p style="text-align:left;font-size:14px;line-height:1.5;">
             Wenn du eine Runde beendest, werden dein eingetragener <strong>Spielername</strong> und deine
             erreichte <strong>Punktzahl</strong> in der zentralen, für alle Spieler:innen sichtbaren
-            Bestenliste gespeichert. Im Ladder-Modus gilt das Gleiche für deinen Namen und die
+            Bestenliste gespeichert. Im Gipfelsturm-Modus gilt das Gleiche für deinen Namen und die
             <strong>erreichte Anzahl Flaggen</strong>. Außerdem wird pro Land ein rein zahlenmäßiger,
             anonymer Zähler geführt (wie oft eine Flagge gezeigt und wie oft sie richtig erkannt wurde) —
             ohne Bezug zu einzelnen Spieler:innen. Weitere personenbezogene Daten werden nicht erhoben.

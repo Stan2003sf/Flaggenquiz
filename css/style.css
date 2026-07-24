@@ -69,7 +69,8 @@
     }
 
     #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #ladderPlaceholder, #ladderGame, #ladderEndScreen,
-    #battleEntryScreen, #battleContinentScreen, #battlePoisonScreen, #battleGameScreen, #battleEndScreen {
+    #battleEntryScreen, #battleContinentScreen, #battlePoisonScreen, #battleGameScreen, #battleEndScreen,
+    #settingsMenuScreen, #statsScreen, #highscoreHubScreen {
         display: none;
         max-width: 480px;
         margin: 0 auto;

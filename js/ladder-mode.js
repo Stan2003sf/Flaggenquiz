@@ -222,10 +222,10 @@ async function saveLadderResult(playerName, reachedCount, won) {
 function buildLadderResultLine(result, total) {
     const onlineNote = result.savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
     if (result.rank === -1) {
-        return '<p>Kein Platz in den Top 50 der Ladder-Bestenliste.' + onlineNote + '</p>';
+        return '<p>Kein Platz in den Top 50 der Gipfelsturm-Bestenliste.' + onlineNote + '</p>';
     }
     const medal = result.rank === 0 ? "🥇 " : result.rank === 1 ? "🥈 " : result.rank === 2 ? "🥉 " : "";
-    return '<p>' + medal + 'Platz ' + (result.rank + 1) + ' in der Ladder-Bestenliste (von ' + total + ').</p>';
+    return '<p>' + medal + 'Platz ' + (result.rank + 1) + ' in der Gipfelsturm-Bestenliste (von ' + total + ').</p>';
 }
 
 async function endLadderRound(won) {
@@ -260,7 +260,7 @@ async function updateLadderHighscoreDisplay() {
     if (list.length === 0) {
         ladderHighscoreDisplayEl.innerHTML =
             '<div class="highscore-card hs-empty"><span class="trophy">🏆</span>' +
-            '<div class="hs-card-title" style="margin-bottom:4px;">Noch kein Ladder-Ergebnis</div>' +
+            '<div class="hs-card-title" style="margin-bottom:4px;">Noch kein Gipfelsturm-Ergebnis</div>' +
             '<div>Sei der Erste!</div><div class="hs-status">' + statusLine + '</div></div>';
         return;
     }
@@ -313,7 +313,7 @@ async function startLadderRound() {
 ladderStartBtn.onclick = startLadderRound;
 
 ladderEndBtn.onclick = function () {
-    const sure = confirm("Möchtest du den Ladder-Modus wirklich beenden? Dein Fortschritt in dieser Runde geht verloren.");
+    const sure = confirm("Möchtest du den Gipfelsturm wirklich beenden? Dein Fortschritt in dieser Runde geht verloren.");
     if (!sure) return;
     ladderRoundActive = false;
     ladderLoadToken++;
