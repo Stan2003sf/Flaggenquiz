@@ -220,7 +220,7 @@
     <h2 class="screen-heading">⚔️ 1vs1 Battle</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
-            Fordere jemanden zum Duell heraus: gemeinsam gewählter Kontinent, geheime Giftflaggen für den Gegner, 3 Leben — wer länger durchhält, gewinnt.
+            Fordere jemanden zum Duell heraus: gemeinsam gewählter Kontinent, geheime Giftflaggen für den Gegner, 5 Leben — wer länger durchhält, gewinnt.
         </p>
         <button id="battleCreateBtn" style="width:100%;margin-bottom:10px;">⚔️ Battle erstellen</button>
         <button id="battleJoinBtn" style="width:100%;background:#fff;color:var(--color-primary);border:2px solid var(--color-primary);">🔗 Battle beitreten</button>
@@ -268,6 +268,7 @@
 
 <!-- ================= Ebene 3: 1vs1 Battle — Duell ================= -->
 <div id="battleGameScreen">
+    <div id="battleHitFlash"></div>
     <div id="battleHeader">
         <div id="battleOwnHearts" class="battle-hearts"></div>
         <div id="battleRoundLabel"></div>
