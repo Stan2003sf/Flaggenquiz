@@ -26,6 +26,9 @@ async function refreshCrownStatus() {
 }
 renderNicknameDisplay();
 refreshCrownStatus();
+// Antippen der Namens-Card auf Ebene 0 springt direkt zu den Einstellungen, wo der Name geändert
+// werden kann (das eigentliche Eingabefeld liegt dort, siehe #settingsMenuScreen).
+document.getElementById("nicknameCard").onclick = () => goToSettingsMenuScreen();
 
 let nicknameGroupSyncTimer = null;
 nicknameInput.addEventListener("input", function () {
@@ -83,21 +86,29 @@ function checkConnection() {
         offlineWarning.style.display = "block";
         return;
     }
-    // Zusätzlich ein winziges Testbild laden, um langsame oder blockierte Verbindungen zu erkennen
+    if (!firestoreDb) {
+        // Keine Firebase-Konfiguration vorhanden -- kann nicht sinnvoll geprüft werden
+        offlineWarning.style.display = "none";
+        return;
+    }
+    // Echter Verbindungstest gegen Firestore (statt vorher ein fremdes Testbild von flagcdn.com --
+    // das wurde gelegentlich von Werbeblockern/Datenschutz-Erweiterungen blockiert und löste dann
+    // fälschlich "offline" aus, obwohl die eigentlich relevante Verbindung (Bestenliste/Mehrspieler)
+    // einwandfrei funktionierte). Ein Lesezugriff auf ein nicht existierendes Dokument ist dafür
+    // ausreichend und günstig -- es geht nur um die Zeit bis zur Antwort.
     const myToken = ++connectionCheckToken;
-    const img = new Image();
     const timer = setTimeout(() => {
         if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
     }, 5000);
-    img.onload = () => {
-        clearTimeout(timer);
-        if (myToken === connectionCheckToken) offlineWarning.style.display = "none";
-    };
-    img.onerror = () => {
-        clearTimeout(timer);
-        if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
-    };
-    img.src = "https://flagcdn.com/w20/de.png?t=" + Date.now();
+    firestoreDb.collection("highscores").doc("__connectivity_check__").get()
+        .then(() => {
+            clearTimeout(timer);
+            if (myToken === connectionCheckToken) offlineWarning.style.display = "none";
+        })
+        .catch(() => {
+            clearTimeout(timer);
+            if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
+        });
 }
 
 // ---------- Neue Menüstruktur: Kacheln & Zurück-Pfeile ----------
@@ -105,12 +116,12 @@ function checkConnection() {
 // Fehler auftreten, bleiben Navigation und "Zurück"-Buttons trotzdem in jedem Fall nutzbar.
 document.getElementById("tileSinglePlayer").onclick = () => goToSinglePlayerMenu();
 document.getElementById("tileMultiPlayer").onclick = () => goToMultiPlayerMenu();
-document.getElementById("tileSettingsMenu").onclick = () => {
+function goToSettingsMenuScreen() {
     hideAllScreens();
     setChromeVisible(true);
     document.getElementById("settingsMenuScreen").style.display = "block";
-    saveCurrentScreen("settingsMenuScreen");
-};
+}
+document.getElementById("tileSettingsMenu").onclick = () => goToSettingsMenuScreen();
 document.getElementById("backFromSettingsMenu").onclick = () => goToMainMenu();
 document.getElementById("tileHighscoreHub").onclick = () => goToHighscoreHub();
 document.getElementById("backFromHighscoreHub").onclick = () => goToMainMenu();
@@ -174,36 +185,11 @@ if (getLeaderSession() || getPlayerGroupSession()) {
     goToStandardSettings("multi");
 } else if (!getBattleSession()) {
     // Läuft gerade eine lokale Entdecker- oder Gipfelsturm-Runde (nicht Gruppe/Battle — die haben
-    // ihre eigene, vorrangige Wiederherstellung weiter oben/unten), hat deren Wiederaufnahme Vorrang
-    // vor der generischen Menü-Bildschirm-Wiederherstellung weiter unten.
-    if (restoreActiveStandardRound() || restoreActiveLadderRound()) {
-        // nichts weiter zu tun — die jeweilige Funktion hat den passenden Bildschirm bereits gezeigt
-    } else {
-        const lastScreen = localStorage.getItem(LAST_SCREEN_KEY);
-        if (lastScreen === "singlePlayerMenu") goToSinglePlayerMenu();
-        else if (lastScreen === "multiPlayerMenu") goToMultiPlayerMenu();
-        else if (lastScreen === "standardSettings") goToStandardSettings("single");
-        else if (lastScreen === "ladderPlaceholder") goToLadderPlaceholder();
-        else if (lastScreen === "settingsMenuScreen") {
-            hideAllScreens(); setChromeVisible(true);
-            document.getElementById("settingsMenuScreen").style.display = "block";
-        }
-        else if (lastScreen === "statsScreen") {
-            hideAllScreens(); setChromeVisible(true);
-            renderStatsModal();
-            document.getElementById("statsScreen").style.display = "block";
-        }
-        else if (lastScreen === "helpScreen") {
-            hideAllScreens(); setChromeVisible(true);
-            document.getElementById("helpScreen").style.display = "block";
-        }
-        else if (lastScreen === "battleEntry") goToBattleEntryScreen();
-        else if (lastScreen === "groupEntry") goToGroupEntryScreen();
-        else if (lastScreen && lastScreen.indexOf("highscoreHub:") === 0) {
-            goToHighscoreHub();
-            selectHubTab(lastScreen.split(":")[1] || "standard");
-        }
-        else goToMainMenu();
+    // ihre eigene, vorrangige Wiederherstellung oben/unten), wird sie mitten im Spiel fortgesetzt.
+    // Ohne aktive Runde landet man bewusst IMMER auf Ebene 0 (Hauptmenü) — keine Menü-Bildschirm-
+    // Wiederherstellung mehr, jeder Neustart/Reload beim reinen Menü-Browsen beginnt neu vorn.
+    if (!restoreActiveStandardRound() && !restoreActiveLadderRound()) {
+        goToMainMenu();
     }
 }
 // (Falls eine Battle-Sitzung existiert, übernimmt restoreBattleSession weiter unten die Navigation
@@ -256,7 +242,6 @@ document.getElementById("tileStats").onclick = function () {
     setChromeVisible(true);
     renderStatsModal();
     document.getElementById("statsScreen").style.display = "block";
-    saveCurrentScreen("statsScreen");
 };
 document.getElementById("backFromStats").onclick = () => goToMainMenu();
 statsResetBtn.onclick = function () {
@@ -284,8 +269,8 @@ helpLink.onclick = function (e) {
     e.preventDefault();
     hideAllScreens();
     setChromeVisible(true);
+    setNicknameCardVisible(false); // spart Platz auf der langen Hilfe-Seite
     document.getElementById("helpScreen").style.display = "block";
-    saveCurrentScreen("helpScreen");
 };
 document.getElementById("backFromHelp").onclick = () => goToMainMenu();
 

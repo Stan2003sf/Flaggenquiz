@@ -4,16 +4,6 @@
 // Wird für den "Zurück zum Modus-Menü"-Link am Rundenende sowie den Abbruch-Button im Spiel benötigt.
 let originMenu = "single";
 
-// Merkt sich den zuletzt angezeigten Menü-/Übersichtsbildschirm, damit ein Browser-Reload nicht
-// mehr auf das Hauptmenü zurückspringt, egal in welchem Menü man gerade war. Bewusst NUR für
-// Menü-/Übersichtsbildschirme, NICHT für laufende Spielrunden (Standard/Gipfelsturm) — dort gilt
-// weiterhin: kein Fortschritt wird gespeichert, ein Reload führt zurück zum jeweiligen Einstiegs-
-// bildschirm. Aktive Gruppen-/Battle-Sitzungen haben ohnehin ihre eigene, vorrangige Wiederherstellung.
-const LAST_SCREEN_KEY = "flagquiz_last_screen";
-function saveCurrentScreen(name) {
-    try { localStorage.setItem(LAST_SCREEN_KEY, name); } catch (e) { /* ignorieren */ }
-}
-
 function hideAllScreens() {
     mainMenu.style.display = "none";
     singlePlayerMenu.style.display = "none";
@@ -44,6 +34,14 @@ function hideAllScreens() {
 function setChromeVisible(visible) {
     titleBlock.style.display = visible ? "flex" : "none";
     ebene0Bar.style.display = visible ? "block" : "none";
+    // Namens-Card ist standardmäßig mit dabei -- einzelne Bildschirme (Hilfe, Rundenende-Screens)
+    // blenden sie danach gezielt wieder aus (siehe setNicknameCardVisible), um Platz zu sparen bzw.
+    // weil sie dort nicht gebraucht wird.
+    if (visible) setNicknameCardVisible(true);
+}
+
+function setNicknameCardVisible(visible) {
+    document.getElementById("nicknameBlock").style.display = visible ? "block" : "none";
 }
 
 function goToMainMenu() {
@@ -51,14 +49,12 @@ function goToMainMenu() {
     hideAllScreens();
     setChromeVisible(true);
     mainMenu.style.display = "block";
-    saveCurrentScreen("mainMenu");
 }
 
 function goToSinglePlayerMenu() {
     hideAllScreens();
     setChromeVisible(true);
     singlePlayerMenu.style.display = "block";
-    saveCurrentScreen("singlePlayerMenu");
 }
 
 function goToMultiPlayerMenu() {
@@ -66,30 +62,28 @@ function goToMultiPlayerMenu() {
     setChromeVisible(true);
     updateGroupEntryLinksState();
     multiPlayerMenu.style.display = "block";
-    saveCurrentScreen("multiPlayerMenu");
 }
 
 function goToLadderPlaceholder() {
     hideAllScreens();
     setChromeVisible(true);
     ladderPlaceholder.style.display = "block";
-    saveCurrentScreen("ladderPlaceholder");
 }
 
 // Zeigt die (bisherige) Standard-Einstellungsseite — dient sowohl dem Standard-Einzelspiel
 // als auch weiterhin (unverändert) dem gesamten Gruppenquiz-Ablauf (Leitung & Mitspieler:innen).
+// Überschrift hängt vom Ursprung ab, da beide Abläufe denselben Bildschirm teilen (Punkt 15).
 function goToStandardSettings(origin) {
     originMenu = origin;
     hideAllScreens();
     setChromeVisible(true);
     settingsDiv.style.display = "block";
+    document.querySelector("#settings .screen-heading").textContent =
+        origin === "multi" ? "🏫 Gruppenquiz" : "🧭 Entdecker-Modus";
     updateLengthHint();
     updateHighscoreDisplay();
     updateGroupStartButtonUI();
     checkConnection();
-    // Nur den Solo-Einstieg merken -- der Gruppen-Fall ("multi") wird bereits vorrangig über die
-    // eigene Leiter-/Mitspieler-Sitzung wiederhergestellt (siehe Init), das würde sich sonst doppeln.
-    if (origin === "single") saveCurrentScreen("standardSettings");
 }
 
 // Zurück-Navigation von Spielrunde (Ebene 3) bzw. Rundenende zum passenden Modus-Menü.
@@ -112,7 +106,9 @@ function backToModeMenu() {
     if (originMenu === "multi") {
         goToMultiPlayerMenu();
     } else {
-        goToSinglePlayerMenu();
+        // Zurück zum Entdecker-Einstiegsbildschirm selbst (nicht zum übergeordneten Einzelspieler-
+        // Menü) — konsistent zum Gipfelsturm, der ebenfalls zu seinem eigenen Einstieg zurückführt.
+        goToStandardSettings("single");
     }
 }
 const nicknameInput = document.getElementById("nickname");

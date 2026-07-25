@@ -196,7 +196,7 @@ function submitLadderAnswer(selectedIso, correctCountry) {
 
     if (wasCorrect) {
         ladderCorrectCount++;
-        showFloatingText("✓", ladderProgressLabelEl, "positive");
+        showFloatingText("✓", ladderMcOptionsDiv, "positive");
         playCorrectSound();
         maybeRefillLadderLife();
         setTimeout(() => {
@@ -302,6 +302,7 @@ async function endLadderRound(won) {
     clearActiveLadderRound();
     hideAllScreens();
     setChromeVisible(true);
+    setNicknameCardVisible(false);
     document.getElementById("ladderEndScreen").style.display = "block";
 
     const reachedCount = won ? ladderOrder.length : ladderPos;
@@ -390,10 +391,10 @@ ladderEndBtn.onclick = function () {
     ladderRoundActive = false;
     ladderLoadToken++;
     clearActiveLadderRound();
-    goToSinglePlayerMenu();
+    goToLadderPlaceholder();
 };
 
 ladderRestartBtn.onclick = function () {
-    goToSinglePlayerMenu();
+    goToLadderPlaceholder();
 };
 

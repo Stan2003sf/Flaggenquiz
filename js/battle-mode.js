@@ -739,10 +739,10 @@ function onBattleAnswerClick(givenIso, correctIso) {
         else if (b.dataset.iso === givenIso && givenIso !== correctIso) b.classList.add("wrong");
     });
     if (givenIso === correctIso) {
-        showFloatingText("✓", document.getElementById("battleOwnHearts"), "positive");
+        showFloatingText("✓", document.getElementById("battleMcOptions"), "positive");
         playCorrectSound();
     } else {
-        showFloatingText("✗", document.getElementById("battleOwnHearts"), "negative");
+        showFloatingText("✗", document.getElementById("battleMcOptions"), "negative");
         playWrongSound();
     }
     submitBattleAnswer(battleCode, battleRole, battleLastRenderedRound, givenIso, correctIso, false);
@@ -772,6 +772,7 @@ async function showBattleEndScreen(data) {
     stopBattleListener();
     hideAllScreens();
     setChromeVisible(true);
+    setNicknameCardVisible(false);
     document.getElementById("battleEndScreen").style.display = "block";
 
     const el = document.getElementById("battleEndContent");
@@ -796,7 +797,6 @@ function goToBattleEntryScreen() {
     document.getElementById("battleCreateBtn").style.display = "block";
     document.getElementById("battleJoinBtn").style.display = "block";
     document.getElementById("battleJoinInputRow").style.display = "none";
-    saveCurrentScreen("battleEntry");
 }
 
 function renderBattleWaitingBox(code) {

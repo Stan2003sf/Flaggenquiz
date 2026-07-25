@@ -127,7 +127,6 @@ function selectHubTab(tab) {
     });
     if (tab === "ladder") updateLadderHighscoreDisplay(document.getElementById("hubLadderHighscoreDisplay"));
     if (tab === "battle") updateBattleHighscoreDisplay("hubBattleHighscoreDisplay");
-    saveCurrentScreen("highscoreHub:" + tab);
 }
 
 function goToHighscoreHub() {

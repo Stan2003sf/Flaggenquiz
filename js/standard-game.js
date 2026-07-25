@@ -139,8 +139,8 @@ function loadActiveStandardRoundData() {
 }
 
 // Wird beim Seitenstart aufgerufen (siehe init.js). Liefert true, wenn eine Runde wiederhergestellt
-// und die entsprechenden Bildschirme bereits angezeigt wurden — sonst false (normale Navigation
-// per LAST_SCREEN_KEY greift dann wie bisher).
+// und die entsprechenden Bildschirme bereits angezeigt wurden — sonst false (init.js zeigt dann
+// ganz normal das Hauptmenü).
 function restoreActiveStandardRound() {
     const data = loadActiveStandardRoundData();
     if (!data || isGroupPlayer) return false;
@@ -580,6 +580,14 @@ function removeWrongOption(correctCountry) {
     target.classList.add("eliminated");
 }
 
+// Liefert den aktuell sichtbaren Antwortbereich (abhängig vom Modus dieser Frage) — Anker für die
+// aufsteigenden Punkte-/Richtig-Falsch-Effekte, die dort starten sollen (Punkt 11).
+function currentAnswerAreaEl() {
+    if (currentMode === "text") return textInputArea;
+    if (currentMode === "reverse-mc") return reverseMcOptionsDiv;
+    return mcOptionsDiv;
+}
+
 // ---------- Antwort einreichen ----------
 
 function submitAnswer(userInput, forcedCountry) {
@@ -640,13 +648,13 @@ function submitAnswer(userInput, forcedCountry) {
             : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!");
         if (settings.learningMode) {
             pointsChips.innerHTML = "";
-            showFloatingText("✓", scoreDiv, "positive");
+            showFloatingText("✓", currentAnswerAreaEl(), "positive");
         } else {
             let chips = '<span class="result-chip chip-base">⭐ +' + basePoints + '</span>';
             if (bonus > 0) chips += '<span class="result-chip chip-time">⏱️ +' + bonus + '</span>';
             if (streakBonus > 0) chips += '<span class="result-chip chip-streak">🔥 +' + streakBonus + ' (' + currentStreak + 'er Serie)</span>';
             pointsChips.innerHTML = chips;
-            showFloatingText("+" + (basePoints + bonus + streakBonus), scoreDiv, "positive");
+            showFloatingText("+" + (basePoints + bonus + streakBonus), currentAnswerAreaEl(), "positive");
         }
         playCorrectSound();
     } else {
@@ -655,7 +663,7 @@ function submitAnswer(userInput, forcedCountry) {
         emojiDiv.innerHTML = "😢";
         solutionDiv.innerHTML = "Richtig wäre: " + c.name;
         pointsChips.innerHTML = "";
-        showFloatingText("✗", scoreDiv, "negative");
+        showFloatingText("✗", currentAnswerAreaEl(), "negative");
         playWrongSound();
     }
 
@@ -738,6 +746,7 @@ async function showEndScreen() {
     clearActiveStandardRound();
     game.style.display = "none";
     setChromeVisible(true);
+    setNicknameCardVisible(false);
     endScreen.style.display = "block";
     stopGroupHighscoreLive();
     groupHighscoreBox.style.display = "none";
