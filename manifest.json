@@ -1,7 +1,7 @@
 {
-  "name": "Flaggenquiz",
-  "short_name": "Flaggenquiz",
-  "description": "Teste dein Wissen über Länderflaggen aus aller Welt!",
+  "name": "Flaggenspaß",
+  "short_name": "Flaggenspaß",
+  "description": "Flaggen raten, Wissen sammeln!",
   "start_url": "./Flaggenquiz.html",
   "scope": "./",
   "display": "standalone",

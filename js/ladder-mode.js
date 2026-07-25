@@ -145,14 +145,14 @@ function loadLadderFlag() {
     ladderProgressLabelEl.textContent = "Flagge " + (ladderPos + 1) + " von " + ladderOrder.length;
     ladderProgressBarInnerEl.style.width = (ladderPos / ladderOrder.length * 100) + "%";
 
-    const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
+    const flagUrl = flagImageUrl(c.iso);
     ladderFlagErrorEl.style.display = "none";
     ladderFlagErrorEl.textContent = "";
     ladderFlagDiv.style.backgroundImage = "url('" + flagUrl + "')";
     const testImg = new Image();
     testImg.onerror = function () {
         if (myToken !== ladderLoadToken) return;
-        ladderFlagErrorEl.textContent = "Flagge konnte nicht geladen werden — bitte Internetverbindung prüfen";
+        ladderFlagErrorEl.textContent = "Flagge konnte nicht geladen werden";
         ladderFlagErrorEl.style.display = "flex";
     };
     testImg.src = flagUrl;
@@ -196,6 +196,7 @@ function submitLadderAnswer(selectedIso, correctCountry) {
 
     if (wasCorrect) {
         ladderCorrectCount++;
+        showFloatingText("✓", ladderProgressLabelEl, "positive");
         playCorrectSound();
         maybeRefillLadderLife();
         setTimeout(() => {
@@ -209,6 +210,7 @@ function submitLadderAnswer(selectedIso, correctCountry) {
             const hearts = Array.from(ladderHeartsEl.querySelectorAll(".heart"));
             const target = hearts[ladderLives - 1];
             if (target) target.classList.add("heart-breaking");
+            showFloatingText("-1 Leben", ladderHeartsEl, "negative");
             playLadderHeartBreakSound();
             setTimeout(() => {
                 if (!ladderRoundActive) return;
@@ -314,6 +316,7 @@ async function endLadderRound(won) {
     const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
     const result = await saveLadderResult(playerName, reachedCount, won);
     ladderEndContentEl.innerHTML += buildLadderResultLine(result, ladderOrder.length);
+    if (won) refreshCrownStatus(); // Krone ggf. gerade neu erhalten -> Ebene-0-Anzeige sofort aktualisieren
 
     if (won) spawnLadderConfetti();
 }
@@ -342,7 +345,7 @@ async function updateLadderHighscoreDisplay(targetEl) {
         return '<div class="hs-row rank-' + rank + '">' +
             '<div class="hs-medal">' + (rank <= 3 ? medals[rank - 1] : rank + ".") + '</div>' +
             '<div class="hs-row-name">' + crown + escapeHtml(entry.name || "Anonym") + '</div>' +
-            '<div class="hs-row-score">' + entry.best + ' / 195</div></div>';
+            '<div class="hs-row-score">' + entry.best + ' / 197</div></div>';
     }).join("");
     el.innerHTML =
         '<div class="highscore-card"><div class="hs-row-list">' + rowsHtml + '</div><div class="hs-status">' + statusLine + '</div></div>';

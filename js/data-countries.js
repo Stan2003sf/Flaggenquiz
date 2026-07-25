@@ -117,6 +117,7 @@ const countries = [
     { name: "Vatikanstadt", iso: "va", continent: "Europa" },
     { name: "Ukraine", iso: "ua", continent: "Europa" },
     { name: "Kosovo", iso: "xk", continent: "Europa" },
+    { name: "Vereinigtes Königreich", iso: "gb", continent: "Europa" },
 
     // --- Asien: weitere Länder ---
     { name: "Afghanistan", iso: "af", continent: "Asien" },
@@ -149,6 +150,7 @@ const countries = [
     { name: "Usbekistan", iso: "uz", continent: "Asien" },
     { name: "Vereinigte Arabische Emirate", iso: "ae", continent: "Asien" },
     { name: "Jemen", iso: "ye", continent: "Asien" },
+    { name: "Malediven", iso: "mv", continent: "Asien" },
 
     // --- Afrika: weitere Länder ---
     { name: "Angola", iso: "ao", continent: "Afrika" },

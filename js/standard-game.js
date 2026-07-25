@@ -4,6 +4,7 @@ startBtn.onclick = async function () {
     if (containsBlockedContent(nicknameInput.value)) {
         nicknameInput.value = generateFantasyName();
         localStorage.setItem("flagquiz_nickname", nicknameInput.value);
+        renderNicknameDisplay();
     }
 
     const rawName = nicknameInput.value.trim();
@@ -11,6 +12,7 @@ startBtn.onclick = async function () {
     if (!rawName) {
         nicknameInput.value = playerName;
         localStorage.setItem("flagquiz_nickname", playerName);
+        renderNicknameDisplay();
     }
     nicknameHint.style.display = "none";
 
@@ -325,7 +327,7 @@ function loadFlag(resumeState) {
     if (currentMode === "reverse-mc") {
         countryNamePrompt.textContent = c.name;
     } else {
-        const flagUrl = "https://flagcdn.com/w320/" + c.iso + ".png";
+        const flagUrl = flagImageUrl(c.iso);
         const flagError = document.getElementById("flagError");
         flagError.style.display = "none";
         flagError.textContent = "";
@@ -334,7 +336,7 @@ function loadFlag(resumeState) {
         // Unauffälliger Test, ob das Bild tatsächlich lädt (ändert die Anzeige nicht, außer bei Fehler)
         const testImg = new Image();
         testImg.onerror = function () {
-            flagError.textContent = "Flagge konnte nicht geladen werden — bitte Internetverbindung prüfen";
+            flagError.textContent = "Flagge konnte nicht geladen werden";
             flagError.style.display = "flex";
         };
         testImg.src = flagUrl;
@@ -384,7 +386,7 @@ function loadFlag(resumeState) {
                 if (btn.dataset.flagUrl) urlsToLoad.push(btn.dataset.flagUrl);
             });
         } else {
-            urlsToLoad.push("https://flagcdn.com/w320/" + c.iso + ".png");
+            urlsToLoad.push(flagImageUrl(c.iso));
         }
 
         const myToken = ++flagLoadToken;
@@ -396,7 +398,7 @@ function loadFlag(resumeState) {
             if (myToken !== flagLoadToken) return; // Frage wurde inzwischen gewechselt oder beantwortet
             loadingInfo.textContent = "";
             if (!result.allLoaded && currentMode === "reverse-mc") {
-                loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden — bitte Internetverbindung prüfen.";
+                loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden.";
             }
             flagStartTime = Date.now();
             if (!settings.learningMode) {
@@ -430,8 +432,8 @@ function prefetchUpcomingFlags(fromIndex, count) {
     for (let i = fromIndex; i < upTo; i++) {
         const entry = questionPlan[i];
         const urls = entry.mode === "reverse-mc"
-            ? entry.options.map(opt => "https://flagcdn.com/w320/" + opt.iso + ".png")
-            : ["https://flagcdn.com/w320/" + entry.country.iso + ".png"];
+            ? entry.options.map(opt => flagImageUrl(opt.iso))
+            : [flagImageUrl(entry.country.iso)];
         urls.forEach(u => { const img = new Image(); img.src = u; });
     }
 }
@@ -507,7 +509,7 @@ function buildAnswerOptions(correctCountry, options) {
         options.forEach(opt => {
             const btn = document.createElement("button");
             btn.className = "reverse-mc-btn";
-            const flagUrl = "https://flagcdn.com/w320/" + opt.iso + ".png";
+            const flagUrl = flagImageUrl(opt.iso);
             btn.style.backgroundImage = "url('" + flagUrl + "')";
             btn.dataset.flagUrl = flagUrl;
             btn.dataset.name = opt.name;
@@ -638,11 +640,13 @@ function submitAnswer(userInput, forcedCountry) {
             : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!");
         if (settings.learningMode) {
             pointsChips.innerHTML = "";
+            showFloatingText("✓", scoreDiv, "positive");
         } else {
             let chips = '<span class="result-chip chip-base">⭐ +' + basePoints + '</span>';
             if (bonus > 0) chips += '<span class="result-chip chip-time">⏱️ +' + bonus + '</span>';
             if (streakBonus > 0) chips += '<span class="result-chip chip-streak">🔥 +' + streakBonus + ' (' + currentStreak + 'er Serie)</span>';
             pointsChips.innerHTML = chips;
+            showFloatingText("+" + (basePoints + bonus + streakBonus), scoreDiv, "positive");
         }
         playCorrectSound();
     } else {
@@ -651,6 +655,7 @@ function submitAnswer(userInput, forcedCountry) {
         emojiDiv.innerHTML = "😢";
         solutionDiv.innerHTML = "Richtig wäre: " + c.name;
         pointsChips.innerHTML = "";
+        showFloatingText("✗", scoreDiv, "negative");
         playWrongSound();
     }
 

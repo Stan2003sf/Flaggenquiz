@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Flaggenquiz</title>
+<title>Flaggenspaß</title>
 
 <!-- PWA / Homescreen-Unterstützung -->
 <link rel="manifest" href="manifest.json">
@@ -13,7 +13,7 @@
 <!-- iOS-spezifisch: "Zum Home-Bildschirm hinzufügen" -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Flaggenquiz">
+<meta name="apple-mobile-web-app-title" content="Flaggenspaß">
 <link rel="apple-touch-icon" href="appletouchicon.png">
 
 <!-- Schriften: Poppins (Überschriften) & Inter (Fließtext) -->
@@ -29,15 +29,18 @@
 
 <div id="titleBlock">
     <img id="logoImg" src="icon192.png" alt="Flaggenquiz Logo">
-    <h1>Flaggenquiz</h1>
-    <div id="subtitle">Teste dein Wissen über Länderflaggen aus aller Welt!</div>
+    <h1>Flaggenspaß</h1>
+    <div id="subtitle">Flaggen raten, Wissen sammeln!</div>
 </div>
 
-<!-- ================= Ebene 0: geräteweit, immer sichtbar (nur Namensfeld) ================= -->
+<!-- ================= Ebene 0: geräteweit, immer sichtbar (nur Namensanzeige) ================= -->
+<!-- Reine Anzeige (Name + Krone, falls vorhanden) — das Eingabefeld dafür liegt in den
+     Einstellungen (#settingsMenuScreen). nicknameHint bleibt bewusst hier: Namens-Kollisionen
+     können von mehreren Bildschirmen aus ausgelöst werden (Start, Battle, Gruppe erstellen/
+     beitreten), Ebene 0 ist dafür überall sichtbar der zuverlässigste Ort. -->
 <div id="ebene0Bar">
     <div id="nicknameBlock">
-        <label for="nickname">Dein Name</label>
-        <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20">
+        <div id="nicknameDisplay"></div>
         <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
     </div>
 </div>
@@ -90,12 +93,20 @@
         <a href="#" id="helpLink" style="font-size:12px;color:var(--color-primary);text-decoration:underline;margin-right:14px;">❓ Hilfe</a>
         <a href="#" id="privacyLink" style="font-size:12px;color:var(--text-muted);text-decoration:underline;">🔒 Datenschutz</a>
     </div>
+    <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--text-muted);">
+        Flaggenbilder: <a href="https://flagpedia.net" target="_blank" rel="noopener" style="color:var(--text-muted);">flagpedia.net</a>
+    </div>
 </div>
 
 <!-- ================= Ebene 1 (Detail): Einstellungen ================= -->
 <div id="settingsMenuScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromSettingsMenu" type="button">⬅️ Zurück</button></div>
     <h2 class="screen-heading">⚙️ Einstellungen</h2>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:22px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);margin-bottom:16px;">
+        <label for="nickname">Dein Name</label>
+        <input type="text" id="nickname" placeholder="z. B. Max" maxlength="20">
+        <div class="hint-small" style="margin-top:6px;">Wird in der Bestenliste angezeigt, wenn du eine Runde beendest.</div>
+    </div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:22px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <button class="option-btn" id="muteBtn" style="width:100%;justify-content:center;margin-bottom:10px;">🔊 Ton: AN</button>
         <button class="option-btn" id="languageToggle" disabled title="Bald verfügbar" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed;">🌐 Sprache: DE <span style="font-weight:var(--weight-hint);font-size:12px;">(bald verfügbar)</span></button>
@@ -165,7 +176,7 @@
             <span class="menu-tile-icon">⛰️</span>
             <span class="menu-tile-text">
                 <span class="menu-tile-title">Gipfelsturm</span>
-                <span class="menu-tile-sub">Alle 195 Flaggen, von bekannt nach unbekannt</span>
+                <span class="menu-tile-sub">Alle 197 Flaggen, von bekannt nach unbekannt</span>
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
@@ -178,7 +189,7 @@
     <h2 class="screen-heading">⛰️ Gipfelsturm</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
-            Du durchläufst alle 195 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.
+            Du durchläufst alle 197 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.
         </p>
         <button id="ladderStartBtn">🚀 Start</button>
     </div>
@@ -214,11 +225,30 @@
             <span class="menu-tile-icon">⚔️</span>
             <span class="menu-tile-text">
                 <span class="menu-tile-title">1vs1 Battle</span>
-                <span class="menu-tile-sub">Duell mit Giftflaggen — wer übersteht mehr?</span>
+                <span class="menu-tile-sub">Duell mit Fallen-Flaggen — wer übersteht mehr?</span>
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
-        <button class="menu-tile" id="tileGroupCreate" type="button">
+        <button class="menu-tile" id="tileGroup" type="button">
+            <span class="menu-tile-icon">🏫</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title">Gruppenquiz</span>
+                <span class="menu-tile-sub">Leiten oder beitreten</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
+    </div>
+</div>
+
+<!-- ================= Ebene 2b (Detail): Gruppenquiz — Einstieg ================= -->
+<div id="groupEntryScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromGroupEntry" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">🏫 Gruppenquiz</h2>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
+            Spielt gemeinsam als Gruppe oder Schulklasse: eine Person leitet mit zentral vorgegebenen Einstellungen, alle anderen treten per Code oder QR-Code bei.
+        </p>
+        <button class="menu-tile" id="tileGroupCreate" type="button" style="width:100%;margin-bottom:10px;">
             <span class="menu-tile-icon">🧑‍🏫</span>
             <span class="menu-tile-text">
                 <span class="menu-tile-title">Gruppenspiel leiten</span>
@@ -226,7 +256,7 @@
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
-        <button class="menu-tile" id="tileGroupJoin" type="button">
+        <button class="menu-tile" id="tileGroupJoin" type="button" style="width:100%;">
             <span class="menu-tile-icon">🔗</span>
             <span class="menu-tile-text">
                 <span class="menu-tile-title">Gruppenspiel beitreten</span>
@@ -243,7 +273,7 @@
     <h2 class="screen-heading">⚔️ 1vs1 Battle</h2>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
-            Fordere jemanden zum Duell heraus: gemeinsam gewählter Kontinent, geheime Giftflaggen für den Gegner, 5 Leben — wer länger durchhält, gewinnt.
+            Fordere jemanden zum Duell heraus: gemeinsam gewählter Kontinent, geheime Fallen-Flaggen für den Gegner, 5 Leben — wer länger durchhält, gewinnt.
         </p>
         <button id="battleCreateBtn" style="width:100%;margin-bottom:10px;">⚔️ Battle erstellen</button>
         <button id="battleJoinBtn" style="width:100%;background:#fff;color:var(--color-primary);border:2px solid var(--color-primary);">🔗 Battle beitreten</button>
@@ -272,11 +302,11 @@
     </div>
 </div>
 
-<!-- ================= Ebene 3: 1vs1 Battle — Giftflaggen-Wahl ================= -->
+<!-- ================= Ebene 3: 1vs1 Battle — Fallen-Flaggen-Wahl ================= -->
 <div id="battlePoisonScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="forfeitFromBattlePoison" type="button">🚪 Battle verlassen</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-        <h3 style="margin:0 0 6px 0;">☠️ Wähle 3 Giftflaggen für deinen Gegner</h3>
+        <h3 style="margin:0 0 6px 0;">🪤 Wähle 3 Fallen-Flaggen für deinen Gegner</h3>
         <p class="hint-small" style="margin-bottom:10px;">Diese Flaggen bekommt dein Gegner untergemischt — deine Wahl bleibt geheim.</p>
         <div id="battlePoisonCounter" style="font-weight:var(--weight-heading);margin-bottom:8px;"></div>
         <div id="battlePoisonGrid" class="battle-poison-grid"></div>
@@ -315,8 +345,10 @@
 
 <div id="settings">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromStandardSettings" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">🧭 Entdecker-Modus</h2>
+    <div class="settings-card" style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
     <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:var(--weight-heading);">
-        ⚠️ Keine oder schlechte Internetverbindung — die Flaggen können möglicherweise nicht geladen werden.
+        ⚠️ Keine oder schlechte Internetverbindung — Bestenliste und Mehrspieler-Funktionen sind möglicherweise eingeschränkt.
     </div>
     <div id="groupLeaderBanner"></div>
     <div id="groupPlayerBanner"></div>
@@ -380,6 +412,7 @@
             </div>
         </details>
     </div>
+    </div>
 
     <div id="highscoreDisplay" style="display:none;"></div>
     <div style="text-align:center;margin-top:14px;">
@@ -398,98 +431,82 @@
 
 <!-- Statistik-Modal -->
 <!-- Hilfe-Modal -->
-<div id="helpModal" class="modal-overlay">
-    <div class="modal-card">
-        <button class="modal-close" id="helpCloseBtn">✕</button>
-        <h2>❓ Hilfe</h2>
-        <div style="text-align:left;font-size:14px;line-height:1.55;">
+<!-- ================= Ebene 1 (Detail): Hilfe ================= -->
+<div id="helpScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromHelp" type="button">⬅️ Zurück</button></div>
+    <h2 class="screen-heading">❓ Hilfe</h2>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:22px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <div style="text-align:left;font-size:14px;line-height:1.6;">
 
-            <h3 style="margin-bottom:4px;">Einstellungen</h3>
-            <p><strong>Dein Name</strong><br>
-            Wird in der Bestenliste angezeigt, wenn du eine Runde beendest.</p>
+            <div id="helpToc" style="background:var(--gradient-brand-soft);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:18px;">
+                <strong>Inhaltsverzeichnis</strong>
+                <ol style="margin:8px 0 0 20px;padding:0;">
+                    <li><a href="#helpSingle">🎮 Einzelspieler</a></li>
+                    <li><a href="#helpMulti">👥 Mehrspieler</a></li>
+                    <li><a href="#helpModes">🎲 Spielmodi &amp; Einstellungen</a></li>
+                    <li><a href="#helpPoints">⭐ Punkte</a></li>
+                    <li><a href="#helpHighscore">🏆 Bestenliste &amp; Krone</a></li>
+                </ol>
+            </div>
 
-            <p><strong>Kontinent</strong><br>
-            Wähle einen oder mehrere Kontinente aus, aus denen die Flaggen zufällig gezogen werden. Mehrfachauswahl ist möglich.</p>
+            <h3 id="helpSingle">🎮 Einzelspieler <a href="#helpToc" class="help-toc-back" title="Nach oben zum Inhaltsverzeichnis">⬆️</a></h3>
 
-            <p><strong>Anzahl Flaggen</strong><br>
-            Legt fest, wie viele Flaggen in einer Runde abgefragt werden.</p>
+            <p><strong>🧭 Entdecker-Modus</strong><br>
+            Hier bestimmst du alles selbst: welche Kontinente, wie viele Flaggen, welcher Antwortmodus. Gut zum Üben oder für eine entspannte Runde.</p>
+
+            <p><strong>⛰️ Gipfelsturm</strong><br>
+            Du spielst automatisch alle 197 Flaggen der Welt durch — zuerst die, die du schon gut kennst, dann die schwereren. Du hast 5 Leben. Alle 50 richtigen Antworten bekommst du ein Leben zurück (maximal 5). Schaffst du alle 197 Flaggen, gewinnst du eine Krone 👑!</p>
+
+            <h3 id="helpMulti">👥 Mehrspieler <a href="#helpToc" class="help-toc-back" title="Nach oben zum Inhaltsverzeichnis">⬆️</a></h3>
+
+            <p><strong>🏫 Gruppenquiz</strong><br>
+            Ideal für eine Schulklasse oder eine Gruppe Freund:innen. Eine Person leitet die Gruppe und legt die Einstellungen für alle fest. Alle anderen treten mit einem Code oder QR-Code bei. Der Start-Button bleibt gesperrt, bis die Leitung das Spiel freigibt. Nach jeder Runde gibt es eine eigene Bestenliste nur für eure Gruppe — für diese Runde und als Gesamtwertung über alle Runden.</p>
+
+            <p><strong>⚔️ 1vs1 Battle</strong><br>
+            Du forderst eine andere Person zum Duell heraus. Ihr bekommt dieselben Flaggen, jede:r hat 5 Leben. Vorher dürft ihr euch gegenseitig 3 geheime 🪤 Fallen-Flaggen unterjubeln — schwerere Flaggen, die die andere Person nicht erwartet. Wer zuerst alle Leben verliert, hat das Duell verloren.</p>
+
+            <h3 id="helpModes">🎲 Spielmodi &amp; Einstellungen <a href="#helpToc" class="help-toc-back" title="Nach oben zum Inhaltsverzeichnis">⬆️</a></h3>
 
             <p><strong>Antwortmodus</strong><br>
-            • <em>Multiple Choice</em>: Du siehst eine Flagge und wählst den richtigen Ländernamen aus 4 Optionen.<br>
-            • <em>Umkehr Multiple Choice</em>: Du siehst einen Ländernamen und wählst die richtige Flagge aus 4 Optionen.<br>
-            • <em>Text eingeben</em>: Du siehst eine Flagge und tippst den Ländernamen selbst ein.<br>
-            • <em>🔀 Mixed</em>: Bei jeder Frage wird zufällig einer der drei obigen Modi verwendet — über die ganze Runde gesehen ungefähr gleich oft.</p>
+            • <em>Multiple Choice</em>: Du siehst eine Flagge und wählst den richtigen Namen aus 4 Möglichkeiten.<br>
+            • <em>Umkehr Multiple Choice</em>: Du siehst einen Namen und wählst die richtige Flagge aus 4 Möglichkeiten.<br>
+            • <em>Text eingeben</em>: Du siehst eine Flagge und tippst den Namen selbst.<br>
+            • <em>🔀 Mixed</em>: Bei jeder Frage wird zufällig einer der drei Modi benutzt.</p>
 
             <p><strong>🎓 Lernmodus</strong><br>
-            Kein Zeitdruck und keine Punkte — die Runde zählt nicht für die Bestenliste. Ideal zum entspannten Üben.</p>
+            Kein Zeitdruck, keine Punkte. Perfekt zum entspannten Üben.</p>
 
             <p><strong>🎯 Profimodus</strong><br>
-            Tippfehler bei der Texteingabe werden strenger bewertet. Bei Multiple Choice und Umkehr Multiple Choice stammen die falschen Antworten dann bevorzugt aus den von dir gewählten Kontinenten, statt aus der ganzen Welt — das macht es schwerer. Profimodus An/Aus hat außerdem eine eigene Bestenliste, damit die Ergebnisse vergleichbar bleiben.</p>
+            Macht es schwerer: Tippfehler werden strenger bewertet, und die falschen Antworten bei Multiple Choice kommen öfter aus deinen gewählten Kontinenten.</p>
 
             <p><strong>⚡ Speedmodus</strong><br>
-            Im Speedmodus läuft die Zeit doppelt so schnell wie sonst. Läuft die Zeit ab, ohne dass du geantwortet hast, wird die Frage automatisch als nicht beantwortet gewertet (0 Punkte) und nach kurzer Anzeige der richtigen Lösung (2 Sekunden) automatisch zur nächsten Frage gewechselt. Die Zeitleiste ist in diesem Modus rot statt blau, damit der Zeitdruck sofort erkennbar ist. Auch der Speedmodus An/Aus hat eine eigene Bestenliste. Speedmodus und Lernmodus schließen sich gegenseitig aus.</p>
+            Die Zeit läuft doppelt so schnell. Läuft sie ab, ohne dass du geantwortet hast, zählt das automatisch als falsch.</p>
 
-            <h3 style="margin-bottom:4px;margin-top:18px;">🧑‍🏫 Gruppenquiz</h3>
+            <h3 id="helpPoints">⭐ Punkte <a href="#helpToc" class="help-toc-back" title="Nach oben zum Inhaltsverzeichnis">⬆️</a></h3>
 
-            <p>Mit dem Gruppenquiz können mehrere Personen (z. B. eine Schulklasse) gemeinsam und gegeneinander spielen — mit denselben, zentral vorgegebenen Einstellungen und einer eigenen Bestenliste nur für diese Gruppe.</p>
+            <p><strong>Grundpunkte</strong><br>
+            Für jede richtige Antwort gibt es 20 Punkte.</p>
 
-            <p><strong>Gruppe erstellen (Gruppenleitung)</strong><br>
-            Über „🧑‍🏫 Gruppenquiz starten" unten auf der Startseite legst du eine neue Gruppe an. Du erhältst einen kurzen Code sowie einen QR-Code, den die anderen scannen oder eintippen können, um beizutreten. Solange du eine Gruppe leitest, erscheint oben ein Dashboard mit allen Steuerungsmöglichkeiten — der normale Start-Button entfällt währenddessen.</p>
-
-            <p><strong>Einer Gruppe beitreten</strong><br>
-            Über „🔗 Gruppenquiz beitreten" den Code eingeben, oder einfach den QR-Code der Gruppenleitung scannen — das öffnet den Beitritt automatisch. Nach dem Beitreten erscheint ein roter Hinweisbalken, und die Einstellungen (Kontinent, Anzahl Flaggen, Modus usw.) werden ausgegraut, da sie ab jetzt von der Gruppenleitung live vorgegeben werden.</p>
-
-            <p><strong>Warten & Freigabe</strong><br>
-            Der Start-Button bleibt für alle Mitspieler:innen gesperrt („Warte auf Freigabe …"), bis die Gruppenleitung im Dashboard auf „▶️ Spiel freigeben" tippt. Danach kann jede:r im eigenen Tempo starten.</p>
-
-            <p><strong>👥 Teilnehmer:innen-Liste</strong><br>
-            Im Dashboard sieht die Gruppenleitung live und durchnummeriert, wer bereits beigetreten ist — praktisch, um vor dem Start zu prüfen, ob die ganze Klasse da ist. Ein grünes ✅ hinter einem Namen zeigt an, dass diese Person die aktuelle Runde bereits beendet hat.</p>
-
-            <p><strong>🏆 Gruppen-Bestenliste</strong><br>
-            Nach jeder Runde erscheint bei allen Mitspieler:innen automatisch eine eigene Bestenliste nur für diese Gruppe — mit Ergebnissen dieser Runde sowie einer Gesamtwertung über alle bisher gespielten Runden. Die Gruppenleitung kann sich diese Liste jederzeit auch über den Tab „🏆 Live-Ergebnisse" im Dashboard anzeigen lassen, ohne selbst mitspielen zu müssen. Die normale, weltweite Bestenliste wird während eines Gruppenquiz nicht angezeigt.</p>
-
-            <p><strong>Weitere Runden</strong><br>
-            Über denselben Button, der nach der Freigabe zu „🔄 Nächste Runde" wird, kann die Gruppenleitung beliebig oft eine neue Runde eröffnen. Damit niemand ausgeschlossen wird, ist dieser Button erst wieder nutzbar, wenn entweder alle Teilnehmer:innen ihr Ergebnis eingesendet haben oder seit der Freigabe mindestens 1 Minute vergangen ist — so kommt die Gruppe auch weiter, falls jemand die Verbindung verliert. Die rundenbezogene Bestenliste beginnt mit jeder neuen Runde wieder bei null, während die Gesamtwertung über alle Runden weiterläuft.</p>
-
-            <p><strong>Gruppe schließen</strong><br>
-            Über den Button „🚪 Gruppenspiel beenden" ganz unten im Dashboard werden alle zugehörigen Daten (Einstellungen, Ergebnisse, Teilnehmerliste) gelöscht, und alle Mitspieler:innen kehren automatisch zu ihren eigenen, persönlichen Einstellungen zurück. Nicht geschlossene Gruppen laufen außerdem nach 12 Stunden automatisch ab.</p>
-
-            <p style="color:#666;">Hinweis: Solange du selbst eine Gruppe leitest oder einer beigetreten bist, sind die beiden Gruppenquiz-Links ausgegraut — zuerst die aktuelle Gruppe verlassen bzw. schließen, um eine neue zu starten oder einer anderen beizutreten.</p>
-
-            <h3 style="margin-bottom:4px;margin-top:18px;">🏆 Bestenliste</h3>
-
-            <p>Es gibt jeweils eine eigene, separate Bestenliste für jede Kombination aus Kontinent-Auswahl, Anzahl Flaggen, Antwortmodus, Profimodus (An/Aus) und Speedmodus (An/Aus) — so bleiben die Ergebnisse untereinander vergleichbar. Angezeigt werden bis zu 10 Einträge auf einen Blick, weitere bis Platz 50 lassen sich durch Scrollen einsehen.</p>
-
-            <p><strong>💎 Prestige</strong><br>
-            Erreichst du exakt dieselbe Punktzahl wie dein bisheriger Bestwert erneut, zählt ein Prestige-Zähler hoch (2. Erreichen = 1 💎, 3. Erreichen = 2 💎 usw.) — dein Rang in der Bestenliste bleibt dabei erhalten. Erzielst du hingegen einen neuen, höheren Bestwert, beginnt das Prestige für diese neue Punktzahl wieder bei 0. Haben mehrere Spieler:innen dieselbe Punktzahl und damit denselben Platz, entscheidet bei Gleichstand das höhere Prestige über die Reihenfolge — wer mehr 💎 hat, steht weiter oben.</p>
-
-            <h3 style="margin-bottom:4px;margin-top:18px;">Wie die Punkte zustande kommen</h3>
-
-            <p><strong>Basispunkte: 20</strong><br>
-            Für jede richtig beantwortete Flagge gibt es 20 Punkte.</p>
-
-            <p><strong>Tipp-Abzug</strong><br>
-            Nutzt du einen Tipp, halbieren sich die Punkte dieser Frage (10 Punkte). Nutzt du einen zweiten Tipp, werden sie geviertelt (5 Punkte). Der jeweilige Abzug wird direkt neben dem „💡 Tipp anzeigen"-Button als roter ⭐-Chip angezeigt (z. B. „⭐ −10").</p>
+            <p><strong>💡 Tipp</strong><br>
+            Nutzt du einen Tipp, gibt es weniger Punkte (10 statt 20). Beim zweiten Tipp sind es nur noch 5.</p>
 
             <p><strong>⏱️ Zeitbonus</strong><br>
-            Je schneller du richtig antwortest, desto mehr Zusatzpunkte gibt es — bis zu 10 Punkte, die alle 0,5 Sekunden um 1 Punkt sinken:</p>
-            <div style="margin:6px 0 10px 10px;">
-                ≤ 0,5 Sek.: +10 &nbsp;·&nbsp; ≤ 1,0 Sek.: +9 &nbsp;·&nbsp; ≤ 1,5 Sek.: +8 &nbsp;·&nbsp; ≤ 2,0 Sek.: +7 &nbsp;·&nbsp; ≤ 2,5 Sek.: +6<br>
-                ≤ 3,0 Sek.: +5 &nbsp;·&nbsp; ≤ 3,5 Sek.: +4 &nbsp;·&nbsp; ≤ 4,0 Sek.: +3 &nbsp;·&nbsp; ≤ 4,5 Sek.: +2 &nbsp;·&nbsp; ≤ 5,0 Sek.: +1 &nbsp;·&nbsp; danach: +0
-            </div>
-            <p>Im Speedmodus (bei Multiple Choice und Umkehr Multiple Choice) läuft diese Skala doppelt so schnell: der Bonus sinkt alle 0,25 Sekunden um 1 Punkt. Die aktuell erreichbaren Zeitbonus-Punkte werden während der Frage live links neben der Zeitleiste angezeigt (z. B. „⏱️ +7"). Im Lernmodus entfällt der Zeitbonus.</p>
+            Je schneller deine richtige Antwort, desto mehr Extra-Punkte — bis zu 10 zusätzliche Punkte. Im Lernmodus gibt es keinen Zeitbonus.</p>
 
-            <p><strong>🔥 Siegesserie</strong><br>
-            Beantwortest du Fragen in Folge richtig, <em>ohne</em> dabei einen Tipp zu nutzen, steigt ab der 3. richtigen Antwort in Folge ein Bonus:</p>
-            <div style="margin:6px 0 10px 10px;">
-                3.–7. Antwort in Folge: Bonus steigt bei jeder Antwort um 1 (also +1 bis +5)<br>
-                8.–19. Antwort in Folge: Bonus steigt nur noch alle 3 Antworten um 1<br>
-                ab der 20. Antwort in Folge: neuer Meilenstein (+1 Sprung), danach steigt der Bonus nur noch alle 5 Antworten um 1
-            </div>
-            <p>Ein kurzer Ton erklingt jedes Mal, wenn die Serie aktiv wird oder ein neuer Bonuspunkt erreicht wird. Sobald du einen Tipp anzeigen lässt oder eine Frage falsch beantwortest, wird die Serie unterbrochen und beginnt danach wieder bei 0 — die bereits erspielten Bonuspunkte bleiben dir aber erhalten. Erreichst du eine neue persönliche Bestserie, wird das am Ende der Runde besonders hervorgehoben. Deine bisher höchste Siegesserie siehst du außerdem in deiner persönlichen Statistik.</p>
+            <p><strong>🔥 Serie</strong><br>
+            Antwortest du mehrmals hintereinander richtig (ohne Tipp), bekommst du ab der 3. richtigen Antwort in Folge eine Extra-Punkte-Serie. Ein Tipp oder eine falsche Antwort unterbricht die Serie — sie beginnt danach wieder bei 0.</p>
 
-            <p><strong>Punkte-Aufschlüsselung</strong><br>
-            Auf dem Abschlussbildschirm siehst du direkt unter deiner Gesamtpunktzahl, wie sie sich zusammensetzt: ⭐ Grundpunkte durch richtige Antworten, ⏱️ Punkte durch Zeitbonus und 🔥 Punkte durch die Siegesserie.</p>
+            <h3 id="helpHighscore">🏆 Bestenliste &amp; Krone <a href="#helpToc" class="help-toc-back" title="Nach oben zum Inhaltsverzeichnis">⬆️</a></h3>
+
+            <p>Für jede Kombination aus Kontinenten, Anzahl Flaggen, Antwortmodus, Profi- und Speedmodus gibt es eine eigene Bestenliste. Es zählt immer nur dein bester Versuch.</p>
+
+            <p><strong>💎 Prestige</strong><br>
+            Erreichst du deinen bisherigen Bestwert noch einmal ganz genau, zählt ein Prestige-Punkt dazu (💎) — dein Platz in der Liste bleibt dabei erhalten.</p>
+
+            <p><strong>👑 Krone</strong><br>
+            Wer im Gipfelsturm alle 197 Flaggen schafft, bekommt eine Krone. Sie wird danach überall neben deinem Namen angezeigt — in jeder Bestenliste, im Gruppenquiz und im Battle.</p>
+
+            <p style="color:#666;font-size:12.5px;margin-top:22px;">Flaggenbilder: <a href="https://flagpedia.net" target="_blank" rel="noopener">flagpedia.net</a></p>
 
         </div>
     </div>

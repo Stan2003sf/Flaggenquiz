@@ -112,25 +112,40 @@ async function tryResolveBattlePool(code) {
     } catch (e) { console.warn("Kontinent-Pool konnte nicht aufgelöst werden.", e); }
 }
 
-// ---------- Battle: Giftflaggen & Rundenaufbau (Konzept Punkte 3-4) ----------
+// ---------- Battle: Fallen-Flaggen & Rundenaufbau (Konzept Punkte 3-4) ----------
 
 async function submitBattlePoison(code, role, isos) {
     const ref = firestoreDb.collection("battles").doc(code);
     const field = role === "A" ? "poisonChoiceA" : "poisonChoiceB";
-    try { await ref.update({ [field]: isos }); } catch (e) { console.warn("Giftflaggen-Wahl konnte nicht gesendet werden.", e); }
+    try { await ref.update({ [field]: isos }); } catch (e) { console.warn("Fallen-Flaggen-Wahl konnte nicht gesendet werden.", e); }
 }
 
-// Streut 1 Giftflagge pro Block (4er-Block) an zufälliger Position ein (Konzept Punkt 4).
-function battleBuildIndividualSequence(baseSequence, poisonCountries) {
+// Streut 1 Fallen-Flagge pro Block (4er-Block) an zufälliger Position ein (Konzept Punkt 4).
+// positions (eine Position je Block) wird EINMAL für beide Spieler:innen gemeinsam gewürfelt und
+// hier nur noch angewendet — würde jede Sequenz ihre eigene Zufallsposition würfeln, käme die
+// Fallen-Flagge bei A und B in unterschiedlichen Runden an (Bug, siehe tryResolveBattleStart).
+function battleBuildIndividualSequence(baseSequence, poisonCountries, positions) {
     const blocks = [baseSequence.slice(0, 4), baseSequence.slice(4, 8), baseSequence.slice(8, 12)];
     const seq = [];
     blocks.forEach((block, i) => {
-        const pos = Math.floor(Math.random() * 4);
+        const pos = positions[i];
         const modified = block.map(c => ({ name: c.name, iso: c.iso, isPoison: false }));
         modified[pos] = { name: poisonCountries[i].name, iso: poisonCountries[i].iso, isPoison: true };
         seq.push(...modified);
     });
     return seq;
+}
+
+// Berechnet für eine Flaggen-Sequenz (12 Runden bzw. Sudden-Death-Liste) pro Runde vorab die
+// fertig gemischten Antwortoptionen (richtige Flagge + 3 zufällige Distraktoren aus dem Pool).
+// Wird EINMAL serverseitig in der Transaktion berechnet und in Firestore abgelegt, damit beide
+// Spieler:innen für dieselbe Runde exakt dieselben Optionen sehen (siehe tryResolveBattleStart) —
+// vorher wurden die Optionen rein clientseitig und unabhängig voneinander gewürfelt.
+function buildBattleOptionsForSequence(sequence, poolCountries) {
+    return sequence.map(flag => {
+        const distractors = shuffle(poolCountries.filter(c => c.iso !== flag.iso)).slice(0, 3);
+        return shuffle([{ name: flag.name, iso: flag.iso }, ...distractors]);
+    });
 }
 
 async function tryResolveBattleStart(code) {
@@ -145,13 +160,22 @@ async function tryResolveBattleStart(code) {
             const poisonForA = data.poisonChoiceB.map(isoToCountry); // B's Wahl trifft A
             const poisonForB = data.poisonChoiceA.map(isoToCountry); // A's Wahl trifft B
             const base = shuffle(poolCountries).slice(0, 12);
-            const sequenceA = battleBuildIndividualSequence(base, poisonForA);
-            const sequenceB = battleBuildIndividualSequence(base, poisonForB);
+            // Eine gemeinsame Einfüge-Position je Block, statt je Sequenz einzeln zu würfeln —
+            // sonst käme die Fallen-Flagge bei A und B in unterschiedlichen Runden an.
+            const poisonPositions = [0, 1, 2].map(() => Math.floor(Math.random() * 4));
+            const sequenceA = battleBuildIndividualSequence(base, poisonForA, poisonPositions);
+            const sequenceB = battleBuildIndividualSequence(base, poisonForB, poisonPositions);
             const suddenDeathSequence = shuffle(poolCountries).slice(0, Math.min(30, poolCountries.length))
                 .map(c => ({ name: c.name, iso: c.iso, isPoison: false }));
+            // Antwortoptionen pro Runde einmal hier (statt clientseitig je Gerät) berechnen, damit
+            // beide Spieler:innen bei derselben Runde exakt dieselben Optionen sehen.
+            const optionsA = buildBattleOptionsForSequence(sequenceA, poolCountries);
+            const optionsB = buildBattleOptionsForSequence(sequenceB, poolCountries);
+            const suddenDeathOptions = buildBattleOptionsForSequence(suddenDeathSequence, poolCountries);
             tx.update(ref, {
                 sequenceA: sequenceA, sequenceB: sequenceB,
-                suddenDeathSequence: suddenDeathSequence,
+                optionsA: optionsA, optionsB: optionsB,
+                suddenDeathSequence: suddenDeathSequence, suddenDeathOptions: suddenDeathOptions,
                 status: "laeuft", currentRound: 1,
                 livesA: BATTLE_MAX_LIVES, livesB: BATTLE_MAX_LIVES
             });
@@ -262,6 +286,7 @@ let battleLastKnownOpponentLives = null; // Schritt 5: für Trefferanimation bei
 let battleLastData = null;
 let battleHeartbeatTimer = null;
 let battleWatchdogTimer = null;
+let battleCrownedIds = new Set(); // wird beim Verbindungsaufbau einmal geladen, siehe startBattleListener
 const BATTLE_STALE_WARNING_MS = 12000; // ab hier: dezenter Hinweis "Verbindung könnte unterbrochen sein"
 const BATTLE_STALE_CLAIM_MS = 45000;   // ab hier: aktive Möglichkeit, das Battle für sich zu werten
 
@@ -313,11 +338,16 @@ async function claimBattleWinByDisconnect(code) {
 
 function battleGetMyLives(data) { return battleRole === "A" ? data.livesA : data.livesB; }
 function battleGetOpponentLives(data) { return battleRole === "A" ? data.livesB : data.livesA; }
+function battleNameWithCrown(player, fallback) {
+    if (!player) return fallback;
+    const crown = battleCrownedIds.has(player.deviceId) ? "👑 " : "";
+    return crown + player.name;
+}
 function battleGetMyName(data) {
-    return battleRole === "A" ? (data.playerA ? data.playerA.name : "Du") : (data.playerB ? data.playerB.name : "Du");
+    return battleRole === "A" ? battleNameWithCrown(data.playerA, "Du") : battleNameWithCrown(data.playerB, "Du");
 }
 function battleGetOpponentName(data) {
-    return battleRole === "A" ? (data.playerB ? data.playerB.name : "Gegner") : (data.playerA ? data.playerA.name : "Gegner");
+    return battleRole === "A" ? battleNameWithCrown(data.playerB, "Gegner") : battleNameWithCrown(data.playerA, "Gegner");
 }
 
 function battleCurrentFlagFor(data, roundNum) {
@@ -326,6 +356,21 @@ function battleCurrentFlagFor(data, roundNum) {
     const sd = data.suddenDeathSequence || [];
     if (sd.length === 0) return null;
     return sd[(roundNum - 13) % sd.length];
+}
+
+// Liefert die vorberechneten, für beide Spieler:innen bei dieser Runde identischen Antwortoptionen
+// (siehe tryResolveBattleStart). Gibt null zurück, wenn ein Battle-Dokument von vor diesem Fix
+// noch keine vorberechneten Optionen enthält — der Aufruf fällt dann auf die alte, lokale
+// Zufallsauswahl zurück (siehe showBattleGameScreen).
+function battleCurrentOptionsFor(data, roundNum) {
+    if (roundNum <= 12) {
+        const opts = battleRole === "A" ? data.optionsA : data.optionsB;
+        if (opts && opts[roundNum - 1]) return opts[roundNum - 1];
+    } else {
+        const sdOpts = data.suddenDeathOptions || [];
+        if (sdOpts.length > 0) return sdOpts[(roundNum - 13) % sdOpts.length];
+    }
+    return null;
 }
 
 function renderBattleHearts(el, lives) {
@@ -370,6 +415,7 @@ function breakLastActiveHeart(containerId, extraClass) {
 // kein Fehler, keine Beeinträchtigung — "Progressive Enhancement".)
 function triggerBattleOwnHitAnimation() {
     breakLastActiveHeart("battleOwnHearts");
+    showFloatingText("-1", document.getElementById("battleOwnHearts"), "negative");
     flashBattleScreen("flash-red");
     playBattleOwnHitSound();
     if (window.navigator && typeof navigator.vibrate === "function") {
@@ -382,6 +428,7 @@ function triggerBattleOwnHitAnimation() {
 // eigenen Treffer reserviert, sonst wäre die Bedeutung nicht eindeutig unterscheidbar.
 function triggerBattleOpponentHitAnimation() {
     breakLastActiveHeart("battleOpponentHearts", "heart-shake");
+    showFloatingText("-1", document.getElementById("battleOpponentHearts"), "positive");
     flashBattleScreen("flash-green");
     playBattleOpponentHitSound();
 }
@@ -402,6 +449,12 @@ function startBattleListener(code, role) {
     battleCode = code; battleRole = role;
     battleLastRenderedRound = -1;
     stopBattleListener();
+
+    getCrownedDeviceIdSet().then(ids => {
+        battleCrownedIds = ids;
+        if (battleLastData) renderBattleFromData(battleLastData); // Namen (Krone) neu einblenden, falls schon etwas gerendert wurde
+    });
+
     const ref = firestoreDb.collection("battles").doc(code);
     battleUnsub = ref.onSnapshot((snap) => {
         if (!snap.exists) {
@@ -542,7 +595,7 @@ function showBattlePoisonScreen(data) {
         poolCountries.forEach(c => {
             const tile = document.createElement("div");
             tile.className = "battle-poison-tile";
-            tile.innerHTML = '<img src="https://flagcdn.com/w80/' + c.iso + '.png" alt=""><div>' + escapeHtml(c.name) + '</div>';
+            tile.innerHTML = '<img src="' + flagImageUrl(c.iso) + '" alt=""><div>' + escapeHtml(c.name) + '</div>';
             tile.onclick = () => {
                 const idx = battleSelectedPoison.indexOf(c.iso);
                 if (idx !== -1) {
@@ -623,25 +676,34 @@ function showBattleGameScreen(data) {
         const giftBanner = document.getElementById("battleGiftBanner");
         if (myFlag.isPoison) {
             giftBanner.style.display = "block";
-            giftBanner.textContent = "🎁 Geschenk von " + battleGetOpponentName(data) + "!";
+            giftBanner.textContent = "🪤 Falle von " + battleGetOpponentName(data) + "!";
         } else {
             giftBanner.style.display = "none";
         }
 
-        const flagUrl = "https://flagcdn.com/w320/" + myFlag.iso + ".png";
+        const flagUrl = flagImageUrl(myFlag.iso);
         const flagErrorEl = document.getElementById("battleFlagError");
         flagErrorEl.style.display = "none";
         document.getElementById("battleFlag").style.backgroundImage = "url('" + flagUrl + "')";
         const testImg = new Image();
         testImg.onerror = function () {
-            flagErrorEl.textContent = "Flagge konnte nicht geladen werden — bitte Internetverbindung prüfen";
+            flagErrorEl.textContent = "Flagge konnte nicht geladen werden";
             flagErrorEl.style.display = "flex";
         };
         testImg.src = flagUrl;
 
-        const poolCountries = countries.filter(c => data.pool.includes(c.continent));
-        const distractors = shuffle(poolCountries.filter(c => c.iso !== myFlag.iso)).slice(0, 3);
-        const options = shuffle([{ name: myFlag.name, iso: myFlag.iso }, ...distractors]);
+        // Serverseitig vorberechnete Optionen nutzen, damit beide Spieler:innen bei derselben Runde
+        // exakt dieselben Antwortmöglichkeiten sehen. Fallback (lokale Zufallsauswahl) nur für
+        // Battle-Dokumente von vor diesem Fix, die noch keine vorberechneten Optionen haben.
+        const precomputed = battleCurrentOptionsFor(data, roundNum);
+        let options;
+        if (precomputed) {
+            options = precomputed;
+        } else {
+            const poolCountries = countries.filter(c => data.pool.includes(c.continent));
+            const distractors = shuffle(poolCountries.filter(c => c.iso !== myFlag.iso)).slice(0, 3);
+            options = shuffle([{ name: myFlag.name, iso: myFlag.iso }, ...distractors]);
+        }
         const optsDiv = document.getElementById("battleMcOptions");
         optsDiv.innerHTML = "";
         options.forEach(opt => {
@@ -676,7 +738,13 @@ function onBattleAnswerClick(givenIso, correctIso) {
         if (b.dataset.iso === correctIso) b.classList.add("correct");
         else if (b.dataset.iso === givenIso && givenIso !== correctIso) b.classList.add("wrong");
     });
-    if (givenIso === correctIso) playCorrectSound(); else playWrongSound();
+    if (givenIso === correctIso) {
+        showFloatingText("✓", document.getElementById("battleOwnHearts"), "positive");
+        playCorrectSound();
+    } else {
+        showFloatingText("✗", document.getElementById("battleOwnHearts"), "negative");
+        playWrongSound();
+    }
     submitBattleAnswer(battleCode, battleRole, battleLastRenderedRound, givenIso, correctIso, false);
 }
 
@@ -749,7 +817,7 @@ function renderBattleWaitingBox(code) {
     document.getElementById("battleJoinInputRow").style.display = "none";
 }
 
-// Sauberes Verlassen während einer laufenden Battle-Phase (Kontinent-/Gift-/Duell-Bildschirm):
+// Sauberes Verlassen während einer laufenden Battle-Phase (Kontinent-/Fallen-/Duell-Bildschirm):
 // zählt als Aufgabe — der Gegner gewinnt automatisch, statt einfach im Ungewissen zu bleiben.
 async function forfeitBattle() {
     if (!battleCode || !battleRole) { goToMultiPlayerMenu(); return; }

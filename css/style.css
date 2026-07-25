@@ -33,6 +33,26 @@
 
     * { box-sizing: border-box; }
 
+    /* ---------- Aufsteigende Effekt-Anzeigen (Punkte/Herzverlust etc., siehe showFloatingText) ---------- */
+    .floating-text {
+        position: fixed;
+        transform: translate(-50%, 0);
+        font-family: var(--font-display);
+        font-weight: var(--weight-heading);
+        font-size: 20px;
+        pointer-events: none;
+        z-index: 60;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        animation: floatUpFade 0.9s ease-out forwards;
+    }
+    .floating-text.positive { color: var(--color-secondary-dark); }
+    .floating-text.negative { color: var(--color-danger); }
+    @keyframes floatUpFade {
+        0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+        20% { transform: translate(-50%, -10px) scale(1.15); opacity: 1; }
+        100% { transform: translate(-50%, -60px) scale(1); opacity: 0; }
+    }
+
     body {
         font-family: var(--font-body);
         font-weight: var(--weight-body);
@@ -78,9 +98,9 @@
         font-size: 14.5px;
     }
 
-    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #ladderPlaceholder, #ladderGame, #ladderEndScreen,
+    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #groupEntryScreen, #ladderPlaceholder, #ladderGame, #ladderEndScreen,
     #battleEntryScreen, #battleContinentScreen, #battlePoisonScreen, #battleGameScreen, #battleEndScreen,
-    #settingsMenuScreen, #statsScreen, #highscoreHubScreen {
+    #settingsMenuScreen, #statsScreen, #highscoreHubScreen, #helpScreen {
         display: none;
         max-width: 480px;
         margin: 0 auto;
@@ -379,6 +399,14 @@
     #hubContinentButtons .menu-tile-icon { font-size: 18px; }
     #hubContinentButtons .menu-tile-title { font-size: 13px; }
 
+    /* Hilfe-Screen: kleiner Pfeil neben jeder Kapitelüberschrift, springt zurück zum Inhaltsverzeichnis */
+    #helpToc a { color: var(--color-primary-dark); }
+    .help-toc-back {
+        float: right;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
     .back-arrow-row {
         text-align: left;
         margin-bottom: 14px;
@@ -453,14 +481,10 @@
         font-size: 18px;
         flex-shrink: 0;
     }
-    #settings {
-        background: var(--card-bg);
-        border-radius: var(--radius-lg);
-        padding: 26px 22px;
-        box-shadow: var(--card-shadow);
-        border: 1px solid var(--card-border);
-    }
-    #settings.group-locked {
+    /* #settings selbst ist nur noch Layout-Container (siehe gemeinsame Regel oben) — die eigentliche
+       Card-Optik (Hintergrund/Radius/Schatten/Rahmen) liegt jetzt, wie bei den anderen Einstiegs-
+       bildschirmen (Gipfelsturm, Battle), auf .settings-card UNTER Zurück-Pfeil und Überschrift. */
+    #settings.group-locked .settings-card {
         border: 2px solid var(--color-danger);
     }
 
@@ -476,6 +500,13 @@
         margin-bottom: 8px;
         color: var(--text-primary);
         font-size: 15px;
+    }
+    /* Ebene 0: reine Namensanzeige (Bearbeiten passiert in den Einstellungen) */
+    #nicknameDisplay {
+        font-family: var(--font-display);
+        font-weight: var(--weight-heading);
+        font-size: 15px;
+        color: var(--text-primary);
     }
     #nickname {
         font-family: var(--font-body);

@@ -18,6 +18,7 @@ function hideAllScreens() {
     mainMenu.style.display = "none";
     singlePlayerMenu.style.display = "none";
     multiPlayerMenu.style.display = "none";
+    document.getElementById("groupEntryScreen").style.display = "none";
     ladderPlaceholder.style.display = "none";
     document.getElementById("ladderGame").style.display = "none";
     document.getElementById("ladderEndScreen").style.display = "none";
@@ -29,6 +30,7 @@ function hideAllScreens() {
     document.getElementById("settingsMenuScreen").style.display = "none";
     document.getElementById("statsScreen").style.display = "none";
     document.getElementById("highscoreHubScreen").style.display = "none";
+    document.getElementById("helpScreen").style.display = "none";
     settingsDiv.style.display = "none";
     document.getElementById("game").style.display = "none";
     document.getElementById("endScreen").style.display = "none";
@@ -130,8 +132,6 @@ const privacyLink = document.getElementById("privacyLink");
 const privacyModal = document.getElementById("privacyModal");
 const privacyCloseBtn = document.getElementById("privacyCloseBtn");
 const helpLink = document.getElementById("helpLink");
-const helpModal = document.getElementById("helpModal");
-const helpCloseBtn = document.getElementById("helpCloseBtn");
 const muteBtn = document.getElementById("muteBtn");
 const startBtn = document.getElementById("startBtn");
 
