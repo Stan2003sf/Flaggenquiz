@@ -151,26 +151,33 @@ document.getElementById("tileGroupJoin").onclick = () => groupJoinLink.click();
 if (getLeaderSession() || getPlayerGroupSession()) {
     goToStandardSettings("multi");
 } else if (!getBattleSession()) {
-    const lastScreen = localStorage.getItem(LAST_SCREEN_KEY);
-    if (lastScreen === "singlePlayerMenu") goToSinglePlayerMenu();
-    else if (lastScreen === "multiPlayerMenu") goToMultiPlayerMenu();
-    else if (lastScreen === "standardSettings") goToStandardSettings("single");
-    else if (lastScreen === "ladderPlaceholder") goToLadderPlaceholder();
-    else if (lastScreen === "settingsMenuScreen") {
-        hideAllScreens(); setChromeVisible(true);
-        document.getElementById("settingsMenuScreen").style.display = "block";
+    // Läuft gerade eine lokale Entdecker- oder Gipfelsturm-Runde (nicht Gruppe/Battle — die haben
+    // ihre eigene, vorrangige Wiederherstellung weiter oben/unten), hat deren Wiederaufnahme Vorrang
+    // vor der generischen Menü-Bildschirm-Wiederherstellung weiter unten.
+    if (restoreActiveStandardRound() || restoreActiveLadderRound()) {
+        // nichts weiter zu tun — die jeweilige Funktion hat den passenden Bildschirm bereits gezeigt
+    } else {
+        const lastScreen = localStorage.getItem(LAST_SCREEN_KEY);
+        if (lastScreen === "singlePlayerMenu") goToSinglePlayerMenu();
+        else if (lastScreen === "multiPlayerMenu") goToMultiPlayerMenu();
+        else if (lastScreen === "standardSettings") goToStandardSettings("single");
+        else if (lastScreen === "ladderPlaceholder") goToLadderPlaceholder();
+        else if (lastScreen === "settingsMenuScreen") {
+            hideAllScreens(); setChromeVisible(true);
+            document.getElementById("settingsMenuScreen").style.display = "block";
+        }
+        else if (lastScreen === "statsScreen") {
+            hideAllScreens(); setChromeVisible(true);
+            renderStatsModal();
+            document.getElementById("statsScreen").style.display = "block";
+        }
+        else if (lastScreen === "battleEntry") goToBattleEntryScreen();
+        else if (lastScreen && lastScreen.indexOf("highscoreHub:") === 0) {
+            goToHighscoreHub();
+            selectHubTab(lastScreen.split(":")[1] || "standard");
+        }
+        else goToMainMenu();
     }
-    else if (lastScreen === "statsScreen") {
-        hideAllScreens(); setChromeVisible(true);
-        renderStatsModal();
-        document.getElementById("statsScreen").style.display = "block";
-    }
-    else if (lastScreen === "battleEntry") goToBattleEntryScreen();
-    else if (lastScreen && lastScreen.indexOf("highscoreHub:") === 0) {
-        goToHighscoreHub();
-        selectHubTab(lastScreen.split(":")[1] || "standard");
-    }
-    else goToMainMenu();
 }
 // (Falls eine Battle-Sitzung existiert, übernimmt restoreBattleSession weiter unten die Navigation
 // vollständig selbst, sobald der erste Firestore-Snapshot eintrifft — hier daher nichts tun.)

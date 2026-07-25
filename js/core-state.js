@@ -24,6 +24,11 @@ let mixedBag = []; // Ziehungs-"Tüte" für einen ausgeglichenen Mixed-Modus
 let questionPlan = [];
 const loadingInfo = document.getElementById("loadingInfo");
 
+// Läuft eine aktive Entdecker-/Gipfelsturm-Runde nach einem Reload wieder ein, deren letzter
+// Spielzug länger als diese Zeitspanne zurückliegt, gilt sie als abgebrochen und wird verworfen
+// (zurück zum jeweiligen Einstiegsbildschirm), statt sie beliebig lange wiederherzustellen.
+const ACTIVE_ROUND_MAX_AGE_MS = 3 * 60 * 60 * 1000; // 3 Stunden
+
 const BEST_STREAK_KEY = "flagquiz_best_streak";
 
 function getBestStreak() {
