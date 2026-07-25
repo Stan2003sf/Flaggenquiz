@@ -254,16 +254,19 @@ async function submitGroupResult(playerName, roundScore) {
 }
 
 // Baut die HTML-Ansicht der Gruppen-Bestenliste (Runde + Gesamtwertung) aus den Rohdaten.
-function buildGroupHighscoreHtml(docsData, round) {
+// crownedIds (Set von Geräte-IDs mit Gipfelsturm-Krone) wird einmal vorab abgerufen und
+// durchgereicht, statt hier erneut asynchron nachzuladen (siehe startGroupHighscoreLive).
+function buildGroupHighscoreHtml(docsData, round, crownedIds) {
     const roundList = [];
     const totalList = [];
     docsData.forEach(d => {
         const name = d.name || "Anonym";
+        const crown = crownedIds && crownedIds.has(d.id) ? "👑 " : "";
         const rs = d.roundScores || {};
         const roundScore = rs[String(round)];
-        if (typeof roundScore === "number") roundList.push({ name, score: roundScore });
+        if (typeof roundScore === "number") roundList.push({ name, crown, score: roundScore });
         const total = Object.values(rs).reduce((sum, v) => sum + (typeof v === "number" ? v : 0), 0);
-        if (total > 0) totalList.push({ name, score: total });
+        if (total > 0) totalList.push({ name, crown, score: total });
     });
     roundList.sort((a, b) => b.score - a.score);
     totalList.sort((a, b) => b.score - a.score);
@@ -274,7 +277,7 @@ function buildGroupHighscoreHtml(docsData, round) {
         return '<div class="hs-row-list">' + rows.map((e, i) => `
             <div class="hs-row rank-${i + 1}">
                 <div class="hs-medal">${i < 3 ? medals[i] : (i + 1) + "."}</div>
-                <div class="hs-row-name">${escapeHtml(e.name)}</div>
+                <div class="hs-row-name">${e.crown}${escapeHtml(e.name)}</div>
                 <div class="hs-row-score">${e.score} Pkt.</div>
             </div>`).join("") + '</div>';
     }
@@ -298,9 +301,10 @@ function startGroupHighscoreLive(containerEl, code, getRound) {
     if (!firestoreDb) return;
     containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Gruppen-Bestenliste wird geladen …</div></div>';
     groupHighscoreUnsub = firestoreDb.collection("gruppen").doc(code).collection("ergebnisse").onSnapshot(
-        (snap) => {
-            const docsData = snap.docs.map(d => d.data());
-            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound());
+        async (snap) => {
+            const docsData = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+            const crownedIds = await getCrownedDeviceIdSet();
+            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound(), crownedIds);
         },
         (e) => {
             console.warn("Gruppen-Bestenliste nicht erreichbar.", e);
@@ -320,6 +324,7 @@ let groupRosterTeilnehmerDocs = [];
 let groupRosterErgebnisseDocs = [];
 let groupRosterGetRound = () => 1;
 let groupRosterContainerEl = null;
+let groupRosterCrownedIds = new Set(); // wird beim Start der Live-Ansicht einmal geladen, siehe startGroupRosterLive
 
 function renderGroupRosterCombined() {
     if (!groupRosterContainerEl) return;
@@ -335,7 +340,7 @@ function renderGroupRosterCombined() {
     }
     const rows = groupRosterTeilnehmerDocs.map((d, i) =>
         '<div class="glb-roster-row"><span style="color:var(--text-muted);width:22px;flex-shrink:0;">' + (i + 1) + '.</span>' +
-        '<span style="flex:1;">' + escapeHtml(d.data().name || "Anonym") + '</span>' +
+        '<span style="flex:1;">' + (groupRosterCrownedIds.has(d.id) ? '👑 ' : '') + escapeHtml(d.data().name || "Anonym") + '</span>' +
         (finishedIds.has(d.id) ? '<span style="color:var(--color-secondary);">✅</span>' : '')
         + '</div>'
     ).join("");
@@ -353,6 +358,11 @@ function startGroupRosterLive(code, containerEl, getRound) {
     groupRosterTeilnehmerDocs = [];
     groupRosterErgebnisseDocs = [];
     containerEl.innerHTML = '<div style="font-size:13px;color:#666;">Lade Teilnehmer:innen …</div>';
+
+    getCrownedDeviceIdSet().then(ids => {
+        groupRosterCrownedIds = ids;
+        renderGroupRosterCombined();
+    });
 
     groupRosterUnsub = firestoreDb.collection("gruppen").doc(code).collection("teilnehmer")
         .orderBy("joinedAt", "asc")
@@ -394,9 +404,9 @@ function updateGroupEntryLinksState() {
         link.style.opacity = locked ? "0.4" : "";
         link.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst verlassen bzw. schließen" : "";
     });
-    // Sichtbare Kacheln in Ebene 2b (Mehrspieler-Untermenü) ebenfalls sperren, damit ein
-    // Klick nicht einfach folgenlos ins Leere läuft (siehe Hinweis bei backFromStandardSettings).
-    ["tileGroupCreate", "tileGroupJoin"].forEach(id => {
+    // Sichtbare Kacheln in Mehrspieler-Menü und Gruppenquiz-Einstiegsbildschirm ebenfalls sperren,
+    // damit ein Klick nicht einfach folgenlos ins Leere läuft (siehe Hinweis bei backFromStandardSettings).
+    ["tileGroup", "tileGroupCreate", "tileGroupJoin"].forEach(id => {
         const tile = document.getElementById(id);
         if (!tile) return;
         tile.disabled = locked;
@@ -404,6 +414,20 @@ function updateGroupEntryLinksState() {
         tile.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst über \"Zurück\" auf der Einstellungsseite verlassen bzw. schließen" : "";
     });
 }
+
+// Zeigt den gemeinsamen Einstiegsbildschirm für "Gruppenspiel leiten" / "Gruppenspiel beitreten"
+// (Ebene 2b-Detail, nach dem Muster des 1vs1-Battle-Einstiegs) — die eigentliche Leiten-/
+// Beitreten-Logik läuft unverändert über die bestehenden Modals (groupCreateLink/groupJoinLink).
+function goToGroupEntryScreen() {
+    hideAllScreens();
+    setChromeVisible(true);
+    document.getElementById("groupEntryScreen").style.display = "block";
+    updateGroupEntryLinksState();
+    saveCurrentScreen("groupEntry");
+}
+
+document.getElementById("tileGroup").onclick = () => goToGroupEntryScreen();
+document.getElementById("backFromGroupEntry").onclick = () => goToMultiPlayerMenu();
 
 // ---------- Gruppenquiz: Sperr-UI für Mitspieler:innen ----------
 let isGroupPlayer = false;

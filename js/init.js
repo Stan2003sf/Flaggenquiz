@@ -7,9 +7,30 @@ if (!savedNickname || containsBlockedContent(savedNickname)) {
 }
 nicknameInput.value = savedNickname;
 
+// ---------- Namensanzeige auf Ebene 0 (Name + Krone, falls vorhanden) ----------
+// Die Krone hängt an der Geräte-ID und braucht einen Firestore-Abruf — deshalb getrennt von der
+// reinen Textanzeige (renderNicknameDisplay, synchron, z. B. bei jedem Tastendruck) gehalten, statt
+// bei jeder kleinen Änderung erneut abzufragen. refreshCrownStatus wird beim Laden und nach
+// Ereignissen aufgerufen, die eine neue Krone bringen könnten (z. B. Gipfelsturm-Rundenende).
+let cachedHasCrown = false;
+function renderNicknameDisplay() {
+    const name = nicknameInput.value.trim() || "Dein Name";
+    document.getElementById("nicknameDisplay").textContent = (cachedHasCrown ? "👑 " : "") + name;
+}
+async function refreshCrownStatus() {
+    try {
+        const crownedIds = await getCrownedDeviceIdSet();
+        cachedHasCrown = crownedIds.has(getDeviceId());
+    } catch (e) { /* ignorieren */ }
+    renderNicknameDisplay();
+}
+renderNicknameDisplay();
+refreshCrownStatus();
+
 let nicknameGroupSyncTimer = null;
 nicknameInput.addEventListener("input", function () {
     localStorage.setItem("flagquiz_nickname", nicknameInput.value.trim());
+    renderNicknameDisplay();
     // Im Gruppenmodus: geänderten Namen (entprellt) auch in der Teilnehmerliste aktualisieren,
     // damit die Gruppenleitung immer den aktuellen Namen sieht.
     if (isGroupPlayer) {
@@ -26,6 +47,7 @@ nicknameInput.addEventListener("blur", function () {
     if (containsBlockedContent(nicknameInput.value)) {
         nicknameInput.value = generateFantasyName();
         localStorage.setItem("flagquiz_nickname", nicknameInput.value);
+        renderNicknameDisplay();
         nicknameHint.textContent = "Dieser Name war nicht erlaubt und wurde ersetzt.";
         nicknameHint.style.display = "block";
         setTimeout(() => { nicknameHint.style.display = "none"; }, 4000);
@@ -171,7 +193,12 @@ if (getLeaderSession() || getPlayerGroupSession()) {
             renderStatsModal();
             document.getElementById("statsScreen").style.display = "block";
         }
+        else if (lastScreen === "helpScreen") {
+            hideAllScreens(); setChromeVisible(true);
+            document.getElementById("helpScreen").style.display = "block";
+        }
         else if (lastScreen === "battleEntry") goToBattleEntryScreen();
+        else if (lastScreen === "groupEntry") goToGroupEntryScreen();
         else if (lastScreen && lastScreen.indexOf("highscoreHub:") === 0) {
             goToHighscoreHub();
             selectHubTab(lastScreen.split(":")[1] || "standard");
@@ -252,17 +279,15 @@ privacyModal.onclick = function (e) {
     if (e.target === privacyModal) privacyModal.classList.remove("open");
 };
 
-// ---------- Hilfe-Modal ----------
+// ---------- Hilfe (eigener Screen, wie "Meine Statistik" — kein Modal mehr) ----------
 helpLink.onclick = function (e) {
     e.preventDefault();
-    helpModal.classList.add("open");
+    hideAllScreens();
+    setChromeVisible(true);
+    document.getElementById("helpScreen").style.display = "block";
+    saveCurrentScreen("helpScreen");
 };
-helpCloseBtn.onclick = function () {
-    helpModal.classList.remove("open");
-};
-helpModal.onclick = function (e) {
-    if (e.target === helpModal) helpModal.classList.remove("open");
-};
+document.getElementById("backFromHelp").onclick = () => goToMainMenu();
 
 // ---------- Gruppenquiz: Erstellen ----------
 const groupCreateLink = document.getElementById("groupCreateLink");

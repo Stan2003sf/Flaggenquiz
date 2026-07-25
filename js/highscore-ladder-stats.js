@@ -1,9 +1,13 @@
 // ---------- Ladder-Modus: globale Flaggen-Statistik (Baustein 1 des Konzepts) ----------
-// Nutzt bewusst dieselbe "highscores"-Collection wie die bestehende Bestenliste (unter einem
-// eigenen Schlüssel), statt eine komplett neue Firestore-Collection anzulegen — dafür sind
-// dann keine zusätzlichen Firestore-Sicherheitsregeln nötig. Struktur des Dokuments:
-// { stats: { "de": { gesehen: 12, richtig: 9 }, "fr": { ... }, ... } }
-const FLAG_STATS_KEY = "flagquiz_flaggenstatistik";
+// Eigene Collection "flaggenstatistik" (Dokument "global"), getrennt von der "highscores"-
+// Collection — WICHTIG: dafür muss in der Firebase-Konsole eine eigene Security Rule für die
+// Collection "flaggenstatistik" angelegt werden (außerhalb dieses Repos, siehe README/Doku).
+// Struktur des Dokuments: { stats: { "de": { gesehen: 12, richtig: 9 }, "fr": { ... }, ... } }
+//
+// Frühere Version lag unter highscores/flagquiz_flaggenstatistik — fetchFlagStats liest diesen
+// alten Stand einmalig nach, falls die neue Collection noch leer ist, und schreibt ihn (best-
+// effort) in die neue Collection um, damit kein bereits gesammelter Fortschritt verloren geht.
+const FLAG_STATS_LEGACY_KEY = "flagquiz_flaggenstatistik"; // alter Schlüssel in der "highscores"-Collection
 const FLAG_STATS_LOCAL_KEY = "flagquiz_flaggenstatistik_lokal"; // Offline-Fallback
 
 function getLocalFlagStats() {
@@ -16,12 +20,34 @@ function saveLocalFlagStats(stats) {
     try { localStorage.setItem(FLAG_STATS_LOCAL_KEY, JSON.stringify(stats)); } catch (e) { /* ignorieren */ }
 }
 
+function flagStatsDocRef() {
+    return firestoreDb.collection("flaggenstatistik").doc("global");
+}
+
+// Einmaliger, bestmöglicher Umzug vom alten Speicherort — schlägt still fehl, wenn die neue
+// Collection noch keine Schreibrechte hat (siehe Kommentar oben); dann wird beim nächsten Aufruf
+// einfach erneut versucht.
+async function migrateLegacyFlagStats(legacyStats) {
+    try {
+        await flagStatsDocRef().set({ stats: legacyStats }, { merge: true });
+    } catch (e) {
+        console.warn("Alte Flaggen-Statistik konnte nicht in die neue Collection übernommen werden — Sicherheitsregel für 'flaggenstatistik' angelegt?", e);
+    }
+}
+
 // Lädt die globale Flaggen-Statistik (einmalig pro Ladder-Rundenstart, siehe Konzept Punkt 1).
 async function fetchFlagStats() {
     if (!firestoreDb) return { stats: getLocalFlagStats(), online: false };
     try {
-        const doc = await firestoreDb.collection("highscores").doc(FLAG_STATS_KEY).get();
-        const stats = (doc.exists && doc.data().stats && typeof doc.data().stats === "object") ? doc.data().stats : {};
+        const doc = await flagStatsDocRef().get();
+        let stats = (doc.exists && doc.data().stats && typeof doc.data().stats === "object") ? doc.data().stats : null;
+        if (!stats) {
+            // Neue Collection noch leer -> einmalig am alten Speicherort nachsehen und übernehmen.
+            const legacyDoc = await firestoreDb.collection("highscores").doc(FLAG_STATS_LEGACY_KEY).get();
+            const legacyStats = (legacyDoc.exists && legacyDoc.data().stats && typeof legacyDoc.data().stats === "object") ? legacyDoc.data().stats : {};
+            stats = legacyStats;
+            if (Object.keys(legacyStats).length > 0) migrateLegacyFlagStats(legacyStats);
+        }
         saveLocalFlagStats(stats);
         return { stats: stats, online: true };
     } catch (e) {
@@ -46,7 +72,7 @@ async function incrementFlagStat(iso, wasCorrect) {
         const update = {};
         update[iso + ".gesehen"] = inc;
         if (wasCorrect) update[iso + ".richtig"] = inc;
-        await firestoreDb.collection("highscores").doc(FLAG_STATS_KEY).set({ stats: update }, { merge: true });
+        await flagStatsDocRef().set({ stats: update }, { merge: true });
     } catch (e) {
         // Unkritisch — Statistik darf ruhig mal einen Eintrag verpassen.
         console.warn("Flaggen-Statistik konnte nicht zentral aktualisiert werden.", e);

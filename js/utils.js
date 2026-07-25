@@ -1,5 +1,27 @@
 // ---------- Hilfsfunktionen ----------
 
+// Liefert den lokalen Pfad zum Flaggenbild (SVG, im Repo unter flags/ abgelegt) — zentrale Stelle,
+// damit Format/Ablageort nur an einer Stelle geändert werden muss.
+function flagImageUrl(iso) {
+    return "flags/" + iso + ".svg";
+}
+
+// Zeigt eine kurz aufsteigende, ausblendende Text-Anzeige über einem Element (z. B. "+20", "-1
+// Leben"), ähnlich den bekannten Schadens-/Punkte-Zahlen in vielen Spielen. variantClass "positive"
+// (grün) oder "negative" (rot) steuert die Farbe, alles andere bleibt neutral (aktuelle Textfarbe).
+// Einmalig, entfernt sich nach der Animation selbst — kein weiterer Aufräum-Aufruf nötig.
+function showFloatingText(text, anchorEl, variantClass) {
+    if (!anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const span = document.createElement("span");
+    span.className = "floating-text" + (variantClass ? " " + variantClass : "");
+    span.textContent = text;
+    span.style.left = (rect.left + rect.width / 2) + "px";
+    span.style.top = rect.top + "px";
+    document.body.appendChild(span);
+    setTimeout(() => span.remove(), 950);
+}
+
 // Erzeugt aus einem beliebigen Text einen 32-Bit-Zahlenwert (deterministisch, immer gleiches
 // Ergebnis für denselben Text). Wird als "Saatgut" für die Gruppen-Zufallsfolge genutzt.
 function stringToSeed(str) {
@@ -90,21 +112,34 @@ function containsBlockedContent(text) {
     return BLOCKED_TERMS.some(term => cleaned.includes(term));
 }
 
-// ---------- Positive Fantasienamen-Generator ----------
+// ---------- Positive Fantasienamen-Generator (Zielgruppe 8-15 Jahre: lustig statt nur nett) ----------
 const NAME_ADJECTIVES = [
-    "Fröhlicher","Mutiger","Strahlender","Flinker","Cleverer","Freundlicher",
-    "Neugieriger","Tapferer","Heiterer","Wilder","Goldener","Blitzschneller",
-    "Charmanter","Fantastischer","Genialer","Sonniger","Abenteuerlustiger","Cooler"
+    "Lustiger","Kichernder","Quietschiger","Wackeliger","Hüpfender","Zappeliger",
+    "Schrulliger","Kribbeliger","Blubbernder","Verpeilter","Mutiger","Goldener",
+    "Blitzschneller","Käsiger","Flauschiger","Chaotischer","Geheimnisvoller","Cooler"
 ];
 const NAME_NOUNS = [
-    "Falke","Löwe","Delfin","Panda","Adler","Fuchs","Tiger","Drache","Phönix",
-    "Kolibri","Eisbär","Wolf","Otter","Pinguin","Komet","Stern","Regenbogen","Ninja"
+    "Lurch","Wackelpudding","Erdmännchen","Waschbär","Flamingo","Faultier",
+    "Frosch","Panda","Fuchs","Pinguin","Drache","Ninja","Einhorn","Qualle",
+    "Kartoffel","Socke","Keks","Otter"
+];
+// Ganze witzige Phrasen als Alternative zum Adjektiv+Tier-Muster — sorgt für mehr Abwechslung,
+// kurz und ohne Fremdwörter, passend zur Zielgruppe.
+const NAME_PHRASES = [
+    "Flaggenträger im Urlaub","Kartoffel mit Krone","Ninja im Pyjama",
+    "Drache ohne Feuer","Pirat ohne Schiff","Flaggen-Detektiv",
+    "Geheimagent Socke","Pommes-Prinzessin","Käse-Kapitän","Chaos-Chef",
+    "Wackelpudding-Fan","Held der Pause","Ritter ohne Rüstung","Weltmeister im Kichern"
 ];
 
 function generateFantasyName() {
+    const num = Math.floor(Math.random() * 90) + 10; // 10-99, reduziert Namensdopplungen
+    if (Math.random() < 0.35) {
+        const phrase = NAME_PHRASES[Math.floor(Math.random() * NAME_PHRASES.length)];
+        return `${phrase} ${num}`;
+    }
     const adj = NAME_ADJECTIVES[Math.floor(Math.random() * NAME_ADJECTIVES.length)];
     const noun = NAME_NOUNS[Math.floor(Math.random() * NAME_NOUNS.length)];
-    const num = Math.floor(Math.random() * 90) + 10; // 10-99, reduziert Namensdopplungen
     return `${adj} ${noun} ${num}`;
 }
 

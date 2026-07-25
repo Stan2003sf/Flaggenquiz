@@ -1,17 +1,17 @@
-# 🌍 Flaggenquiz
+# 🌍 Flaggenspaß
 
 Ein Browser-Quiz zum Erraten von Länderflaggen — mit Mehrfachauswahl der Kontinente, drei Antwortmodi, Lern- und Profimodus, Zeitbonus und einer **zentralen, geteilten Bestenliste**. Läuft direkt im Browser, keine Installation nötig, und lässt sich auf dem iPhone als eigenständige App-artige PWA einrichten.
 
 **👉 Jetzt spielen: [stan2003sf.github.io/Flaggenquiz](https://stan2003sf.github.io/Flaggenquiz/)**
 
 <p align="center">
-  <img src="flaggenquiz-qr.png" alt="QR-Code zum Flaggenquiz" width="260">
+  <img src="flaggenquiz-qr.png" alt="QR-Code zum Flaggenspaß" width="260">
 </p>
 
 ## ✨ Features
 
 ### Grundspiel
-- **195 Länder** aus allen Kontinenten, Flaggenbilder live von [flagcdn.com](https://flagcdn.com), immer vollständig ohne Beschnitt dargestellt
+- **197 Länder** aus allen Kontinenten, Flaggenbilder ([flagpedia.net](https://flagpedia.net)) liegen lokal im Projekt, immer vollständig ohne Beschnitt dargestellt
 - **Mehrfachauswahl der Kontinente** — beliebig kombinierbar, nicht nur "alle" oder "einer", mit Klartext-Anzeige der aktuellen Auswahl (z. B. "Alle außer Afrika")
 - Einstellungen (Kontinente, Rundenlänge, Modus) werden automatisch gemerkt und beim nächsten Besuch wiederhergestellt
 
@@ -68,6 +68,8 @@ Ein Browser-Quiz zum Erraten von Länderflaggen — mit Mehrfachauswahl der Kont
 ├── Flaggenquiz.html         # Hauptdatei (Spiellogik, HTML, CSS, JS, Anbindung an die zentrale Bestenliste in einer Datei)
 ├── manifest.json            # Web App Manifest für die PWA / Homescreen-Installation
 ├── service-worker.js        # Network-First-Caching für den Offline-Start der App-Hülle
+├── flags/                   # Flaggenbilder (SVG) der 197 im Spiel enthaltenen Länder, Quelle: flagpedia.net
+├── flagsns/                 # Flaggen von Gebieten/Territorien ohne eigenen Länder-Eintrag im Spiel (nicht eingebunden)
 ├── icon-192.png              # App-Icon (192×192)
 ├── icon-512.png                # App-Icon (512×512)
 ├── apple-touch-icon.png          # App-Icon für iOS (180×180)
@@ -79,7 +81,7 @@ Ein Browser-Quiz zum Erraten von Länderflaggen — mit Mehrfachauswahl der Kont
 
 - **Reines HTML/CSS/JavaScript** — kein Build-Prozess, kein Framework
 - **Zentrale Bestenliste**: läuft über eine zentrale, geteilte Datenbank im Hintergrund (Lesen: öffentlich, Schreiben: nur strukturell gültige Top-50-Listen)
-- **Flaggenbilder** werden live von der kostenlosen [flagcdn.com](https://flagcdn.com)-API geladen — dafür ist beim Spielen eine Internetverbindung nötig
+- **Flaggenbilder** liegen als SVG lokal im Projekt (`flags/`, Quelle: [flagpedia.net](https://flagpedia.net)) — dafür ist beim Spielen keine Internetverbindung nötig; nur Bestenliste und Mehrspieler-Funktionen brauchen eine Verbindung
 - Gehostet über **GitHub Pages** (rein statisches Hosting)
 - Service Worker arbeitet nach dem **"Network First"**-Prinzip: Updates sind sofort sichtbar, der Cache dient nur als Rückfallebene bei fehlender Internetverbindung
 
