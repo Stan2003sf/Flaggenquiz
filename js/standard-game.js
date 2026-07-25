@@ -62,11 +62,7 @@ startBtn.onclick = async function () {
     scoreDiv.innerHTML = "Punkte: 0";
     scoreDiv.style.display = settings.learningMode ? "none" : "block";
 
-    document.getElementById("settingsSummary").innerHTML =
-        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel() +
-        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "") +
-        (settings.proMode ? " &nbsp;·&nbsp; 🎯 Profimodus" : "") +
-        (settings.speedMode ? " &nbsp;·&nbsp; ⚡ Speedmodus" : "");
+    updateSettingsSummaryLine();
 
     settingsDiv.style.display = "none";
     endScreen.style.display = "none";
@@ -74,6 +70,125 @@ startBtn.onclick = async function () {
     game.style.display = "block";
     loadFlag();
 };
+
+function updateSettingsSummaryLine() {
+    document.getElementById("settingsSummary").innerHTML =
+        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel() +
+        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "") +
+        (settings.proMode ? " &nbsp;·&nbsp; 🎯 Profimodus" : "") +
+        (settings.speedMode ? " &nbsp;·&nbsp; ⚡ Speedmodus" : "");
+}
+
+// ---------- Reload-Wiederherstellung einer laufenden Entdecker-Runde ----------
+// Bewusst NICHT für Gruppenrunden (isGroupPlayer/Leitung): die haben bereits ihre eigene,
+// serverseitige Wiederherstellung über Firestore — beide Mechanismen dürfen sich nicht
+// überschneiden. Der Zeitbonus-/Speedmodus-Timer hängt an flagStartTime (echter Zeitstempel) und
+// wird beim Wiederherstellen NICHT auf "jetzt" zurückgesetzt, sondern rechnet mit der tatsächlich
+// vergangenen Zeit weiter (siehe loadFlag/resumeState) — sonst ließe sich ein Speedmodus-Timeout
+// einfach durch Neuladen umgehen oder der Zeitbonus künstlich auf Maximum zurücksetzen.
+const ACTIVE_ROUND_KEY = "flagquiz_active_round_standard";
+
+function saveActiveStandardRound(pendingAdvance) {
+    if (isGroupPlayer) return;
+    try {
+        localStorage.setItem(ACTIVE_ROUND_KEY, JSON.stringify({
+            savedAt: Date.now(),
+            questionPlan: questionPlan.map(e => ({
+                mode: e.mode,
+                countryIso: e.country.iso,
+                optionIsos: e.options.map(o => o.iso)
+            })),
+            index: index,
+            maxFlags: maxFlags,
+            score: score,
+            roundBaseSum: roundBaseSum,
+            roundTimeBonusSum: roundTimeBonusSum,
+            roundStreakSum: roundStreakSum,
+            roundNewBestStreakValue: roundNewBestStreakValue,
+            // Bei pendingAdvance zählt der Tipp-Stand der SCHON BEANTWORTETEN Frage nicht mehr für
+            // die nächste Frage (die beim Wiederherstellen ganz normal frisch geladen wird).
+            tipCount: pendingAdvance ? 0 : tipCount,
+            wrongAnswers: wrongAnswers,
+            currentStreak: currentStreak,
+            flagStartTime: flagStartTime,
+            // true = Frage wurde bereits beantwortet, Ergebniskarte war sichtbar, "Weiter" aber noch
+            // nicht geklickt. Ein Reload in genau diesem Moment führt beim Wiederherstellen direkt
+            // zur nächsten Frage (wie "Weiter" bereits geklickt) statt die Auswertung erneut zu zeigen.
+            pendingAdvance: !!pendingAdvance
+        }));
+    } catch (e) { /* ignorieren */ }
+}
+
+function clearActiveStandardRound() {
+    try { localStorage.removeItem(ACTIVE_ROUND_KEY); } catch (e) { /* ignorieren */ }
+}
+
+function loadActiveStandardRoundData() {
+    let raw;
+    try { raw = localStorage.getItem(ACTIVE_ROUND_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { return null; }
+    if (!data || typeof data.savedAt !== "number" || Date.now() - data.savedAt > ACTIVE_ROUND_MAX_AGE_MS) {
+        clearActiveStandardRound();
+        return null;
+    }
+    return data;
+}
+
+// Wird beim Seitenstart aufgerufen (siehe init.js). Liefert true, wenn eine Runde wiederhergestellt
+// und die entsprechenden Bildschirme bereits angezeigt wurden — sonst false (normale Navigation
+// per LAST_SCREEN_KEY greift dann wie bisher).
+function restoreActiveStandardRound() {
+    const data = loadActiveStandardRoundData();
+    if (!data || isGroupPlayer) return false;
+
+    const plan = data.questionPlan.map(e => {
+        const country = countries.find(c => c.iso === e.countryIso);
+        if (!country) return null;
+        const options = (e.optionIsos || []).map(iso => countries.find(c => c.iso === iso));
+        if (options.some(o => !o)) return null;
+        return { mode: e.mode, country: country, options: options };
+    });
+    // Länderdaten inzwischen verändert oder Datensatz beschädigt -> lieber verwerfen als eine
+    // kaputte Runde zu zeigen.
+    if (plan.length === 0 || plan.some(e => !e)) { clearActiveStandardRound(); return false; }
+
+    questionPlan = plan;
+    list = plan.map(e => e.country);
+    maxFlags = data.maxFlags;
+    score = data.score;
+    roundBaseSum = data.roundBaseSum;
+    roundTimeBonusSum = data.roundTimeBonusSum;
+    roundStreakSum = data.roundStreakSum;
+    roundNewBestStreakValue = data.roundNewBestStreakValue;
+    wrongAnswers = data.wrongAnswers || [];
+    currentStreak = data.currentStreak || 0;
+    mixedBag = [];
+
+    hideAllScreens();
+    setChromeVisible(false);
+    settingsDiv.style.display = "none";
+    endScreen.style.display = "none";
+    game.style.display = "block";
+    updateSettingsSummaryLine();
+    scoreDiv.innerHTML = "Punkte: " + score;
+    scoreDiv.style.display = settings.learningMode ? "none" : "block";
+
+    index = data.index;
+    if (data.pendingAdvance) {
+        // Wie "Weiter" bereits geklickt: die zuletzt beantwortete Frage wurde nicht mehr angezeigt.
+        index++;
+        if (index >= maxFlags) {
+            showEndScreen();
+        } else {
+            loadFlag();
+        }
+    } else {
+        loadFlag({ flagStartTime: data.flagStartTime, tipCount: data.tipCount || 0 });
+    }
+    return true;
+}
 
 // ---------- Punkteberechnung ----------
 
@@ -168,7 +283,12 @@ function stopTimeBonusBar() {
 
 // ---------- Flagge laden ----------
 
-function loadFlag() {
+// resumeState (optional): nur beim Wiederherstellen einer Runde nach einem Reload gesetzt, wenn
+// die aktuelle Frage schon angezeigt war, aber noch nicht beantwortet wurde. Enthält den ECHTEN,
+// ursprünglichen Startzeitpunkt der Frage (flagStartTime) und den schon genutzten tipCount — der
+// Timer läuft dann mit der tatsächlich vergangenen Zeit weiter, statt neu bei 100 % zu starten
+// (siehe saveActiveStandardRound weiter oben für die Begründung).
+function loadFlag(resumeState) {
     tipCount = 0;
     tipDiv.innerHTML = "";
     solutionDiv.innerHTML = "";
@@ -233,47 +353,74 @@ function loadFlag() {
     document.getElementById("timeBonusRow").style.display = settings.learningMode ? "none" : "flex";
     speedBonusIndicator.innerHTML = "";
 
-    // Zeitbonus erst starten, wenn die Flaggen tatsächlich geladen sind
-    flagStartTime = Date.now(); // Fallback, falls jemand schon vor Ladeende antwortet
-    const urlsToLoad = [];
-    if (currentMode === "reverse-mc") {
-        reverseMcOptionsDiv.querySelectorAll(".reverse-mc-btn").forEach(btn => {
-            if (btn.dataset.flagUrl) urlsToLoad.push(btn.dataset.flagUrl);
-        });
-    } else {
-        urlsToLoad.push("https://flagcdn.com/w320/" + c.iso + ".png");
+    // Beim Wiederherstellen nach einem Reload: schon genutzte Tipps optisch erneut anwenden
+    // (entfernte Antwortoption, Tipp-Text, Kosten-Chips) — tipCount wird dabei bewusst genauso
+    // hochgezählt wie beim echten Klick, currentStreak aber NICHT nochmal zurückgesetzt (steht
+    // bereits korrekt über restoreActiveStandardRound).
+    if (resumeState && resumeState.tipCount > 0) {
+        for (let i = 0; i < resumeState.tipCount; i++) {
+            tipCount++;
+            applyTipVisualEffect(c);
+        }
     }
 
-    const myToken = ++flagLoadToken;
-    loadingInfo.textContent = "⏳ Flaggen werden geladen…";
-    timeBonusBarInner.style.transition = "none";
-    timeBonusBarInner.style.width = "100%";
-
-    preloadImages(urlsToLoad, 8000).then(result => {
-        if (myToken !== flagLoadToken) return; // Frage wurde inzwischen gewechselt oder beantwortet
+    if (resumeState) {
+        // Frage war schon sichtbar, bevor die Seite neu geladen wurde: Timer läuft mit der
+        // tatsächlich vergangenen Zeit weiter (kein frischer 100%-Start) — siehe Kommentar oben an
+        // saveActiveStandardRound. Ist das Zeitfenster in der Zwischenzeit schon abgelaufen, greift
+        // im Speedmodus beim nächsten 100ms-Tick von startTimeBonusBar ganz normal handleSpeedTimeout,
+        // exakt wie bei einem Timeout ohne Reload.
+        flagStartTime = resumeState.flagStartTime;
         loadingInfo.textContent = "";
-        if (!result.allLoaded && currentMode === "reverse-mc") {
-            loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden — bitte Internetverbindung prüfen.";
-        }
-        flagStartTime = Date.now();
         if (!settings.learningMode) {
             startTimeBonusBar();
         }
-        // Gruppenquiz: zusätzliches, festes 20-Sekunden-Zeitlimit — nur nötig, wenn der
-        // (kürzere) Speedmodus nicht ohnehin schon aktiv ist.
-        if (isGroupPlayer && !settings.speedMode) {
-            clearTimeout(groupHardTimeoutId);
-            groupHardTimeoutId = setTimeout(() => {
-                handleSpeedTimeout(); // gleiche Logik: 0 Punkte, Lösung kurz zeigen, automatisch weiter
-            }, GROUP_HARD_TIMEOUT_MS);
+    } else {
+        // Zeitbonus erst starten, wenn die Flaggen tatsächlich geladen sind
+        flagStartTime = Date.now(); // Fallback, falls jemand schon vor Ladeende antwortet
+        const urlsToLoad = [];
+        if (currentMode === "reverse-mc") {
+            reverseMcOptionsDiv.querySelectorAll(".reverse-mc-btn").forEach(btn => {
+                if (btn.dataset.flagUrl) urlsToLoad.push(btn.dataset.flagUrl);
+            });
+        } else {
+            urlsToLoad.push("https://flagcdn.com/w320/" + c.iso + ".png");
         }
-    });
+
+        const myToken = ++flagLoadToken;
+        loadingInfo.textContent = "⏳ Flaggen werden geladen…";
+        timeBonusBarInner.style.transition = "none";
+        timeBonusBarInner.style.width = "100%";
+
+        preloadImages(urlsToLoad, 8000).then(result => {
+            if (myToken !== flagLoadToken) return; // Frage wurde inzwischen gewechselt oder beantwortet
+            loadingInfo.textContent = "";
+            if (!result.allLoaded && currentMode === "reverse-mc") {
+                loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden — bitte Internetverbindung prüfen.";
+            }
+            flagStartTime = Date.now();
+            if (!settings.learningMode) {
+                startTimeBonusBar();
+            }
+            // Gruppenquiz: zusätzliches, festes 20-Sekunden-Zeitlimit — nur nötig, wenn der
+            // (kürzere) Speedmodus nicht ohnehin schon aktiv ist.
+            if (isGroupPlayer && !settings.speedMode) {
+                clearTimeout(groupHardTimeoutId);
+                groupHardTimeoutId = setTimeout(() => {
+                    handleSpeedTimeout(); // gleiche Logik: 0 Punkte, Lösung kurz zeigen, automatisch weiter
+                }, GROUP_HARD_TIMEOUT_MS);
+            }
+            saveActiveStandardRound(false);
+        });
+    }
 
     // Die kommenden Fragen schon jetzt unauffällig im Hintergrund laden, damit ihre Flaggen
     // beim eigentlichen Wechsel bereits im Browser-Cache liegen und sofort erscheinen. Da Modus
     // und Antwortoptionen dank questionPlan schon feststehen, werden bei Umkehr Multiple Choice
     // gezielt alle 4 benötigten Flaggenbilder vorgeladen — nicht nur die richtige.
     prefetchUpcomingFlags(index + 1, 4);
+
+    if (resumeState) saveActiveStandardRound(false);
 }
 
 // Lädt die Flaggenbilder der kommenden `count` Fragen (ab `fromIndex`) unauffällig im
@@ -373,11 +520,11 @@ function buildAnswerOptions(correctCountry, options) {
 
 // ---------- Tipp ----------
 
-tipBtn.onclick = function () {
-    const c = list[index];
-    tipCount++;
-    currentStreak = 0; // Ein Tipp unterbricht die Siegesserie sofort
-
+// Baut die sichtbaren Tipp-Effekte (Text, entfernte Option, Kosten-Chip) für den aktuellen
+// tipCount auf. Getrennt von tipBtn.onclick, damit dieselbe Darstellung auch beim Wiederherstellen
+// einer Runde nach einem Reload reproduziert werden kann (siehe loadFlag/resumeState), ohne dabei
+// tipCount erneut hochzuzählen oder die Siegesserie ein zweites Mal zu unterbrechen.
+function applyTipVisualEffect(c) {
     if (currentMode === "mc" || currentMode === "reverse-mc") {
         removeWrongOption(c);
         if (tipCount === 1) {
@@ -406,6 +553,14 @@ tipBtn.onclick = function () {
     } else if (tipCount === 2) {
         tipCostChips.innerHTML += '<span class="tip-cost-chip">⭐ −5</span>';
     }
+}
+
+tipBtn.onclick = function () {
+    const c = list[index];
+    tipCount++;
+    currentStreak = 0; // Ein Tipp unterbricht die Siegesserie sofort
+    applyTipVisualEffect(c);
+    saveActiveStandardRound(false);
 };
 
 function removeWrongOption(correctCountry) {
@@ -502,6 +657,8 @@ function submitAnswer(userInput, forcedCountry) {
     scoreDiv.innerHTML = "Punkte: " + score;
     nextBtn.style.display = "inline-block";
     document.getElementById("resultCard").classList.add("visible");
+
+    saveActiveStandardRound(true);
 }
 
 solveBtn.onclick = function () {
@@ -573,6 +730,7 @@ function renderRecordBadges(prestigeLevel) {
 }
 
 async function showEndScreen() {
+    clearActiveStandardRound();
     game.style.display = "none";
     setChromeVisible(true);
     endScreen.style.display = "block";
@@ -702,6 +860,7 @@ endBtn.onclick = function () {
     if (!sure) return;
     flagLoadToken++;
     stopTimeBonusBar();
+    clearActiveStandardRound();
     backToModeMenu();
 };
 

@@ -69,11 +69,78 @@ function pickLadderDistractors(posIndex, correctCountry) {
     return shuffle(pool).slice(0, 3);
 }
 
+// ---------- Reload-Wiederherstellung einer laufenden Gipfelsturm-Runde ----------
+// Gipfelsturm hat keinen Zeitbonus/Timer, daher ist hier (anders als beim Entdecker-Modus) keine
+// besondere Behandlung für Zeitmodifikationen nötig — es genügt, den diskreten Fortschritt
+// (Position, Leben, Reihenfolge) zu sichern.
+const LADDER_ACTIVE_ROUND_KEY = "flagquiz_active_round_ladder";
+
+function saveActiveLadderRound() {
+    try {
+        localStorage.setItem(LADDER_ACTIVE_ROUND_KEY, JSON.stringify({
+            savedAt: Date.now(),
+            orderIsos: ladderOrder.map(c => c.iso),
+            ladderPos: ladderPos,
+            ladderLives: ladderLives,
+            ladderCorrectCount: ladderCorrectCount,
+            ladderMilestonesUsed: ladderMilestonesUsed
+        }));
+    } catch (e) { /* ignorieren */ }
+}
+
+function clearActiveLadderRound() {
+    try { localStorage.removeItem(LADDER_ACTIVE_ROUND_KEY); } catch (e) { /* ignorieren */ }
+}
+
+function loadActiveLadderRoundData() {
+    let raw;
+    try { raw = localStorage.getItem(LADDER_ACTIVE_ROUND_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { return null; }
+    if (!data || typeof data.savedAt !== "number" || Date.now() - data.savedAt > ACTIVE_ROUND_MAX_AGE_MS) {
+        clearActiveLadderRound();
+        return null;
+    }
+    return data;
+}
+
+// Wird beim Seitenstart aufgerufen (siehe init.js). Liefert true, wenn eine Runde wiederhergestellt
+// und der Spielbildschirm bereits angezeigt wurde — sonst false.
+function restoreActiveLadderRound() {
+    const data = loadActiveLadderRoundData();
+    if (!data || !Array.isArray(data.orderIsos) || data.orderIsos.length === 0) return false;
+
+    const order = data.orderIsos.map(iso => countries.find(c => c.iso === iso));
+    // Länderdaten inzwischen verändert oder Datensatz beschädigt -> lieber verwerfen als eine
+    // kaputte Runde zu zeigen.
+    if (order.some(c => !c) || data.ladderPos < 0 || data.ladderPos >= order.length || data.ladderLives <= 0) {
+        clearActiveLadderRound();
+        return false;
+    }
+
+    ladderOrder = order;
+    ladderPos = data.ladderPos;
+    ladderLives = data.ladderLives;
+    ladderCorrectCount = data.ladderCorrectCount;
+    ladderMilestonesUsed = data.ladderMilestonesUsed;
+    ladderAnswering = false;
+    ladderRoundActive = true;
+    renderLadderHearts();
+
+    hideAllScreens();
+    setChromeVisible(false);
+    document.getElementById("ladderGame").style.display = "block";
+    loadLadderFlag();
+    return true;
+}
+
 function loadLadderFlag() {
     ladderAnswering = false;
     ladderLoadToken++;
     const myToken = ladderLoadToken;
     const c = ladderOrder[ladderPos];
+    saveActiveLadderRound();
 
     ladderProgressLabelEl.textContent = "Flagge " + (ladderPos + 1) + " von " + ladderOrder.length;
     ladderProgressBarInnerEl.style.width = (ladderPos / ladderOrder.length * 100) + "%";
@@ -230,6 +297,7 @@ function buildLadderResultLine(result, total) {
 
 async function endLadderRound(won) {
     ladderRoundActive = false;
+    clearActiveLadderRound();
     hideAllScreens();
     setChromeVisible(true);
     document.getElementById("ladderEndScreen").style.display = "block";
@@ -318,6 +386,7 @@ ladderEndBtn.onclick = function () {
     if (!sure) return;
     ladderRoundActive = false;
     ladderLoadToken++;
+    clearActiveLadderRound();
     goToSinglePlayerMenu();
 };
 
