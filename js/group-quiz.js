@@ -423,7 +423,6 @@ function goToGroupEntryScreen() {
     setChromeVisible(true);
     document.getElementById("groupEntryScreen").style.display = "block";
     updateGroupEntryLinksState();
-    saveCurrentScreen("groupEntry");
 }
 
 document.getElementById("tileGroup").onclick = () => goToGroupEntryScreen();
@@ -760,6 +759,7 @@ async function renderGroupLeaderBanner() {
         await closeGroup();
         renderGroupLeaderBanner();
         updateHighscoreDisplay(); // globale Bestenliste war während der Leitung ausgeblendet
+        goToMultiPlayerMenu(); // sonst bliebe der (jetzt wieder normale Solo-)Einstellungsbildschirm einfach stehen
     };
 
     // Punkt 11: "Nächste Runde" erst erlauben, wenn entweder alle Teilnehmer:innen ihr Ergebnis

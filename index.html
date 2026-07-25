@@ -39,8 +39,13 @@
      können von mehreren Bildschirmen aus ausgelöst werden (Start, Battle, Gruppe erstellen/
      beitreten), Ebene 0 ist dafür überall sichtbar der zuverlässigste Ort. -->
 <div id="ebene0Bar">
+    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:14px;font-weight:var(--weight-heading);">
+        ⚠️ Keine oder schlechte Internetverbindung — Bestenliste und Mehrspieler-Funktionen sind möglicherweise eingeschränkt.
+    </div>
     <div id="nicknameBlock">
-        <div id="nicknameDisplay"></div>
+        <div id="nicknameCard" title="Name ändern">
+            <div id="nicknameDisplay"></div>
+        </div>
         <div id="nicknameHint" style="display:none;color:#c62828;font-size:13px;margin-top:6px;"></div>
     </div>
 </div>
@@ -191,7 +196,7 @@
         <p style="color:var(--text-secondary);font-size:14.5px;margin-bottom:18px;">
             Du durchläufst alle 197 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.
         </p>
-        <button id="ladderStartBtn">🚀 Start</button>
+        <button id="ladderStartBtn" class="primary-start-btn">🚀 Start</button>
     </div>
     <div style="text-align:center;margin-top:14px;">
         <a href="#" id="ladderHighscoreHubLink" style="font-size:13px;color:var(--color-primary);text-decoration:underline;">🏆 Gipfelsturm-Bestenliste ansehen</a>
@@ -347,13 +352,10 @@
     <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromStandardSettings" type="button">⬅️ Zurück</button></div>
     <h2 class="screen-heading">🧭 Entdecker-Modus</h2>
     <div class="settings-card" style="background:var(--card-bg);border-radius:var(--radius-lg);padding:26px 22px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
-    <div id="offlineWarning" style="display:none;background:#fff3e0;border:2px solid #ef6c00;color:#e65100;border-radius:14px;padding:10px 12px;margin-bottom:18px;font-size:14px;font-weight:var(--weight-heading);">
-        ⚠️ Keine oder schlechte Internetverbindung — Bestenliste und Mehrspieler-Funktionen sind möglicherweise eingeschränkt.
-    </div>
     <div id="groupLeaderBanner"></div>
     <div id="groupPlayerBanner"></div>
 
-    <button id="startBtn">🚀 Start</button>
+    <button id="startBtn" class="primary-start-btn">🚀 Start</button>
 
     <div class="settings-accordion">
         <details class="setting-block" id="continentBlock">
@@ -460,7 +462,7 @@
             <h3 id="helpMulti">👥 Mehrspieler <a href="#helpToc" class="help-toc-back" title="Nach oben zum Inhaltsverzeichnis">⬆️</a></h3>
 
             <p><strong>🏫 Gruppenquiz</strong><br>
-            Ideal für eine Schulklasse oder eine Gruppe Freund:innen. Eine Person leitet die Gruppe und legt die Einstellungen für alle fest. Alle anderen treten mit einem Code oder QR-Code bei. Der Start-Button bleibt gesperrt, bis die Leitung das Spiel freigibt. Nach jeder Runde gibt es eine eigene Bestenliste nur für eure Gruppe — für diese Runde und als Gesamtwertung über alle Runden.</p>
+            Ideal für eine Schulklasse oder eine Gruppe Freund:innen. Eine Person leitet die Gruppe und legt die Einstellungen für alle fest — die Leitung spielt dabei selbst nicht mit. Alle anderen treten mit einem Code oder QR-Code bei. Der Start-Button bleibt gesperrt, bis die Leitung das Spiel freigibt. Nach jeder Runde gibt es eine eigene Bestenliste nur für eure Gruppe — für diese Runde und als Gesamtwertung über alle Runden.</p>
 
             <p><strong>⚔️ 1vs1 Battle</strong><br>
             Du forderst eine andere Person zum Duell heraus. Ihr bekommt dieselben Flaggen, jede:r hat 5 Leben. Vorher dürft ihr euch gegenseitig 3 geheime 🪤 Fallen-Flaggen unterjubeln — schwerere Flaggen, die die andere Person nicht erwartet. Wer zuerst alle Leben verliert, hat das Duell verloren.</p>
@@ -470,7 +472,7 @@
             <p><strong>Antwortmodus</strong><br>
             • <em>Multiple Choice</em>: Du siehst eine Flagge und wählst den richtigen Namen aus 4 Möglichkeiten.<br>
             • <em>Umkehr Multiple Choice</em>: Du siehst einen Namen und wählst die richtige Flagge aus 4 Möglichkeiten.<br>
-            • <em>Text eingeben</em>: Du siehst eine Flagge und tippst den Namen selbst.<br>
+            • <em>Text eingeben</em> (schwer): Du siehst eine Flagge und tippst den Namen selbst.<br>
             • <em>🔀 Mixed</em>: Bei jeder Frage wird zufällig einer der drei Modi benutzt.</p>
 
             <p><strong>🎓 Lernmodus</strong><br>
@@ -504,7 +506,7 @@
             Erreichst du deinen bisherigen Bestwert noch einmal ganz genau, zählt ein Prestige-Punkt dazu (💎) — dein Platz in der Liste bleibt dabei erhalten.</p>
 
             <p><strong>👑 Krone</strong><br>
-            Wer im Gipfelsturm alle 197 Flaggen schafft, bekommt eine Krone. Sie wird danach überall neben deinem Namen angezeigt — in jeder Bestenliste, im Gruppenquiz und im Battle.</p>
+            Wer im Gipfelsturm alle 197 Flaggen schafft, bekommt eine Krone. Sie wird danach überall neben deinem Namen angezeigt — in jeder Bestenliste, im Gruppenquiz und im Battle. Das ist das ultimative Symbol, das jedem anderen Mitspieler zeigt: Du beherrschst die Flaggen!</p>
 
             <p style="color:#666;font-size:12.5px;margin-top:22px;">Flaggenbilder: <a href="https://flagpedia.net" target="_blank" rel="noopener">flagpedia.net</a></p>
 

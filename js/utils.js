@@ -19,7 +19,7 @@ function showFloatingText(text, anchorEl, variantClass) {
     span.style.left = (rect.left + rect.width / 2) + "px";
     span.style.top = rect.top + "px";
     document.body.appendChild(span);
-    setTimeout(() => span.remove(), 950);
+    setTimeout(() => span.remove(), 1150);
 }
 
 // Erzeugt aus einem beliebigen Text einen 32-Bit-Zahlenwert (deterministisch, immer gleiches
