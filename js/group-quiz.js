@@ -254,20 +254,22 @@ async function submitGroupResult(playerName, roundScore) {
 }
 
 // Baut die HTML-Ansicht der Gruppen-Bestenliste (Runde + Gesamtwertung) aus den Rohdaten.
-// tierIcons (Map Geräte-ID -> Gipfelsturm-Tier-Abzeichen) wird einmal vorab abgerufen und
-// durchgereicht, statt hier erneut asynchron nachzuladen (siehe startGroupHighscoreLive).
-function buildGroupHighscoreHtml(docsData, round, tierIcons) {
+// tierIcons (Map Geräte-ID -> Gipfelsturm-Tier-Abzeichen) und titleTexts (Map Geräte-ID -> Erfolgs-
+// Titeltext) werden einmal vorab abgerufen und durchgereicht, statt hier erneut asynchron
+// nachzuladen (siehe startGroupHighscoreLive).
+function buildGroupHighscoreHtml(docsData, round, tierIcons, titleTexts) {
     const roundList = [];
     const totalList = [];
     docsData.forEach(d => {
         const name = d.name || t("common.anonymous");
         const tierIcon = tierIcons && tierIcons.get(d.id);
-        const crown = tierIcon ? (tierIcon + " ") : "";
+        const titleText = titleTexts && titleTexts.get(d.id);
+        const nameHtml = nameWithTitleHtml(name, tierIcon, titleText);
         const rs = d.roundScores || {};
         const roundScore = rs[String(round)];
-        if (typeof roundScore === "number") roundList.push({ name, crown, score: roundScore });
+        if (typeof roundScore === "number") roundList.push({ nameHtml, score: roundScore });
         const total = Object.values(rs).reduce((sum, v) => sum + (typeof v === "number" ? v : 0), 0);
-        if (total > 0) totalList.push({ name, crown, score: total });
+        if (total > 0) totalList.push({ nameHtml, score: total });
     });
     roundList.sort((a, b) => b.score - a.score);
     totalList.sort((a, b) => b.score - a.score);
@@ -278,7 +280,7 @@ function buildGroupHighscoreHtml(docsData, round, tierIcons) {
         return '<div class="hs-row-list">' + rows.map((e, i) => `
             <div class="hs-row rank-${i + 1}">
                 <div class="hs-medal">${i < 3 ? medals[i] : (i + 1) + "."}</div>
-                <div class="hs-row-name">${e.crown}${escapeHtml(e.name)}</div>
+                <div class="hs-row-name">${e.nameHtml}</div>
                 <div class="hs-row-score">${e.score} ${t("highscore.points")}</div>
             </div>`).join("") + '</div>';
     }
@@ -305,7 +307,8 @@ function startGroupHighscoreLive(containerEl, code, getRound) {
         async (snap) => {
             const docsData = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
             const tierIcons = await getLadderTierDeviceIdMap();
-            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound(), tierIcons);
+            const titleTexts = await getPlayerTitleDeviceIdMap();
+            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound(), tierIcons, titleTexts);
         },
         (e) => {
             console.warn("Gruppen-Bestenliste nicht erreichbar.", e);
@@ -326,6 +329,7 @@ let groupRosterErgebnisseDocs = [];
 let groupRosterGetRound = () => 1;
 let groupRosterContainerEl = null;
 let groupRosterTierIcons = new Map(); // wird beim Start der Live-Ansicht einmal geladen, siehe startGroupRosterLive
+let groupRosterTitles = new Map(); // dito, für Erfolgs-Titel (js/achievements.js)
 
 function renderGroupRosterCombined() {
     if (!groupRosterContainerEl) return;
@@ -341,7 +345,7 @@ function renderGroupRosterCombined() {
     }
     const rows = groupRosterTeilnehmerDocs.map((d, i) =>
         '<div class="glb-roster-row"><span style="color:var(--text-muted);width:22px;flex-shrink:0;">' + (i + 1) + '.</span>' +
-        '<span style="flex:1;">' + (groupRosterTierIcons.get(d.id) ? (groupRosterTierIcons.get(d.id) + ' ') : '') + escapeHtml(d.data().name || t("common.anonymous")) + '</span>' +
+        '<span style="flex:1;">' + nameWithTitleHtml(d.data().name || t("common.anonymous"), groupRosterTierIcons.get(d.id), groupRosterTitles.get(d.id)) + '</span>' +
         (finishedIds.has(d.id) ? '<span style="color:var(--color-secondary);">✅</span>' : '')
         + '</div>'
     ).join("");
@@ -363,6 +367,10 @@ function startGroupRosterLive(code, containerEl, getRound) {
 
     getLadderTierDeviceIdMap().then(map => {
         groupRosterTierIcons = map;
+        renderGroupRosterCombined();
+    });
+    getPlayerTitleDeviceIdMap().then(map => {
+        groupRosterTitles = map;
         renderGroupRosterCombined();
     });
 
@@ -846,11 +854,18 @@ function saveStats(stats) {
     } catch (e) { /* localStorage evtl. nicht verfügbar, ignorieren */ }
 }
 
-function recordAnswerStat(countryName, wasCorrect) {
+// proActive/speedActive: ob Profi- bzw. Speedmodus bei dieser Antwort aktiv war -- speist die
+// Modifier-Varianten der Kontinent-Erfolge (js/achievements.js). Nur VORWÄRTS ab Einführung des
+// Erfolgssystems getrackt, keine rückwirkende Rekonstruktion aus bereits gespielten Runden möglich.
+function recordAnswerStat(countryName, wasCorrect, proActive, speedActive) {
     const stats = loadStats();
-    if (!stats[countryName]) stats[countryName] = { seen: 0, correct: 0 };
+    if (!stats[countryName]) stats[countryName] = { seen: 0, correct: 0, correctProfi: false, correctSpeed: false };
     stats[countryName].seen++;
-    if (wasCorrect) stats[countryName].correct++;
+    if (wasCorrect) {
+        stats[countryName].correct++;
+        if (proActive) stats[countryName].correctProfi = true;
+        if (speedActive) stats[countryName].correctSpeed = true;
+    }
     saveStats(stats);
 }
 

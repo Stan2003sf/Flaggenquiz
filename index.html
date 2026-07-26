@@ -85,6 +85,14 @@
             </span>
             <span class="menu-tile-chevron">›</span>
         </button>
+        <button class="menu-tile" id="tileAchievements" type="button">
+            <span class="menu-tile-icon">🎖️</span>
+            <span class="menu-tile-text">
+                <span class="menu-tile-title" data-i18n="mainMenu.achievements.title">Erfolge</span>
+                <span class="menu-tile-sub" data-i18n="mainMenu.achievements.sub">Titel freischalten und anzeigen</span>
+            </span>
+            <span class="menu-tile-chevron">›</span>
+        </button>
         <button class="menu-tile" id="tileHighscoreHub" type="button">
             <span class="menu-tile-icon">🏆</span>
             <span class="menu-tile-text">
@@ -161,6 +169,15 @@
     <!-- Reiter: Battle -->
     <div id="hubPaneBattle" class="hub-pane" style="display:none;">
         <div id="hubBattleHighscoreDisplay"></div>
+    </div>
+</div>
+
+<!-- ================= Ebene 1 (Detail): Erfolge ================= -->
+<div id="achievementsScreen">
+    <div class="back-arrow-row"><button class="back-arrow-btn" id="backFromAchievements" type="button" data-i18n="common.back">⬅️ Zurück</button></div>
+    <h2 class="screen-heading" data-i18n="achievements.pageHeading">🎖️ Erfolge</h2>
+    <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:22px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <div id="achievementsContent"></div>
     </div>
 </div>
 
@@ -647,6 +664,7 @@
 <script src="js/group-quiz.js"></script>
 <script src="js/standard-game.js"></script>
 <script src="js/ladder-mode.js"></script>
+<script src="js/achievements.js"></script>
 <script src="js/battle-mode.js"></script>
 <script src="js/highscore-hub.js"></script>
 <script src="js/init.js"></script>

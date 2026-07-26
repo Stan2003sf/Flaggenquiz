@@ -16,7 +16,10 @@ nicknameInput.value = savedNickname;
 let cachedTierIcon = "";
 function renderNicknameDisplay() {
     const name = nicknameInput.value.trim() || t("nicknameFallback");
-    document.getElementById("nicknameDisplay").textContent = (cachedTierIcon ? (cachedTierIcon + " ") : "") + name;
+    // Eigener Titel wird rein lokal aufgelöst (getOwnActiveTitleText, js/achievements.js) --
+    // kein Firestore-Zugriff nötig, da nur die eigene Auswahl angezeigt wird.
+    const titleText = (typeof getOwnActiveTitleText === "function") ? getOwnActiveTitleText() : "";
+    document.getElementById("nicknameDisplay").innerHTML = nameWithTitleHtml(name, cachedTierIcon, titleText);
 }
 async function refreshCrownStatus() {
     try {
@@ -268,6 +271,11 @@ document.getElementById("tileStats").onclick = function () {
     document.getElementById("statsScreen").style.display = "block";
 };
 document.getElementById("backFromStats").onclick = () => goToMainMenu();
+
+// ---------- Erfolge-Bildschirm ----------
+document.getElementById("tileAchievements").onclick = () => goToAchievementsScreen();
+document.getElementById("backFromAchievements").onclick = () => goToMainMenu();
+
 statsResetBtn.onclick = function () {
     const sure = confirm(t("stats.confirmReset"));
     if (!sure) return;
