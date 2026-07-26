@@ -169,6 +169,22 @@ function buildBattleOptionsForSequence(sequence, poolCountries) {
     });
 }
 
+// Streut die Fallen-Flaggen-Optionen an dieselben Block-Positionen wie battleBuildIndividualSequence
+// (siehe dort) -- WICHTIG: baseOptions ist für A und B identisch (siehe tryResolveBattleStart), damit
+// beide bei den 9 "normalen" Runden garantiert exakt dieselben 4 Antwortmöglichkeiten sehen. Nur bei
+// den je 3 Fallen-Flaggen-Runden (unterschiedliche richtige Flagge je Spieler:in) werden eigene,
+// vorab separat berechnete Optionen eingesetzt.
+function battleBuildIndividualOptions(baseOptions, poisonOptions, positions) {
+    const blocks = [baseOptions.slice(0, 4), baseOptions.slice(4, 8), baseOptions.slice(8, 12)];
+    const result = [];
+    blocks.forEach((block, i) => {
+        const modified = block.slice();
+        modified[positions[i]] = poisonOptions[i];
+        result.push(...modified);
+    });
+    return result;
+}
+
 async function tryResolveBattleStart(code) {
     const ref = firestoreDb.collection("battles").doc(code);
     try {
@@ -189,9 +205,18 @@ async function tryResolveBattleStart(code) {
             const suddenDeathSequence = shuffle(poolCountries).slice(0, Math.min(30, poolCountries.length))
                 .map(c => ({ name: c.name, iso: c.iso, isPoison: false }));
             // Antwortoptionen pro Runde einmal hier (statt clientseitig je Gerät) berechnen, damit
-            // beide Spieler:innen bei derselben Runde exakt dieselben Optionen sehen.
-            const optionsA = buildBattleOptionsForSequence(sequenceA, poolCountries);
-            const optionsB = buildBattleOptionsForSequence(sequenceB, poolCountries);
+            // beide Spieler:innen bei derselben Runde exakt dieselben Optionen sehen. WICHTIG: dafür
+            // müssen die Optionen für die 9 "normalen" Runden aus der GEMEINSAMEN Basis-Sequenz
+            // (base) berechnet werden, nicht getrennt aus sequenceA/sequenceB -- sonst wird pro Seite
+            // unabhängig neu gewürfelt (gleiche richtige Flagge, aber fast immer andere Distraktoren,
+            // Bug: A und B sahen dadurch bei den meisten Runden unterschiedliche Antwortmöglichkeiten).
+            // Nur die je 3 Fallen-Flaggen-Runden brauchen wirklich getrennte Optionen, da dort auch
+            // die richtige Flagge selbst zwischen A und B unterschiedlich ist.
+            const baseOptions = buildBattleOptionsForSequence(base, poolCountries);
+            const poisonOptionsForA = buildBattleOptionsForSequence(poisonForA, poolCountries);
+            const poisonOptionsForB = buildBattleOptionsForSequence(poisonForB, poolCountries);
+            const optionsA = battleBuildIndividualOptions(baseOptions, poisonOptionsForA, poisonPositions);
+            const optionsB = battleBuildIndividualOptions(baseOptions, poisonOptionsForB, poisonPositions);
             const suddenDeathOptions = buildBattleOptionsForSequence(suddenDeathSequence, poolCountries);
             tx.update(ref, {
                 sequenceA: sequenceA, sequenceB: sequenceB,
