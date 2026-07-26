@@ -157,10 +157,15 @@ function battleBuildIndividualSequence(baseSequence, poisonCountries, positions)
 // Wird EINMAL serverseitig in der Transaktion berechnet und in Firestore abgelegt, damit beide
 // Spieler:innen für dieselbe Runde exakt dieselben Optionen sehen (siehe tryResolveBattleStart) —
 // vorher wurden die Optionen rein clientseitig und unabhängig voneinander gewürfelt.
+// Jede Runde wird in ein Objekt {opts: [...]} verpackt statt als nacktes Array zurückzugeben:
+// Firestore lehnt Arrays direkt IN einem Array ("nested arrays") mit einem invalid-argument-Fehler
+// ab -- das komplette Rundenstart-Update (inkl. sequenceA/sequenceB/status) schlug dadurch bisher
+// IMMER fehl, sobald beide Fallen-Flaggen gewählt hatten (Battle blieb für beide dauerhaft im
+// Bildschirm "Fallen-Flaggen wählen" hängen, siehe battleCurrentOptionsFor für das Auspacken).
 function buildBattleOptionsForSequence(sequence, poolCountries) {
     return sequence.map(flag => {
         const distractors = shuffle(poolCountries.filter(c => c.iso !== flag.iso)).slice(0, 3);
-        return shuffle([{ name: flag.name, iso: flag.iso }, ...distractors]);
+        return { opts: shuffle([{ name: flag.name, iso: flag.iso }, ...distractors]) };
     });
 }
 
@@ -404,10 +409,10 @@ function battleCurrentFlagFor(data, roundNum) {
 function battleCurrentOptionsFor(data, roundNum) {
     if (roundNum <= 12) {
         const opts = battleRole === "A" ? data.optionsA : data.optionsB;
-        if (opts && opts[roundNum - 1]) return opts[roundNum - 1];
+        if (opts && opts[roundNum - 1]) return opts[roundNum - 1].opts;
     } else {
         const sdOpts = data.suddenDeathOptions || [];
-        if (sdOpts.length > 0) return sdOpts[(roundNum - 13) % sdOpts.length];
+        if (sdOpts.length > 0) return sdOpts[(roundNum - 13) % sdOpts.length].opts;
     }
     return null;
 }
