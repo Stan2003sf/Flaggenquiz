@@ -50,10 +50,10 @@ function loadSettingsFromStorage() {
 }
 
 function modeLabel() {
-    if (settings.mode === "mc") return "Multiple Choice";
-    if (settings.mode === "reverse-mc") return "Umkehr Multiple Choice";
-    if (settings.mode === "mixed") return "Mixed (zufällig gemischt)";
-    return "Texteingabe";
+    if (settings.mode === "mc") return t("mode.mc");
+    if (settings.mode === "reverse-mc") return t("mode.reverseMc");
+    if (settings.mode === "mixed") return t("mode.mixed");
+    return t("mode.text");
 }
 
 // Zieht per Frage zufällig einen der 3 Basis-Modi, aber ausgeglichen:
@@ -72,16 +72,16 @@ function updateContinentSummary() {
 
     let text;
     if (sel.length === 0) {
-        text = "Bitte Kontinent wählen";
+        text = t("settings.continentPleaseChoose");
     } else if (sel.length === total) {
-        text = "Alle";
+        text = t("settings.continentAll");
     } else if (sel.length === total - 1) {
         const missing = continents.find(c => !sel.includes(c));
-        text = "Alle außer " + missing;
+        text = t("settings.continentAllExcept") + " " + continentDisplayName(missing);
     } else if (sel.length === 1) {
-        text = sel[0];
+        text = continentDisplayName(sel[0]);
     } else {
-        text = sel.slice(0, -1).join(", ") + " und " + sel[sel.length - 1];
+        text = sel.slice(0, -1).map(continentDisplayName).join(", ") + " " + t("settings.continentAnd") + " " + continentDisplayName(sel[sel.length - 1]);
     }
     continentSummary.textContent = text;
     continentSummary.style.color = sel.length === 0 ? "var(--color-danger)" : "";
@@ -103,16 +103,16 @@ function updateStartButtonContinentGate() {
 function updateAllSummaries() {
     updateContinentSummary();
     const lengthSummaryEl = document.getElementById("lengthSummary");
-    if (lengthSummaryEl) lengthSummaryEl.textContent = settings.length + " Flaggen";
+    if (lengthSummaryEl) lengthSummaryEl.textContent = settings.length + " " + t("settings.flags");
     const modeSummaryEl = document.getElementById("modeSummary");
     if (modeSummaryEl) modeSummaryEl.textContent = modeLabel();
     const specialSummaryEl = document.getElementById("specialModeSummary");
     if (specialSummaryEl) {
         const parts = [];
-        if (settings.learningMode) parts.push("🎓 Lernmodus");
-        if (settings.proMode) parts.push("🎯 Profimodus");
-        if (settings.speedMode) parts.push("⚡ Speedmodus");
-        specialSummaryEl.textContent = parts.length ? parts.join(" · ") : "Standard";
+        if (settings.learningMode) parts.push("🎓 " + t("mode.learning"));
+        if (settings.proMode) parts.push("🎯 " + t("mode.pro"));
+        if (settings.speedMode) parts.push("⚡ " + t("mode.speed"));
+        specialSummaryEl.textContent = parts.length ? parts.join(" · ") : t("settings.standard");
     }
 }
 
@@ -129,14 +129,14 @@ function buildSettingsScreen() {
     continentButtons.innerHTML = "";
     const allBtn = document.createElement("button");
     allBtn.className = "option-btn";
-    allBtn.textContent = "🌍 Alle";
+    allBtn.textContent = "🌍 " + t("settings.continentAll");
     allBtn.dataset.continent = "all";
     continentButtons.appendChild(allBtn);
 
     continents.forEach(cont => {
         const btn = document.createElement("button");
         btn.className = "option-btn";
-        btn.textContent = (CONTINENT_ICONS[cont] || "🌐") + " " + cont;
+        btn.textContent = (CONTINENT_ICONS[cont] || "🌐") + " " + continentDisplayName(cont);
         btn.dataset.continent = cont;
         continentButtons.appendChild(btn);
     });
@@ -209,7 +209,7 @@ function buildSettingsScreen() {
 
     function refreshLearningModeButton() {
         learningModeToggle.classList.toggle("selected", settings.learningMode);
-        learningModeToggle.textContent = "🎓 Lernmodus: " + (settings.learningMode ? "An" : "Aus");
+        learningModeToggle.textContent = "🎓 " + t("mode.learning") + ": " + (settings.learningMode ? t("settings.on") : t("settings.off"));
     }
     refreshLearningModeButton();
     learningModeToggle.onclick = () => {
@@ -224,7 +224,7 @@ function buildSettingsScreen() {
 
     function refreshProModeButton() {
         proModeToggle.classList.toggle("selected", settings.proMode);
-        proModeToggle.textContent = "🎯 Profimodus: " + (settings.proMode ? "An" : "Aus");
+        proModeToggle.textContent = "🎯 " + t("mode.pro") + ": " + (settings.proMode ? t("settings.on") : t("settings.off"));
     }
     refreshProModeButton();
     proModeToggle.onclick = () => {
@@ -235,7 +235,7 @@ function buildSettingsScreen() {
 
     function refreshSpeedModeButton() {
         speedModeToggle.classList.toggle("selected", settings.speedMode);
-        speedModeToggle.textContent = "⚡ Speedmodus: " + (settings.speedMode ? "An" : "Aus");
+        speedModeToggle.textContent = "⚡ " + t("mode.speed") + ": " + (settings.speedMode ? t("settings.on") : t("settings.off"));
     }
     refreshSpeedModeButton();
     speedModeToggle.onclick = () => {
@@ -260,7 +260,7 @@ function getFilteredCountries() {
 function updateLengthHint() {
     const available = getFilteredCountries().length;
     if (settings.length > available) {
-        lengthHint.textContent = `Hinweis: Bei dieser Kontinent-Auswahl gibt es nur ${available} Flaggen — die Runde wird entsprechend kürzer.`;
+        lengthHint.textContent = t("settings.lengthHint").replace("{n}", available);
     } else {
         lengthHint.textContent = "";
     }
@@ -274,7 +274,7 @@ function getLocalTopList(key) {
         if (Array.isArray(parsed)) return parsed;
         // Fallback für das alte Einzel-Highscore-Format aus einer früheren Version
         if (parsed && typeof parsed === "object" && "score" in parsed) {
-            return [{ name: parsed.name || "Anonym", score: parsed.score }];
+            return [{ name: parsed.name || t("common.anonymous"), score: parsed.score }];
         }
         return [];
     } catch (e) {

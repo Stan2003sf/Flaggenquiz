@@ -4,6 +4,7 @@ let savedNickname = localStorage.getItem("flagquiz_nickname");
 if (!savedNickname || containsBlockedContent(savedNickname)) {
     savedNickname = generateFantasyName();
     localStorage.setItem("flagquiz_nickname", savedNickname);
+    localStorage.setItem(NICKNAME_SOURCE_KEY, "generated");
 }
 nicknameInput.value = savedNickname;
 
@@ -12,15 +13,15 @@ nicknameInput.value = savedNickname;
 // reinen Textanzeige (renderNicknameDisplay, synchron, z. B. bei jedem Tastendruck) gehalten, statt
 // bei jeder kleinen Änderung erneut abzufragen. refreshCrownStatus wird beim Laden und nach
 // Ereignissen aufgerufen, die eine neue Krone bringen könnten (z. B. Gipfelsturm-Rundenende).
-let cachedHasCrown = false;
+let cachedTierIcon = "";
 function renderNicknameDisplay() {
-    const name = nicknameInput.value.trim() || "Dein Name";
-    document.getElementById("nicknameDisplay").textContent = (cachedHasCrown ? "👑 " : "") + name;
+    const name = nicknameInput.value.trim() || t("nicknameFallback");
+    document.getElementById("nicknameDisplay").textContent = (cachedTierIcon ? (cachedTierIcon + " ") : "") + name;
 }
 async function refreshCrownStatus() {
     try {
-        const crownedIds = await getCrownedDeviceIdSet();
-        cachedHasCrown = crownedIds.has(getDeviceId());
+        const tierMap = await getLadderTierDeviceIdMap();
+        cachedTierIcon = tierMap.get(getDeviceId()) || "";
     } catch (e) { /* ignorieren */ }
     renderNicknameDisplay();
 }
@@ -33,6 +34,7 @@ document.getElementById("nicknameCard").onclick = () => goToSettingsMenuScreen()
 let nicknameGroupSyncTimer = null;
 nicknameInput.addEventListener("input", function () {
     localStorage.setItem("flagquiz_nickname", nicknameInput.value.trim());
+    localStorage.setItem(NICKNAME_SOURCE_KEY, "custom"); // echte Nutzereingabe -- kein Auto-Ersetzen mehr bei Sprachwechsel
     renderNicknameDisplay();
     // Im Gruppenmodus: geänderten Namen (entprellt) auch in der Teilnehmerliste aktualisieren,
     // damit die Gruppenleitung immer den aktuellen Namen sieht.
@@ -45,13 +47,32 @@ nicknameInput.addEventListener("input", function () {
     }
 });
 
+let nicknameValueOnFocus = nicknameInput.value;
+nicknameInput.addEventListener("focus", function () {
+    nicknameValueOnFocus = nicknameInput.value;
+});
+
 let nicknameCollisionCheckToken = 0;
 nicknameInput.addEventListener("blur", function () {
+    // Name tatsächlich geändert? Dann vorher bestätigen lassen, da bereits eingetragene
+    // Bestenlisten-Einträge nicht rückwirkend auf den neuen Namen angepasst werden.
+    if (nicknameInput.value.trim() !== nicknameValueOnFocus.trim()) {
+        const sure = confirm(t("nickname.confirmChange"));
+        if (!sure) {
+            nicknameInput.value = nicknameValueOnFocus;
+            localStorage.setItem("flagquiz_nickname", nicknameInput.value.trim());
+            renderNicknameDisplay();
+            return;
+        }
+        nicknameValueOnFocus = nicknameInput.value;
+    }
+
     if (containsBlockedContent(nicknameInput.value)) {
         nicknameInput.value = generateFantasyName();
         localStorage.setItem("flagquiz_nickname", nicknameInput.value);
+        localStorage.setItem(NICKNAME_SOURCE_KEY, "generated");
         renderNicknameDisplay();
-        nicknameHint.textContent = "Dieser Name war nicht erlaubt und wurde ersetzt.";
+        nicknameHint.textContent = t("nickname.blockedReplaced");
         nicknameHint.style.display = "block";
         setTimeout(() => { nicknameHint.style.display = "none"; }, 4000);
         return;
@@ -63,7 +84,7 @@ nicknameInput.addEventListener("blur", function () {
     checkNameCollision().then(collision => {
         if (myToken !== nicknameCollisionCheckToken) return; // Name wurde inzwischen erneut geändert
         if (collision) {
-            nicknameHint.textContent = "Name bereits vergeben – bitte wähle einen anderen Namen.";
+            nicknameHint.textContent = t("nickname.collision");
             nicknameHint.style.display = "block";
         } else {
             nicknameHint.style.display = "none";
@@ -95,12 +116,15 @@ function checkConnection() {
     // das wurde gelegentlich von Werbeblockern/Datenschutz-Erweiterungen blockiert und löste dann
     // fälschlich "offline" aus, obwohl die eigentlich relevante Verbindung (Bestenliste/Mehrspieler)
     // einwandfrei funktionierte). Ein Lesezugriff auf ein nicht existierendes Dokument ist dafür
-    // ausreichend und günstig -- es geht nur um die Zeit bis zur Antwort.
+    // ausreichend und günstig -- es geht nur um die Zeit bis zur Antwort. WICHTIG: Die Doc-ID darf
+    // nicht dem Muster "__irgendwas__" folgen -- solche IDs sind von Firestore intern reserviert und
+    // Zugriffe darauf schlagen grundsätzlich fehl, unabhängig von den Security Rules (das war der
+    // Grund, warum die Meldung zuvor dauerhaft "offline" anzeigte, obwohl die Verbindung stand).
     const myToken = ++connectionCheckToken;
     const timer = setTimeout(() => {
         if (myToken === connectionCheckToken) offlineWarning.style.display = "block";
     }, 5000);
-    firestoreDb.collection("highscores").doc("__connectivity_check__").get()
+    firestoreDb.collection("highscores").doc("connectivity_check").get()
         .then(() => {
             clearTimeout(timer);
             if (myToken === connectionCheckToken) offlineWarning.style.display = "none";
@@ -151,7 +175,7 @@ document.getElementById("backFromLadderPlaceholder").onclick = () => goToSingleP
 document.getElementById("backFromStandardSettings").onclick = async function () {
     const btn = this;
     if (getLeaderSession()) {
-        const sure = confirm("Gruppe wirklich schließen? Alle Mitspieler:innen werden auf ihre eigenen Einstellungen zurückgesetzt.");
+        const sure = confirm(t("group.confirmClose"));
         if (!sure) return;
         btn.disabled = true;
         await closeGroup();
@@ -162,7 +186,7 @@ document.getElementById("backFromStandardSettings").onclick = async function () 
         return;
     }
     if (isGroupPlayer) {
-        const sure = confirm("Gruppenquiz wirklich verlassen? Du spielst danach wieder mit deinen eigenen Einstellungen.");
+        const sure = confirm(t("group.confirmLeave"));
         if (!sure) return;
         leaveGroupPlayerMode(false);
         goToMultiPlayerMenu();
@@ -245,7 +269,7 @@ document.getElementById("tileStats").onclick = function () {
 };
 document.getElementById("backFromStats").onclick = () => goToMainMenu();
 statsResetBtn.onclick = function () {
-    const sure = confirm("Deine persönliche Lernstatistik wirklich löschen? Das betrifft nur diesen Browser, nicht die zentrale Bestenliste.");
+    const sure = confirm(t("stats.confirmReset"));
     if (!sure) return;
     localStorage.removeItem(STATS_KEY);
     localStorage.removeItem(BEST_STREAK_KEY);
@@ -284,7 +308,7 @@ function renderGroupCreateModal() {
     const session = getLeaderSession();
     if (session) {
         groupCreateContent.innerHTML =
-            "<p>Deine Gruppe ist aktiv. Code an die Mitspieler:innen weitergeben oder den QR-Code scannen lassen:</p>" +
+            "<p>" + t("group.createModalActiveText") + "</p>" +
             "<div style=\"font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:6px;text-align:center;margin:14px 0;color:var(--color-primary);\">" + escapeHtml(session.code) + "</div>" +
             "<div id=\"groupQrContainer\" style=\"display:flex;justify-content:center;margin:10px 0;padding:14px;background:#F8FBFC;border-radius:var(--radius-md);\"></div>";
         const qrDiv = document.getElementById("groupQrContainer");
@@ -296,11 +320,11 @@ function renderGroupCreateModal() {
         // (kein zweiter, redundanter "Gruppe schließen"-Button mehr direkt unter dem QR-Code).
     } else {
         groupCreateContent.innerHTML =
-            "<p>Starte ein Gruppenquiz für deine Klasse oder Gruppe. Du erhältst einen Code, mit dem die Mitspieler:innen beitreten können.</p>" +
-            "<div style=\"text-align:center;margin-top:10px;\"><button id=\"groupCreateBtn\">Gruppe erstellen</button></div>";
+            "<p>" + t("group.createModalIntro") + "</p>" +
+            "<div style=\"text-align:center;margin-top:10px;\"><button id=\"groupCreateBtn\">" + t("group.createButton") + "</button></div>";
         document.getElementById("groupCreateBtn").onclick = async function () {
             this.disabled = true;
-            this.textContent = "Wird erstellt…";
+            this.textContent = t("group.creatingGroup");
             // Frisch erstellte Gruppe: Speedmodus zurücksetzen. Sonst könnte eine noch vom
             // letzten Solo-Spiel gemerkte "An"-Einstellung ungewollt für die ganze Gruppe gelten.
             // Damit gilt für neue Gruppen standardmäßig das feste 20-Sekunden-Zeitlimit; die
@@ -316,8 +340,8 @@ function renderGroupCreateModal() {
                 buildSettingsScreen(); // aktualisiert u. a. den Speedmodus-Button auf "Aus"
             } else {
                 this.disabled = false;
-                this.textContent = "Gruppe erstellen";
-                alert("Für ein Gruppenquiz wird eine Internetverbindung benötigt.");
+                this.textContent = t("group.createButton");
+                alert(t("group.createNeedsOnline"));
             }
         };
     }
@@ -344,10 +368,10 @@ const groupJoinContent = document.getElementById("groupJoinContent");
 
 function renderGroupJoinModal(prefillCode) {
     groupJoinContent.innerHTML =
-        "<p>Code von deiner Lehrkraft bzw. Gruppenleitung eingeben:</p>" +
+        "<p>" + t("group.joinModalIntro") + "</p>" +
         "<div style=\"text-align:center;\">" +
         "<input type=\"text\" id=\"groupCodeInput\" maxlength=\"5\" placeholder=\"z. B. A7K3M\" style=\"font-family:var(--font-display);font-size:20px;letter-spacing:3px;text-align:center;text-transform:uppercase;padding:10px;width:160px;border:2px solid #DCE7EA;border-radius:var(--radius-md);\">" +
-        "<br><br><button id=\"groupJoinBtn\">Beitreten</button>" +
+        "<br><br><button id=\"groupJoinBtn\">" + t("group.joinButton") + "</button>" +
         "<div id=\"groupJoinFeedback\" style=\"margin-top:10px;font-size:14px;\"></div></div>";
     const input = document.getElementById("groupCodeInput");
     if (prefillCode) input.value = prefillCode;
@@ -357,7 +381,7 @@ function renderGroupJoinModal(prefillCode) {
         const feedback = document.getElementById("groupJoinFeedback");
         this.disabled = true;
         feedback.style.color = "#666";
-        feedback.textContent = "Prüfe Code…";
+        feedback.textContent = t("group.checkingCode");
         const result = await joinGroupByCode(input.value);
         this.disabled = false;
         if (result.ok) {
@@ -365,9 +389,9 @@ function renderGroupJoinModal(prefillCode) {
             goToStandardSettings("multi");
             enterGroupPlayerMode(result.code);
         } else {
-            let msg = "Code nicht gefunden oder Gruppe bereits geschlossen.";
-            if (result.reason === "offline") msg = "Für den Beitritt wird eine Internetverbindung benötigt.";
-            if (result.reason === "format") msg = "Bitte den 5-stelligen Code vollständig eingeben.";
+            let msg = t("group.codeNotFoundOrClosed");
+            if (result.reason === "offline") msg = t("group.joinNeedsOnline");
+            if (result.reason === "format") msg = t("group.enterFullCode");
             feedback.style.color = "#c62828";
             feedback.textContent = "⚠️ " + msg;
         }
@@ -414,6 +438,11 @@ groupHighscoreModal.onclick = function (e) {
         history.replaceState({}, "", location.pathname);
     }
 })();
+
+// ---------- i18n: gespeicherte Sprache auf alle Ebene-0/Hauptmenü/Einstellungen-Texte anwenden ----------
+// Bewusst ganz am Ende von init.js (nach allem anderen Setup), damit alle beteiligten Elemente
+// und Funktionen (renderNicknameDisplay, updateMuteButton) garantiert schon existieren.
+applyTranslations();
 
 // ---------- PWA: Service Worker registrieren ----------
 if ("serviceWorker" in navigator) {

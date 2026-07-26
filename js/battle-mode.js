@@ -11,10 +11,26 @@ function getBattleSession() {
 function saveBattleSession(session) { try { localStorage.setItem(BATTLE_SESSION_KEY, JSON.stringify(session)); } catch (e) { /* ignorieren */ } }
 function clearBattleSession() { try { localStorage.removeItem(BATTLE_SESSION_KEY); } catch (e) { /* ignorieren */ } }
 
+// ---------- Battle: Aufräumen abgelaufener Battles ----------
+// Analog zu cleanupExpiredGroups() in js/group-quiz.js, aber einfacher: Battle-Dokumente haben
+// keine Unterkollektionen (alle Rundendaten liegen flach im Dokument selbst), daher reicht ein
+// einzelnes delete() pro abgelaufenem Battle.
+async function cleanupExpiredBattles() {
+    if (!firestoreDb) return;
+    try {
+        const now = firebase.firestore.Timestamp.now();
+        const snap = await firestoreDb.collection("battles").where("expiresAt", "<", now).limit(10).get();
+        for (const doc of snap.docs) {
+            try { await doc.ref.delete(); } catch (e) { /* evtl. schon gelöscht o. ä., ignorieren */ }
+        }
+    } catch (e) { console.warn("Aufräumen alter Battles fehlgeschlagen (nicht kritisch).", e); }
+}
+
 // ---------- Battle: Erstellen & Beitreten ----------
 
 async function createBattle() {
     if (!firestoreDb) return null;
+    cleanupExpiredBattles(); // nebenbei, nicht abwarten
     const deviceId = getDeviceId();
     const rawName = nicknameInput.value.trim();
     const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
@@ -249,13 +265,13 @@ async function recordBattleWin() {
 
 async function updateBattleHighscoreDisplay(targetId) {
     const el = document.getElementById(targetId || "battleHighscoreDisplay");
-    el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Bestenliste wird geladen …</div></div>';
+    el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>' + t("common.loading") + '</div></div>';
     const { list, online } = await fetchTopListCached(BATTLE_HIGHSCORE_KEY);
     const statusLine = online
-        ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
-        : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
+        ? '<span title="' + t("common.onlineTitle") + '">' + t("common.online") + '</span>'
+        : '<span title="' + t("common.offlineTitle") + '">' + t("common.offline") + '</span>';
     if (list.length === 0) {
-        el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Noch kein Battle gewonnen — sei der Erste!</div><div class="hs-status">' + statusLine + '</div></div>';
+        el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>' + t("battle.noResultsYet") + '</div><div class="hs-status">' + statusLine + '</div></div>';
         return;
     }
     const medals = ["🥇", "🥈", "🥉"];
@@ -265,8 +281,8 @@ async function updateBattleHighscoreDisplay(targetId) {
         lastWins = entry.wins; lastRank = rank;
         return '<div class="hs-row rank-' + rank + '">' +
             '<div class="hs-medal">' + (rank <= 3 ? medals[rank - 1] : rank + ".") + '</div>' +
-            '<div class="hs-row-name">' + escapeHtml(entry.name || "Anonym") + '</div>' +
-            '<div class="hs-row-score">' + entry.wins + ' Sieg' + (entry.wins === 1 ? "" : "e") + '</div></div>';
+            '<div class="hs-row-name">' + escapeHtml(entry.name || t("common.anonymous")) + '</div>' +
+            '<div class="hs-row-score">' + entry.wins + ' ' + (entry.wins === 1 ? t("battle.wins") : t("battle.winsPlural")) + '</div></div>';
     }).join("");
     el.innerHTML = '<div class="highscore-card"><div class="hs-row-list">' + rowsHtml + '</div><div class="hs-status">' + statusLine + '</div></div>';
 }
@@ -286,7 +302,7 @@ let battleLastKnownOpponentLives = null; // Schritt 5: für Trefferanimation bei
 let battleLastData = null;
 let battleHeartbeatTimer = null;
 let battleWatchdogTimer = null;
-let battleCrownedIds = new Set(); // wird beim Verbindungsaufbau einmal geladen, siehe startBattleListener
+let battleTierIcons = new Map(); // wird beim Verbindungsaufbau einmal geladen, siehe startBattleListener
 const BATTLE_STALE_WARNING_MS = 12000; // ab hier: dezenter Hinweis "Verbindung könnte unterbrochen sein"
 const BATTLE_STALE_CLAIM_MS = 45000;   // ab hier: aktive Möglichkeit, das Battle für sich zu werten
 
@@ -309,12 +325,12 @@ function updateBattleConnectionWarning(data) {
     banner.style.display = "block";
     const oppName = escapeHtml(battleGetOpponentName(data));
     if (age >= BATTLE_STALE_CLAIM_MS) {
-        banner.innerHTML = "⚠️ Verbindung zu " + oppName + " scheint abgebrochen zu sein." +
-            '<br><button id="battleClaimWinBtn" style="margin-top:8px;">🏆 Battle für dich werten</button>';
+        banner.innerHTML = t("battle.connectionLost").replace("{name}", oppName) +
+            '<br><button id="battleClaimWinBtn" style="margin-top:8px;">' + t("battle.claimWin") + '</button>';
         const claimBtn = document.getElementById("battleClaimWinBtn");
         if (claimBtn) claimBtn.onclick = () => claimBattleWinByDisconnect(battleCode);
     } else {
-        banner.innerHTML = "⚠️ Verbindung zu " + oppName + " könnte unterbrochen sein — warte noch kurz …";
+        banner.innerHTML = t("battle.connectionMaybeLost").replace("{name}", oppName);
     }
 }
 
@@ -340,14 +356,14 @@ function battleGetMyLives(data) { return battleRole === "A" ? data.livesA : data
 function battleGetOpponentLives(data) { return battleRole === "A" ? data.livesB : data.livesA; }
 function battleNameWithCrown(player, fallback) {
     if (!player) return fallback;
-    const crown = battleCrownedIds.has(player.deviceId) ? "👑 " : "";
-    return crown + player.name;
+    const tierIcon = battleTierIcons.get(player.deviceId);
+    return (tierIcon ? (tierIcon + " ") : "") + player.name;
 }
 function battleGetMyName(data) {
-    return battleRole === "A" ? battleNameWithCrown(data.playerA, "Du") : battleNameWithCrown(data.playerB, "Du");
+    return battleRole === "A" ? battleNameWithCrown(data.playerA, t("battle.you")) : battleNameWithCrown(data.playerB, t("battle.you"));
 }
 function battleGetOpponentName(data) {
-    return battleRole === "A" ? battleNameWithCrown(data.playerB, "Gegner") : battleNameWithCrown(data.playerA, "Gegner");
+    return battleRole === "A" ? battleNameWithCrown(data.playerB, t("battle.opponent")) : battleNameWithCrown(data.playerA, t("battle.opponent"));
 }
 
 function battleCurrentFlagFor(data, roundNum) {
@@ -450,9 +466,9 @@ function startBattleListener(code, role) {
     battleLastRenderedRound = -1;
     stopBattleListener();
 
-    getCrownedDeviceIdSet().then(ids => {
-        battleCrownedIds = ids;
-        if (battleLastData) renderBattleFromData(battleLastData); // Namen (Krone) neu einblenden, falls schon etwas gerendert wurde
+    getLadderTierDeviceIdMap().then(map => {
+        battleTierIcons = map;
+        if (battleLastData) renderBattleFromData(battleLastData); // Namen (Tier-Abzeichen) neu einblenden, falls schon etwas gerendert wurde
     });
 
     const ref = firestoreDb.collection("battles").doc(code);
@@ -460,7 +476,7 @@ function startBattleListener(code, role) {
         if (!snap.exists) {
             stopBattleListener();
             clearBattleSession();
-            alert("Dieses Battle existiert nicht mehr (abgelaufen oder abgebrochen).");
+            alert(t("battle.notExistsAnymore"));
             goToMultiPlayerMenu();
             return;
         }
@@ -523,7 +539,7 @@ function showBattleContinentScreen(data) {
         document.getElementById("battleContinentScreen").style.display = "block";
         document.getElementById("battleContinentButtons").innerHTML = "";
     }
-    document.getElementById("battleOpponentJoinedNote").textContent = "Gegner beigetreten ✅ — " + battleGetOpponentName(data);
+    document.getElementById("battleOpponentJoinedNote").textContent = t("battle.opponentJoined") + battleGetOpponentName(data);
 
     const myChoice = battleRole === "A" ? data.continentChoiceA : data.continentChoiceB;
     const submitBtn = document.getElementById("battleContinentSubmitBtn");
@@ -532,7 +548,7 @@ function showBattleContinentScreen(data) {
 
     if (myChoice) {
         waitNote.style.display = "block";
-        waitNote.textContent = "Warte auf " + battleGetOpponentName(data) + " …";
+        waitNote.textContent = t("battle.waitingFor").replace("{name}", battleGetOpponentName(data));
         submitBtn.style.display = "none";
         Array.from(btnContainer.children).forEach(b => b.disabled = true);
         return;
@@ -544,7 +560,7 @@ function showBattleContinentScreen(data) {
             const btn = document.createElement("button");
             btn.className = "menu-tile";
             btn.type = "button";
-            btn.innerHTML = '<span class="menu-tile-icon">' + (CONTINENT_ICONS[cont] || "🌐") + '</span><span class="menu-tile-text"><span class="menu-tile-title">' + cont + '</span></span>';
+            btn.innerHTML = '<span class="menu-tile-icon">' + (CONTINENT_ICONS[cont] || "🌐") + '</span><span class="menu-tile-text"><span class="menu-tile-title">' + continentDisplayName(cont) + '</span></span>';
             btn.onclick = () => {
                 const already = battleSelectedContinents.includes(cont);
                 if (already) {
@@ -583,9 +599,9 @@ function showBattlePoisonScreen(data) {
 
     if (myChoice) {
         waitNote.style.display = "block";
-        waitNote.textContent = "Warte auf " + battleGetOpponentName(data) + " …";
+        waitNote.textContent = t("battle.waitingFor").replace("{name}", battleGetOpponentName(data));
         submitBtn.style.display = "none";
-        Array.from(grid.children).forEach(t => t.style.pointerEvents = "none");
+        Array.from(grid.children).forEach(el => el.style.pointerEvents = "none");
         return;
     }
 
@@ -605,13 +621,13 @@ function showBattlePoisonScreen(data) {
                     battleSelectedPoison.push(c.iso);
                     tile.classList.add("selected");
                 }
-                counterEl.textContent = battleSelectedPoison.length + " / 3 gewählt";
+                counterEl.textContent = battleSelectedPoison.length + t("battle.chosenOf3");
                 submitBtn.disabled = battleSelectedPoison.length !== 3;
             };
             grid.appendChild(tile);
         });
     }
-    counterEl.textContent = battleSelectedPoison.length + " / 3 gewählt";
+    counterEl.textContent = battleSelectedPoison.length + t("battle.chosenOf3");
     submitBtn.style.display = "block";
     submitBtn.disabled = battleSelectedPoison.length !== 3;
     submitBtn.onclick = () => {
@@ -661,7 +677,7 @@ function showBattleGameScreen(data) {
 
     const roundNum = data.currentRound;
     document.getElementById("battleRoundLabel").textContent =
-        roundNum <= 12 ? ("Runde " + roundNum + " von 12") : ("Sudden Death — Runde " + (roundNum - 12));
+        roundNum <= 12 ? t("battle.round").replace("{n}", roundNum) : t("battle.suddenDeathRound").replace("{n}", roundNum - 12);
 
     const myFlag = battleCurrentFlagFor(data, roundNum);
     if (!myFlag) return;
@@ -676,7 +692,7 @@ function showBattleGameScreen(data) {
         const giftBanner = document.getElementById("battleGiftBanner");
         if (myFlag.isPoison) {
             giftBanner.style.display = "block";
-            giftBanner.textContent = "🪤 Falle von " + battleGetOpponentName(data) + "!";
+            giftBanner.textContent = t("battle.trapFrom").replace("{name}", battleGetOpponentName(data));
         } else {
             giftBanner.style.display = "none";
         }
@@ -687,7 +703,7 @@ function showBattleGameScreen(data) {
         document.getElementById("battleFlag").style.backgroundImage = "url('" + flagUrl + "')";
         const testImg = new Image();
         testImg.onerror = function () {
-            flagErrorEl.textContent = "Flagge konnte nicht geladen werden";
+            flagErrorEl.textContent = t("common.flagLoadError");
             flagErrorEl.style.display = "flex";
         };
         testImg.src = flagUrl;
@@ -709,7 +725,7 @@ function showBattleGameScreen(data) {
         options.forEach(opt => {
             const btn = document.createElement("button");
             btn.className = "mc-btn";
-            btn.textContent = opt.name;
+            btn.textContent = quizCountryNameByIso(opt.iso);
             btn.dataset.iso = opt.iso;
             btn.onclick = () => onBattleAnswerClick(opt.iso, myFlag.iso);
             optsDiv.appendChild(btn);
@@ -721,7 +737,7 @@ function showBattleGameScreen(data) {
     const oppAns = battleRole === "A" ? rd.answerB : rd.answerA;
     if (myAns) {
         Array.from(document.getElementById("battleMcOptions").querySelectorAll(".mc-btn")).forEach(b => { b.disabled = true; });
-        document.getElementById("battleWaitingForOpponentNote").textContent = oppAns ? "" : ("Warte auf " + battleGetOpponentName(data) + " …");
+        document.getElementById("battleWaitingForOpponentNote").textContent = oppAns ? "" : t("battle.waitingFor").replace("{name}", battleGetOpponentName(data));
     } else if (oppAns && !battleCountdownTimer) {
         startBattleCountdown(myFlag.iso);
     }
@@ -777,12 +793,12 @@ async function showBattleEndScreen(data) {
 
     const el = document.getElementById("battleEndContent");
     if (data.winner === "unentschieden") {
-        el.innerHTML = '<div class="battle-end-emoji">🤝</div><h2>Unentschieden!</h2><p>Beide Leben gleichzeitig aufgebraucht.</p>';
+        el.innerHTML = '<div class="battle-end-emoji">🤝</div><h2>' + t("battle.drawTitle") + '</h2><p>' + t("battle.drawSub") + '</p>';
     } else if (data.winner === battleRole) {
-        el.innerHTML = '<div class="battle-end-emoji">🏆</div><h2>Gewonnen!</h2><p>Du hast das Duell für dich entschieden.</p>';
+        el.innerHTML = '<div class="battle-end-emoji">🏆</div><h2>' + t("battle.winTitle") + '</h2><p>' + t("battle.winSub") + '</p>';
         await recordBattleWin();
     } else {
-        el.innerHTML = '<div class="battle-end-emoji">💔</div><h2>Verloren</h2><p>Diesmal hat dein Gegner gewonnen.</p>';
+        el.innerHTML = '<div class="battle-end-emoji">💔</div><h2>' + t("battle.loseTitle") + '</h2><p>' + t("battle.loseSub") + '</p>';
     }
     clearBattleSession();
 }
@@ -805,10 +821,10 @@ function renderBattleWaitingBox(code) {
     box.dataset.renderedFor = code;
     box.style.display = "block";
     box.innerHTML =
-        '<p>Code an deinen Gegner weitergeben oder QR-Code scannen lassen:</p>' +
+        '<p>' + t("battle.shareCode") + '</p>' +
         '<div style="font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:6px;text-align:center;margin:14px 0;color:var(--color-primary);">' + escapeHtml(code) + '</div>' +
         '<div id="battleQrContainer" style="display:flex;justify-content:center;margin:10px 0;padding:14px;background:#F8FBFC;border-radius:var(--radius-md);"></div>' +
-        '<p style="text-align:center;color:var(--text-secondary);">Warte auf Gegner …</p>';
+        '<p style="text-align:center;color:var(--text-secondary);">' + t("battle.waitingForOpponent") + '</p>';
     const qrDiv = document.getElementById("battleQrContainer");
     const joinUrl = location.origin + location.pathname + "?battle=" + code;
     if (window.QRCode) new QRCode(qrDiv, { text: joinUrl, width: 160, height: 160 });
@@ -821,7 +837,7 @@ function renderBattleWaitingBox(code) {
 // zählt als Aufgabe — der Gegner gewinnt automatisch, statt einfach im Ungewissen zu bleiben.
 async function forfeitBattle() {
     if (!battleCode || !battleRole) { goToMultiPlayerMenu(); return; }
-    const sure = confirm("Battle wirklich verlassen? Das zählt als Niederlage für dich.");
+    const sure = confirm(t("battle.confirmForfeit"));
     if (!sure) return;
     const opponentRole = battleRole === "A" ? "B" : "A";
     try {
@@ -837,7 +853,7 @@ document.getElementById("tileBattle").onclick = () => goToBattleEntryScreen();
 document.getElementById("backFromBattleEntry").onclick = async function () {
     const session = getBattleSession();
     if (session) {
-        const sure = confirm("Battle wirklich abbrechen?");
+        const sure = confirm(t("battle.confirmLeaveEntry"));
         if (!sure) return;
         stopBattleListener();
         try { await firestoreDb.collection("battles").doc(session.code).delete(); } catch (e) { /* ignorieren */ }
@@ -847,13 +863,13 @@ document.getElementById("backFromBattleEntry").onclick = async function () {
 };
 
 document.getElementById("battleCreateBtn").onclick = async function () {
-    if (!firestoreDb) { alert("Für ein Battle wird eine Internetverbindung benötigt."); return; }
+    if (!firestoreDb) { alert(t("battle.needsOnlineCreate")); return; }
     this.disabled = true;
-    this.textContent = "Wird erstellt…";
+    this.textContent = t("battle.creatingCode");
     const code = await createBattle();
     this.disabled = false;
-    this.textContent = "⚔️ Battle erstellen";
-    if (!code) { alert("Battle konnte nicht erstellt werden."); return; }
+    this.textContent = t("battle.createButton");
+    if (!code) { alert(t("battle.couldNotCreate")); return; }
     renderBattleWaitingBox(code);
     startBattleListener(code, "A");
 };
@@ -866,16 +882,16 @@ document.getElementById("battleJoinConfirmBtn").onclick = async function () {
     const feedback = document.getElementById("battleJoinFeedback");
     this.disabled = true;
     feedback.style.color = "#666";
-    feedback.textContent = "Prüfe Code…";
+    feedback.textContent = t("battle.checkingCode");
     const result = await joinBattleByCode(document.getElementById("battleCodeInput").value);
     this.disabled = false;
     if (result.ok) {
         feedback.textContent = "";
         startBattleListener(result.code, "B");
     } else {
-        let msg = "Code nicht gefunden oder Battle bereits vergeben/abgelaufen.";
-        if (result.reason === "offline") msg = "Für den Beitritt wird eine Internetverbindung benötigt.";
-        if (result.reason === "format") msg = "Bitte den 5-stelligen Code vollständig eingeben.";
+        let msg = t("battle.codeNotFound");
+        if (result.reason === "offline") msg = t("battle.needsOnlineJoin");
+        if (result.reason === "format") msg = t("battle.enterFullCode");
         feedback.style.color = "#c62828";
         feedback.textContent = "⚠️ " + msg;
     }

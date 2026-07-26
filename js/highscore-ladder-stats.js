@@ -117,8 +117,8 @@ function setHighscoreCache(key, list, online) {
 }
 
 function continentLabel() {
-    if (settings.continents.length === continents.length) return "alle Kontinente";
-    return settings.continents.join(", ");
+    if (settings.continents.length === continents.length) return t("highscore.allContinents");
+    return settings.continents.map(continentDisplayName).join(", ");
 }
 
 // Kontinent-Auswahl als Emoji-Kürzel für den kompakten Bestenlisten-Titel (statt Klartext).
@@ -156,21 +156,21 @@ async function updateHighscoreDisplay() {
     highscoreDisplay.innerHTML = `
         <div class="highscore-card hs-empty">
             <span class="trophy">🏆</span>
-            <div>Bestenliste wird geladen …</div>
+            <div>${t("common.loading")}</div>
         </div>`;
 
     const { list, online } = await fetchTopListCached(key);
-    const crownedIds = await getCrownedDeviceIdSet();
+    const tierIcons = await getLadderTierDeviceIdMap();
     const statusLine = online
-        ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
-        : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
+        ? `<span title="${t("common.onlineTitle")}">${t("common.online")}</span>`
+        : `<span title="${t("common.offlineTitle")}">${t("common.offline")}</span>`;
 
     if (list.length === 0) {
         highscoreDisplay.innerHTML = `
             <div class="highscore-card hs-empty">
                 <span class="trophy">🏆</span>
-                <div class="hs-card-title" style="margin-bottom:4px;">Noch kein Highscore</div>
-                <div>${subtitle}<br>Sei der Erste!</div>
+                <div class="hs-card-title" style="margin-bottom:4px;">${t("highscore.noneYet")}</div>
+                <div>${subtitle}<br>${t("common.beTheFirst")}</div>
                 <div class="hs-status">${statusLine}</div>
             </div>`;
         return;
@@ -185,12 +185,13 @@ async function updateHighscoreDisplay() {
         lastScore = entry.score;
         lastRank = rank;
         const prestige = entry.prestige || 0;
-        const crown = crownedIds.has(entry.deviceId) ? '👑 ' : '';
+        const tierIcon = tierIcons.get(entry.deviceId);
+        const crown = tierIcon ? (tierIcon + ' ') : '';
         return `
         <div class="hs-row rank-${rank}">
             <div class="hs-medal">${rank <= 3 ? medals[rank - 1] : rank + "."}</div>
-            <div class="hs-row-name">${crown}${escapeHtml(entry.name || "Anonym")}${prestige > 0 ? ' <span class="hs-prestige" title="Prestige: ' + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
-            <div class="hs-row-score">${entry.score} Pkt.</div>
+            <div class="hs-row-name">${crown}${escapeHtml(entry.name || t("common.anonymous"))}${prestige > 0 ? ' <span class="hs-prestige" title="' + t("highscore.prestigeTitle") + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
+            <div class="hs-row-score">${entry.score} ${t("highscore.points")}</div>
         </div>`;
     }).join("");
 

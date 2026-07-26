@@ -12,6 +12,7 @@ function hideAllScreens() {
     ladderPlaceholder.style.display = "none";
     document.getElementById("ladderGame").style.display = "none";
     document.getElementById("ladderEndScreen").style.display = "none";
+    document.getElementById("ladderMilestoneScreen").style.display = "none";
     document.getElementById("battleEntryScreen").style.display = "none";
     document.getElementById("battleContinentScreen").style.display = "none";
     document.getElementById("battlePoisonScreen").style.display = "none";
@@ -29,15 +30,18 @@ function hideAllScreens() {
 // const-Deklarationen an dieser Stelle im Skript noch nicht ausgeführt wurden — hideAllScreens
 // selbst wird aber erst zur Laufzeit nach vollständigem Skriptdurchlauf aufgerufen.)
 
-// Ebene 0 (Name/Statistik/Hilfe/Datenschutz) ist auf allen Menü-Ebenen sichtbar,
+// Titelleiste/Fußzeile (Statistik/Hilfe/Datenschutz) sind auf allen Menü-Ebenen sichtbar,
 // nur während der eigentlichen Spielrunde (Ebene 3) ausgeblendet.
 function setChromeVisible(visible) {
     titleBlock.style.display = visible ? "flex" : "none";
     ebene0Bar.style.display = visible ? "block" : "none";
-    // Namens-Card ist standardmäßig mit dabei -- einzelne Bildschirme (Hilfe, Rundenende-Screens)
-    // blenden sie danach gezielt wieder aus (siehe setNicknameCardVisible), um Platz zu sparen bzw.
-    // weil sie dort nicht gebraucht wird.
-    if (visible) setNicknameCardVisible(true);
+    // Die Namens-Card wird grundsätzlich IMMER ausgeblendet (Whitelist statt Blacklist), unabhängig
+    // vom übrigen Chrome-Status -- sie soll ausschließlich auf Ebene 0 (Hauptmenü) erscheinen.
+    // goToMainMenu() blendet sie danach gezielt wieder ein. Würde sie hier nur beim Ausblenden mit
+    // ausgeblendet, bliebe sie beim Wechsel zwischen zwei Bildschirmen mit sichtbarer Chrome (z. B.
+    // Hauptmenü -> Einzelspieler-Menü) fälschlich sichtbar, da setChromeVisible(true) sie dann nie
+    // aktiv abschaltet.
+    setNicknameCardVisible(false);
 }
 
 function setNicknameCardVisible(visible) {
@@ -48,6 +52,7 @@ function goToMainMenu() {
     stopGroupHighscoreLive();
     hideAllScreens();
     setChromeVisible(true);
+    setNicknameCardVisible(true); // Namens-Card erscheint ausschließlich auf Ebene 0
     mainMenu.style.display = "block";
 }
 
@@ -79,7 +84,7 @@ function goToStandardSettings(origin) {
     setChromeVisible(true);
     settingsDiv.style.display = "block";
     document.querySelector("#settings .screen-heading").textContent =
-        origin === "multi" ? "🏫 Gruppenquiz" : "🧭 Entdecker-Modus";
+        origin === "multi" ? t("settings.groupHeading") : t("settings.explorerHeading");
     updateLengthHint();
     updateHighscoreDisplay();
     updateGroupStartButtonUI();

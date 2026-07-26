@@ -98,7 +98,7 @@
         font-size: 14.5px;
     }
 
-    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #groupEntryScreen, #ladderPlaceholder, #ladderGame, #ladderEndScreen,
+    #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #groupEntryScreen, #ladderPlaceholder, #ladderGame, #ladderEndScreen, #ladderMilestoneScreen,
     #battleEntryScreen, #battleContinentScreen, #battlePoisonScreen, #battleGameScreen, #battleEndScreen,
     #settingsMenuScreen, #statsScreen, #highscoreHubScreen, #helpScreen {
         display: none;
@@ -180,7 +180,7 @@
         text-align: center;
     }
     #ladderMcOptions .mc-btn { width: 100%; }
-    #ladderEndContent {
+    #ladderEndContent, #ladderMilestoneContent {
         background: var(--card-bg);
         border-radius: var(--radius-lg);
         padding: 26px 22px;
@@ -188,8 +188,8 @@
         border: 1px solid var(--card-border);
         margin-bottom: 16px;
     }
-    #ladderEndContent .ladder-end-emoji { font-size: 46px; margin-bottom: 8px; }
-    #ladderEndContent h2 { margin: 0 0 8px 0; }
+    #ladderEndContent .ladder-end-emoji, #ladderMilestoneContent .ladder-end-emoji { font-size: 46px; margin-bottom: 8px; }
+    #ladderEndContent h2, #ladderMilestoneContent h2 { margin: 0 0 8px 0; }
     @keyframes ladderConfetti {
         0% { transform: translateY(0) rotate(0deg); opacity: 1; }
         100% { transform: translateY(160px) rotate(360deg); opacity: 0; }
@@ -492,7 +492,7 @@
 
     /* ---------- Namens-Karte & Start-Button (oben, prominent) ---------- */
     #nicknameBlock {
-        text-align: left;
+        text-align: center;
         margin-bottom: 16px;
     }
     /* Dezente Card um die Namensanzeige — bewusst schlichter als die "echten" Content-Cards */

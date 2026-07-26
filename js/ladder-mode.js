@@ -2,6 +2,25 @@
 
 const LADDER_HIGHSCORE_KEY = "flagquiz_ladder_bestenliste"; // wiederverwendet die "highscores"-Collection
 
+// Lokaler Cache des eigenen Gipfelsturm-Bestwerts/Tiers, damit die Statistik-Seite (renderStatsModal
+// in js/group-quiz.js) den Wert sofort anzeigen kann, ohne auf den Firestore-Abruf zu warten.
+const LADDER_OWN_BEST_CACHE_KEY = "flagquiz_ladder_own_best";
+
+function getLadderOwnBestCache() {
+    try {
+        const raw = localStorage.getItem(LADDER_OWN_BEST_CACHE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+
+function saveLadderOwnBestCache(reachedCount, won) {
+    try {
+        const prev = getLadderOwnBestCache();
+        const merged = { best: Math.max(reachedCount, prev ? (prev.best || 0) : 0), crown: !!(won || (prev && prev.crown)) };
+        localStorage.setItem(LADDER_OWN_BEST_CACHE_KEY, JSON.stringify(merged));
+    } catch (e) { /* ignorieren */ }
+}
+
 const ladderStartBtn = document.getElementById("ladderStartBtn");
 const ladderEndBtn = document.getElementById("ladderEndBtn");
 const ladderRestartBtn = document.getElementById("ladderRestartBtn");
@@ -142,7 +161,7 @@ function loadLadderFlag() {
     const c = ladderOrder[ladderPos];
     saveActiveLadderRound();
 
-    ladderProgressLabelEl.textContent = "Flagge " + (ladderPos + 1) + " von " + ladderOrder.length;
+    ladderProgressLabelEl.textContent = t("ladder.flagOf").replace("{a}", ladderPos + 1).replace("{b}", ladderOrder.length);
     ladderProgressBarInnerEl.style.width = (ladderPos / ladderOrder.length * 100) + "%";
 
     const flagUrl = flagImageUrl(c.iso);
@@ -152,7 +171,7 @@ function loadLadderFlag() {
     const testImg = new Image();
     testImg.onerror = function () {
         if (myToken !== ladderLoadToken) return;
-        ladderFlagErrorEl.textContent = "Flagge konnte nicht geladen werden";
+        ladderFlagErrorEl.textContent = t("common.flagLoadError");
         ladderFlagErrorEl.style.display = "flex";
     };
     testImg.src = flagUrl;
@@ -162,14 +181,38 @@ function loadLadderFlag() {
     options.forEach(opt => {
         const btn = document.createElement("button");
         btn.className = "mc-btn";
-        btn.textContent = opt.name;
+        btn.textContent = quizCountryNameByIso(opt.iso);
         btn.dataset.iso = opt.iso;
         btn.onclick = () => submitLadderAnswer(opt.iso, c);
         ladderMcOptionsDiv.appendChild(btn);
     });
 }
 
+// Gipfelsturm-Tier-System: Abzeichen neben dem Namen (app-weit, überall wo bisher nur die Krone
+// erschien), zeigt den je erreichten Bestwert. Ersetzt sich gegenseitig, die Krone (bei 197/197,
+// siehe `crown`-Feld) bleibt die höchste Stufe und wird hier NICHT mit einberechnet.
+const LADDER_TIER_ICONS = ["🧢", "🎓", "🎩"]; // Index 0 = ab 50, 1 = ab 100, 2 = ab 150
+function ladderTierLabel(icon) {
+    if (icon === "🧢") return t("ladder.tierCap");
+    if (icon === "🎓") return t("ladder.tierGrad");
+    if (icon === "🎩") return t("ladder.tierTopHat");
+    if (icon === "👑") return t("ladder.tierCrown");
+    return "";
+}
+
+// Liefert das Abzeichen für einen Bestenlisten-Eintrag ({ best, crown }) — Krone hat Vorrang.
+function ladderTierIconFor(entry) {
+    if (!entry) return "";
+    if (entry.crown) return "👑";
+    const best = entry.best || 0;
+    if (best >= 150) return "🎩";
+    if (best >= 100) return "🎓";
+    if (best >= 50) return "🧢";
+    return "";
+}
+
 // Alle 50 korrekt beantwortete Flaggen (50/100/150) +1 Leben, gedeckelt auf 5 (Konzept Punkt 2).
+// Liefert bei Erreichen einer neuen Stufe deren Icon zurück (für den Zwischenbildschirm), sonst null.
 function maybeRefillLadderLife() {
     const milestonesPossible = Math.floor(ladderCorrectCount / 50);
     if (milestonesPossible > ladderMilestonesUsed && milestonesPossible <= 3) {
@@ -178,7 +221,29 @@ function maybeRefillLadderLife() {
             ladderLives++;
             renderLadderHearts();
         }
+        return LADDER_TIER_ICONS[milestonesPossible - 1];
     }
+    return null;
+}
+
+// Zwischenbildschirm bei Leben-Auffüllung/Tier-Aufstieg (50/100/150) — ähnlich dem Rundenende-
+// Bildschirm, aber das Spiel geht danach weiter (kein Rundenabbruch, keine Bestenlisten-Meldung).
+function showLadderMilestoneScreen(icon, onContinue) {
+    hideAllScreens();
+    setChromeVisible(false);
+    const label = ladderTierLabel(icon);
+    document.getElementById("ladderMilestoneContent").innerHTML =
+        '<div class="ladder-end-emoji">' + icon + '</div>' +
+        '<h2>' + t("ladder.milestoneTitle") + '</h2>' +
+        '<p>' + t("ladder.milestoneBadgeEarned") + ' ' + icon + ' ' + label + '</p>';
+    document.getElementById("ladderMilestoneScreen").style.display = "block";
+    document.getElementById("ladderMilestoneContinueBtn").onclick = function () {
+        document.getElementById("ladderMilestoneScreen").style.display = "none";
+        if (!ladderRoundActive) return;
+        setChromeVisible(false);
+        document.getElementById("ladderGame").style.display = "block";
+        onContinue();
+    };
 }
 
 function submitLadderAnswer(selectedIso, correctCountry) {
@@ -198,10 +263,14 @@ function submitLadderAnswer(selectedIso, correctCountry) {
         ladderCorrectCount++;
         showFloatingText("✓", ladderMcOptionsDiv, "positive");
         playCorrectSound();
-        maybeRefillLadderLife();
+        const newTierIcon = maybeRefillLadderLife();
         setTimeout(() => {
             if (!ladderRoundActive) return;
-            advanceLadder();
+            if (newTierIcon) {
+                showLadderMilestoneScreen(newTierIcon, () => advanceLadder());
+            } else {
+                advanceLadder();
+            }
         }, 700);
     } else {
         playWrongSound();
@@ -210,7 +279,7 @@ function submitLadderAnswer(selectedIso, correctCountry) {
             const hearts = Array.from(ladderHeartsEl.querySelectorAll(".heart"));
             const target = hearts[ladderLives - 1];
             if (target) target.classList.add("heart-breaking");
-            showFloatingText("-1 Leben", ladderHeartsEl, "negative");
+            showFloatingText(t("ladder.minusOneLife"), ladderHeartsEl, "negative");
             playLadderHeartBreakSound();
             setTimeout(() => {
                 if (!ladderRoundActive) return;
@@ -289,12 +358,12 @@ async function saveLadderResult(playerName, reachedCount, won) {
 }
 
 function buildLadderResultLine(result, total) {
-    const onlineNote = result.savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
+    const onlineNote = result.savedOnline ? "" : t("common.localOnlyNote");
     if (result.rank === -1) {
-        return '<p>Kein Platz in den Top 50 der Gipfelsturm-Bestenliste.' + onlineNote + '</p>';
+        return '<p>' + t("ladder.noRankInTop50") + onlineNote + '</p>';
     }
     const medal = result.rank === 0 ? "🥇 " : result.rank === 1 ? "🥈 " : result.rank === 2 ? "🥉 " : "";
-    return '<p>' + medal + 'Platz ' + (result.rank + 1) + ' in der Gipfelsturm-Bestenliste (von ' + total + ').</p>';
+    return '<p>' + medal + t("ladder.rankLine").replace("{rank}", result.rank + 1).replace("{total}", total) + '</p>';
 }
 
 async function endLadderRound(won) {
@@ -306,35 +375,36 @@ async function endLadderRound(won) {
     document.getElementById("ladderEndScreen").style.display = "block";
 
     const reachedCount = won ? ladderOrder.length : ladderPos;
+    saveLadderOwnBestCache(reachedCount, won);
     if (won) playLadderVictorySound(); else playLadderGameOverSound();
 
     let html = won
-        ? '<div class="ladder-end-emoji">👑</div><h2>Geschafft — du trägst jetzt die Krone!</h2><p>Alle ' + ladderOrder.length + ' Flaggen durchlaufen. 👑</p>'
-        : '<div class="ladder-end-emoji">💔</div><h2>Runde beendet</h2><p>' + reachedCount + ' von ' + ladderOrder.length + ' Flaggen geschafft.</p>';
+        ? '<div class="ladder-end-emoji">👑</div><h2>' + t("ladder.wonTitle") + '</h2><p>' + t("ladder.wonSub").replace("{n}", ladderOrder.length) + '</p>'
+        : '<div class="ladder-end-emoji">💔</div><h2>' + t("ladder.lostTitle") + '</h2><p>' + t("ladder.lostSub").replace("{reached}", reachedCount).replace("{total}", ladderOrder.length) + '</p>';
     ladderEndContentEl.innerHTML = html;
 
     const rawName = nicknameInput.value.trim();
     const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
     const result = await saveLadderResult(playerName, reachedCount, won);
     ladderEndContentEl.innerHTML += buildLadderResultLine(result, ladderOrder.length);
-    if (won) refreshCrownStatus(); // Krone ggf. gerade neu erhalten -> Ebene-0-Anzeige sofort aktualisieren
+    refreshCrownStatus(); // Tier-Abzeichen ggf. gerade neu erhalten -> Ebene-0-Anzeige sofort aktualisieren
 
     if (won) spawnLadderConfetti();
 }
 
 async function updateLadderHighscoreDisplay(targetEl) {
     const el = targetEl || ladderHighscoreDisplayEl;
-    el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Bestenliste wird geladen …</div></div>';
+    el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>' + t("common.loading") + '</div></div>';
     const { list, online } = await fetchTopListCached(LADDER_HIGHSCORE_KEY);
     const statusLine = online
-        ? '<span title="Zentrale, geteilte Bestenliste">🌐 zentrale Bestenliste</span>'
-        : '<span title="Keine Verbindung zur zentralen Bestenliste — zeigt deinen lokalen Stand">📴 offline (nur lokal)</span>';
+        ? '<span title="' + t("common.onlineTitle") + '">' + t("common.online") + '</span>'
+        : '<span title="' + t("common.offlineTitle") + '">' + t("common.offline") + '</span>';
 
     if (list.length === 0) {
         el.innerHTML =
             '<div class="highscore-card hs-empty"><span class="trophy">🏆</span>' +
-            '<div class="hs-card-title" style="margin-bottom:4px;">Noch kein Gipfelsturm-Ergebnis</div>' +
-            '<div>Sei der Erste!</div><div class="hs-status">' + statusLine + '</div></div>';
+            '<div class="hs-card-title" style="margin-bottom:4px;">' + t("ladder.noResultsYet") + '</div>' +
+            '<div>' + t("common.beTheFirst") + '</div><div class="hs-status">' + statusLine + '</div></div>';
         return;
     }
     const medals = ["🥇", "🥈", "🥉"];
@@ -342,26 +412,33 @@ async function updateLadderHighscoreDisplay(targetEl) {
     const rowsHtml = list.slice(0, 50).map((entry, i) => {
         const rank = (entry.best === lastBest) ? lastRank : (i + 1);
         lastBest = entry.best; lastRank = rank;
-        const crown = entry.crown ? '👑 ' : '';
+        const tierIcon = ladderTierIconFor(entry);
+        const tier = tierIcon ? (tierIcon + ' ') : '';
         return '<div class="hs-row rank-' + rank + '">' +
             '<div class="hs-medal">' + (rank <= 3 ? medals[rank - 1] : rank + ".") + '</div>' +
-            '<div class="hs-row-name">' + crown + escapeHtml(entry.name || "Anonym") + '</div>' +
+            '<div class="hs-row-name">' + tier + escapeHtml(entry.name || t("common.anonymous")) + '</div>' +
             '<div class="hs-row-score">' + entry.best + ' / 197</div></div>';
     }).join("");
     el.innerHTML =
         '<div class="highscore-card"><div class="hs-row-list">' + rowsHtml + '</div><div class="hs-status">' + statusLine + '</div></div>';
 }
 
-// Krone: einmal in der Ladder-Bestenliste gewonnen, wird sie fortan neben dem Namen in JEDER
-// Bestenliste angezeigt (Konzept Punkt 2, Schlussbildschirm "Gewonnen"). Über deviceId abgeglichen.
-async function getCrownedDeviceIdSet() {
+// Tier-Abzeichen (🧢/🎓/🎩/👑): einmal in einer Gipfelsturm-Runde erreicht, wird das jeweils
+// höchste Abzeichen fortan neben dem Namen in JEDER Bestenliste angezeigt (Konzept Punkt 2,
+// Schlussbildschirm "Gewonnen"). Über deviceId abgeglichen, Map deviceId -> Icon.
+async function getLadderTierDeviceIdMap() {
     const { list } = await fetchTopListCached(LADDER_HIGHSCORE_KEY);
-    return new Set(list.filter(e => e.crown).map(e => e.deviceId));
+    const map = new Map();
+    list.forEach(entry => {
+        const icon = ladderTierIconFor(entry);
+        if (icon) map.set(entry.deviceId, icon);
+    });
+    return map;
 }
 
 async function startLadderRound() {
     ladderStartBtn.disabled = true;
-    ladderStartBtn.textContent = "Wird geladen …";
+    ladderStartBtn.textContent = t("common.loadingShort");
     try {
         const { stats } = await fetchFlagStats();
         ladderOrder = computeLadderOrder(stats);
@@ -379,14 +456,14 @@ async function startLadderRound() {
         loadLadderFlag();
     } finally {
         ladderStartBtn.disabled = false;
-        ladderStartBtn.textContent = "🚀 Start";
+        ladderStartBtn.textContent = t("ladderPlaceholder.start");
     }
 }
 
 ladderStartBtn.onclick = startLadderRound;
 
 ladderEndBtn.onclick = function () {
-    const sure = confirm("Möchtest du den Gipfelsturm wirklich beenden? Dein Fortschritt in dieser Runde geht verloren.");
+    const sure = confirm(t("ladder.confirmEnd"));
     if (!sure) return;
     ladderRoundActive = false;
     ladderLoadToken++;

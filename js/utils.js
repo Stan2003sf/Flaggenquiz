@@ -112,6 +112,12 @@ function containsBlockedContent(text) {
     return BLOCKED_TERMS.some(term => cleaned.includes(term));
 }
 
+// Merkt, ob der aktuelle Name automatisch generiert wurde ("generated") oder vom Spieler selbst
+// eingegeben/geändert ("custom") -- nur bei "generated" wird der Name bei einem Sprachwechsel
+// automatisch neu gewürfelt (siehe setLanguage() in js/i18n.js), damit wir nie einen von Hand
+// gewählten Namen ungefragt überschreiben.
+const NICKNAME_SOURCE_KEY = "flagquiz_nickname_source";
+
 // ---------- Positive Fantasienamen-Generator (Zielgruppe 8-15 Jahre: lustig statt nur nett) ----------
 const NAME_ADJECTIVES = [
     "Lustiger","Kichernder","Quietschiger","Wackeliger","Hüpfender","Zappeliger",
@@ -132,14 +138,37 @@ const NAME_PHRASES = [
     "Wackelpudding-Fan","Held der Pause","Ritter ohne Rüstung","Weltmeister im Kichern"
 ];
 
+// Englisches Pendant -- bewusst eigenständig getextet statt 1:1 übersetzt, damit es im
+// Englischen genauso natürlich/witzig klingt wie die deutsche Liste (gleiche Zielgruppe 8-15).
+const NAME_ADJECTIVES_EN = [
+    "Giggling","Wobbly","Bouncing","Squeaky","Fidgety","Sneaky",
+    "Quirky","Ticklish","Bubbling","Dizzy","Fearless","Golden",
+    "Speedy","Cheesy","Fluffy","Chaotic","Mysterious","Cool"
+];
+const NAME_NOUNS_EN = [
+    "Newt","Jellybean","Meerkat","Raccoon","Flamingo","Sloth",
+    "Frog","Panda","Fox","Penguin","Dragon","Ninja","Unicorn","Jellyfish",
+    "Potato","Sock","Cookie","Otter"
+];
+const NAME_PHRASES_EN = [
+    "Flag Carrier on Vacation","Potato with a Crown","Ninja in Pyjamas",
+    "Dragon Without Fire","Pirate Without a Ship","Flag Detective",
+    "Secret Agent Sock","Fry Princess","Cheese Captain","Chaos Chief",
+    "Jellybean Fan","Recess Hero","Knight Without Armor","Giggling Champion"
+];
+
 function generateFantasyName() {
     const num = Math.floor(Math.random() * 90) + 10; // 10-99, reduziert Namensdopplungen
+    const isEn = typeof currentLang !== "undefined" && currentLang === "en";
+    const adjectives = isEn ? NAME_ADJECTIVES_EN : NAME_ADJECTIVES;
+    const nouns = isEn ? NAME_NOUNS_EN : NAME_NOUNS;
+    const phrases = isEn ? NAME_PHRASES_EN : NAME_PHRASES;
     if (Math.random() < 0.35) {
-        const phrase = NAME_PHRASES[Math.floor(Math.random() * NAME_PHRASES.length)];
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
         return `${phrase} ${num}`;
     }
-    const adj = NAME_ADJECTIVES[Math.floor(Math.random() * NAME_ADJECTIVES.length)];
-    const noun = NAME_NOUNS[Math.floor(Math.random() * NAME_NOUNS.length)];
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
     return `${adj} ${noun} ${num}`;
 }
 
@@ -182,8 +211,8 @@ function checkAnswer(userRaw, correctName) {
 let soundMuted = localStorage.getItem("flagquiz_muted") === "true";
 
 function updateMuteButton() {
-    muteBtn.textContent = soundMuted ? "🔇 Ton: AUS" : "🔊 Ton: AN";
-    muteBtn.title = soundMuted ? "Sound einschalten" : "Sound ausschalten";
+    muteBtn.textContent = soundMuted ? t("settings.muteOff") : t("settings.muteOn");
+    muteBtn.title = soundMuted ? t("settings.muteTitleWhenMuted") : t("settings.muteTitleWhenUnmuted");
     muteBtn.classList.toggle("selected", !soundMuted);
 }
 

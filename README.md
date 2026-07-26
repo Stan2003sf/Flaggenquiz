@@ -64,8 +64,7 @@ Ein Browser-Quiz zum Erraten von Länderflaggen — mit Mehrfachauswahl der Kont
 ## 🗂️ Projektstruktur
 
 ```
-├── index.html              # Hauptdatei (identisch zu Flaggenquiz.html, für Root-URL)
-├── Flaggenquiz.html         # Hauptdatei (Spiellogik, HTML, CSS, JS, Anbindung an die zentrale Bestenliste in einer Datei)
+├── index.html              # Hauptdatei (Spiellogik, HTML, CSS, JS, Anbindung an die zentrale Bestenliste in einer Datei)
 ├── manifest.json            # Web App Manifest für die PWA / Homescreen-Installation
 ├── service-worker.js        # Network-First-Caching für den Offline-Start der App-Hülle
 ├── flags/                   # Flaggenbilder (SVG) der 197 im Spiel enthaltenen Länder, Quelle: flagpedia.net
