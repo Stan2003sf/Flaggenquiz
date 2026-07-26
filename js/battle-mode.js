@@ -930,16 +930,3 @@ document.getElementById("forfeitFromBattleContinent").onclick = () => forfeitBat
 document.getElementById("forfeitFromBattlePoison").onclick = () => forfeitBattle();
 document.getElementById("forfeitFromBattleGame").onclick = () => forfeitBattle();
 
-// Automatischer Beitritt über den Battle-QR-Code-Link (?battle=CODE in der URL)
-(function checkBattleUrlParam() {
-    const params = new URLSearchParams(location.search);
-    const code = params.get("battle");
-    if (code) {
-        goToBattleEntryScreen();
-        document.getElementById("battleJoinInputRow").style.display = "block";
-        document.getElementById("battleCodeInput").value = code.toUpperCase();
-        document.getElementById("battleJoinConfirmBtn").click();
-        history.replaceState({}, "", location.pathname);
-    }
-})();
-
