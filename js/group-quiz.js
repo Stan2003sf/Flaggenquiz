@@ -203,7 +203,7 @@ async function releaseGroupForPlaying() {
         });
     } catch (e) {
         console.warn("Spiel konnte nicht freigegeben werden.", e);
-        alert("Freigabe fehlgeschlagen — bitte Internetverbindung prüfen und erneut versuchen.");
+        alert(t("group.releaseFailedAlert"));
     }
 }
 
@@ -220,7 +220,7 @@ async function advanceGroupRound(session, currentRound) {
         });
     } catch (e) {
         console.warn("Neue Runde konnte nicht gestartet werden.", e);
-        alert("Neue Runde konnte nicht gestartet werden — bitte Internetverbindung prüfen.");
+        alert(t("group.nextRoundFailedAlert"));
     }
 }
 
@@ -254,14 +254,15 @@ async function submitGroupResult(playerName, roundScore) {
 }
 
 // Baut die HTML-Ansicht der Gruppen-Bestenliste (Runde + Gesamtwertung) aus den Rohdaten.
-// crownedIds (Set von Geräte-IDs mit Gipfelsturm-Krone) wird einmal vorab abgerufen und
+// tierIcons (Map Geräte-ID -> Gipfelsturm-Tier-Abzeichen) wird einmal vorab abgerufen und
 // durchgereicht, statt hier erneut asynchron nachzuladen (siehe startGroupHighscoreLive).
-function buildGroupHighscoreHtml(docsData, round, crownedIds) {
+function buildGroupHighscoreHtml(docsData, round, tierIcons) {
     const roundList = [];
     const totalList = [];
     docsData.forEach(d => {
-        const name = d.name || "Anonym";
-        const crown = crownedIds && crownedIds.has(d.id) ? "👑 " : "";
+        const name = d.name || t("common.anonymous");
+        const tierIcon = tierIcons && tierIcons.get(d.id);
+        const crown = tierIcon ? (tierIcon + " ") : "";
         const rs = d.roundScores || {};
         const roundScore = rs[String(round)];
         if (typeof roundScore === "number") roundList.push({ name, crown, score: roundScore });
@@ -272,23 +273,23 @@ function buildGroupHighscoreHtml(docsData, round, crownedIds) {
     totalList.sort((a, b) => b.score - a.score);
 
     function renderRows(rows) {
-        if (rows.length === 0) return '<div style="color:#666;font-size:13px;padding:6px 0;">Noch keine Einträge.</div>';
+        if (rows.length === 0) return `<div style="color:#666;font-size:13px;padding:6px 0;">${t("group.noEntries")}</div>`;
         const medals = ["🥇", "🥈", "🥉"];
         return '<div class="hs-row-list">' + rows.map((e, i) => `
             <div class="hs-row rank-${i + 1}">
                 <div class="hs-medal">${i < 3 ? medals[i] : (i + 1) + "."}</div>
                 <div class="hs-row-name">${e.crown}${escapeHtml(e.name)}</div>
-                <div class="hs-row-score">${e.score} Pkt.</div>
+                <div class="hs-row-score">${e.score} ${t("highscore.points")}</div>
             </div>`).join("") + '</div>';
     }
 
     return `
         <div class="highscore-card" style="margin-bottom:14px;">
-            <div class="hs-card-title">🚩 Diese Runde (Runde ${round})</div>
+            <div class="hs-card-title">${t("group.thisRound").replace("{n}", round)}</div>
             ${renderRows(roundList)}
         </div>
         <div class="highscore-card">
-            <div class="hs-card-title">🏆 Gesamtwertung (alle Runden)</div>
+            <div class="hs-card-title">${t("group.overallScore")}</div>
             ${renderRows(totalList)}
         </div>`;
 }
@@ -299,16 +300,16 @@ let groupHighscoreUnsub = null;
 function startGroupHighscoreLive(containerEl, code, getRound) {
     stopGroupHighscoreLive();
     if (!firestoreDb) return;
-    containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>Gruppen-Bestenliste wird geladen …</div></div>';
+    containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>' + t("group.highscoreLoading") + '</div></div>';
     groupHighscoreUnsub = firestoreDb.collection("gruppen").doc(code).collection("ergebnisse").onSnapshot(
         async (snap) => {
             const docsData = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
-            const crownedIds = await getCrownedDeviceIdSet();
-            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound(), crownedIds);
+            const tierIcons = await getLadderTierDeviceIdMap();
+            containerEl.innerHTML = buildGroupHighscoreHtml(docsData, getRound(), tierIcons);
         },
         (e) => {
             console.warn("Gruppen-Bestenliste nicht erreichbar.", e);
-            containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">⚠️</span><div>Gruppen-Bestenliste momentan nicht erreichbar.</div></div>';
+            containerEl.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">⚠️</span><div>' + t("group.highscoreUnavailable") + '</div></div>';
         }
     );
 }
@@ -324,7 +325,7 @@ let groupRosterTeilnehmerDocs = [];
 let groupRosterErgebnisseDocs = [];
 let groupRosterGetRound = () => 1;
 let groupRosterContainerEl = null;
-let groupRosterCrownedIds = new Set(); // wird beim Start der Live-Ansicht einmal geladen, siehe startGroupRosterLive
+let groupRosterTierIcons = new Map(); // wird beim Start der Live-Ansicht einmal geladen, siehe startGroupRosterLive
 
 function renderGroupRosterCombined() {
     if (!groupRosterContainerEl) return;
@@ -335,18 +336,19 @@ function renderGroupRosterCombined() {
         if (String(round) in rs) finishedIds.add(doc.id);
     });
     if (groupRosterTeilnehmerDocs.length === 0) {
-        groupRosterContainerEl.innerHTML = '<div class="glb-roster-empty">👥 Noch niemand beigetreten. Code oder QR-Code teilen, um Mitspieler:innen einzuladen.</div>';
+        groupRosterContainerEl.innerHTML = '<div class="glb-roster-empty">' + t("group.rosterEmpty") + '</div>';
         return;
     }
     const rows = groupRosterTeilnehmerDocs.map((d, i) =>
         '<div class="glb-roster-row"><span style="color:var(--text-muted);width:22px;flex-shrink:0;">' + (i + 1) + '.</span>' +
-        '<span style="flex:1;">' + (groupRosterCrownedIds.has(d.id) ? '👑 ' : '') + escapeHtml(d.data().name || "Anonym") + '</span>' +
+        '<span style="flex:1;">' + (groupRosterTierIcons.get(d.id) ? (groupRosterTierIcons.get(d.id) + ' ') : '') + escapeHtml(d.data().name || t("common.anonymous")) + '</span>' +
         (finishedIds.has(d.id) ? '<span style="color:var(--color-secondary);">✅</span>' : '')
         + '</div>'
     ).join("");
     groupRosterContainerEl.innerHTML =
-        '<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-secondary);">👥 ' + groupRosterTeilnehmerDocs.length +
-        ' beigetreten · ✅ ' + finishedIds.size + ' fertig (Runde ' + round + ')</div>' +
+        '<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-secondary);">' +
+        t("group.rosterSummary").replace("{joined}", groupRosterTeilnehmerDocs.length).replace("{finished}", finishedIds.size).replace("{round}", round) +
+        '</div>' +
         '<div style="max-height:220px;overflow-y:auto;">' + rows + '</div>';
     if (typeof window.__groupUpdateReleaseGate === "function") window.__groupUpdateReleaseGate();
 }
@@ -357,10 +359,10 @@ function startGroupRosterLive(code, containerEl, getRound) {
     groupRosterGetRound = getRound || (() => 1);
     groupRosterTeilnehmerDocs = [];
     groupRosterErgebnisseDocs = [];
-    containerEl.innerHTML = '<div style="font-size:13px;color:#666;">Lade Teilnehmer:innen …</div>';
+    containerEl.innerHTML = '<div style="font-size:13px;color:#666;">' + t("group.loadingParticipants") + '</div>';
 
-    getCrownedDeviceIdSet().then(ids => {
-        groupRosterCrownedIds = ids;
+    getLadderTierDeviceIdMap().then(map => {
+        groupRosterTierIcons = map;
         renderGroupRosterCombined();
     });
 
@@ -371,7 +373,7 @@ function startGroupRosterLive(code, containerEl, getRound) {
             renderGroupRosterCombined();
         }, (e) => {
             console.warn("Teilnehmerliste nicht erreichbar.", e);
-            containerEl.innerHTML = '<div style="font-size:13px;color:#c62828;">⚠️ Teilnehmerliste momentan nicht erreichbar.</div>';
+            containerEl.innerHTML = '<div style="font-size:13px;color:#c62828;">' + t("group.rosterUnavailable") + '</div>';
         });
 
     groupRosterErgebnisseUnsub = firestoreDb.collection("gruppen").doc(code).collection("ergebnisse")
@@ -402,7 +404,7 @@ function updateGroupEntryLinksState() {
         if (!link) return;
         link.style.pointerEvents = locked ? "none" : "";
         link.style.opacity = locked ? "0.4" : "";
-        link.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst verlassen bzw. schließen" : "";
+        link.title = locked ? t("group.alreadyActiveShort") : "";
     });
     // Sichtbare Kacheln in Mehrspieler-Menü und Gruppenquiz-Einstiegsbildschirm ebenfalls sperren,
     // damit ein Klick nicht einfach folgenlos ins Leere läuft (siehe Hinweis bei backFromStandardSettings).
@@ -411,7 +413,7 @@ function updateGroupEntryLinksState() {
         if (!tile) return;
         tile.disabled = locked;
         tile.classList.toggle("disabled", locked);
-        tile.title = locked ? "Bereits in einem Gruppenquiz aktiv — zuerst über \"Zurück\" auf der Einstellungsseite verlassen bzw. schließen" : "";
+        tile.title = locked ? t("group.alreadyActiveLong") : "";
     });
 }
 
@@ -444,8 +446,8 @@ function updateGroupStartButtonUI() {
     const canStart = lastKnownGroupStatus === "laeuft" && !alreadyPlayedThisRound;
     startBtn.disabled = !canStart;
     startBtn.textContent = canStart
-        ? "Start"
-        : (alreadyPlayedThisRound ? "Warte auf nächste Runde …" : "Warte auf Freigabe …");
+        ? t("group.start")
+        : (alreadyPlayedThisRound ? t("group.startWaitingRound") : t("group.startWaitingRelease"));
 }
 
 function setGroupPlayerLockUI(locked) {
@@ -485,14 +487,12 @@ function renderGroupPlayerBanner(code, status) {
     const isReady = status === "laeuft";
     groupPlayerBanner.innerHTML =
         '<div class="gpb-badge">CODE ' + escapeHtml(code) + '</div>' +
-        '<div class="gpb-title">' + (isReady ? "🎉 Los geht's!" : "🚩 Du bist beigetreten") + '</div>' +
+        '<div class="gpb-title">' + (isReady ? t("group.readyTitle") : t("group.joinedTitle")) + '</div>' +
         (isReady ? '' : '<div class="gpb-spinner"></div>') +
         '<div class="gpb-text">' +
-        (isReady
-            ? 'Die Gruppenleitung hat das Spiel freigegeben. Tippe unten auf „Start", sobald du bereit bist.'
-            : 'Deine Gruppenleitung stellt die Einstellungen ein. Bitte warten, bis das Spiel freigegeben wird …') +
+        (isReady ? t("group.readyText") : t("group.waitingText")) +
         '</div>' +
-        '<div style="margin-top:14px;"><a href="#" id="groupLeaveLink" style="font-size:13px;color:var(--color-danger);">Gruppe verlassen</a></div>';
+        '<div style="margin-top:14px;"><a href="#" id="groupLeaveLink" style="font-size:13px;color:var(--color-danger);">' + t("group.leaveLink") + '</a></div>';
     document.getElementById("groupLeaveLink").onclick = function (e) {
         e.preventDefault();
         leaveGroupPlayerMode(false);
@@ -573,7 +573,7 @@ function enterGroupPlayerMode(code) {
     updateGroupEntryLinksState();
     registerAsGroupParticipant(code);
     startBtn.disabled = true;
-    startBtn.textContent = "Warte auf Freigabe …";
+    startBtn.textContent = t("group.startWaitingRelease");
     setGroupPlayerLockUI(true);
     renderGroupPlayerBanner(code, "warten");
     startGroupPlayerPolling(code);
@@ -605,7 +605,7 @@ function enterGroupPlayerMode(code) {
     clearPlayerGroupSession();
     if (startBtn) {
         startBtn.disabled = false;
-        startBtn.textContent = "🚀 Start";
+        startBtn.textContent = t("settings.startButton");
     }
   }
 }
@@ -625,10 +625,10 @@ function leaveGroupPlayerMode(closedByLeader) {
     updateStandardBackArrowVisibility();
     document.getElementById("groupPlayerBanner").style.display = "none";
     startBtn.disabled = false;
-    startBtn.textContent = "🚀 Start";
+    startBtn.textContent = t("settings.startButton");
     updateHighscoreDisplay(); // globale Bestenliste war während des Gruppenquiz ausgeblendet
     if (closedByLeader) {
-        alert("Die Gruppe wurde beendet oder ist abgelaufen. Du spielst jetzt wieder mit deinen eigenen Einstellungen.");
+        alert(t("group.closedAlert"));
     }
 }
 
@@ -638,7 +638,7 @@ function setLeaderLearningModeLock(locked) {
     if (!learningModeToggle) return;
     learningModeToggle.style.pointerEvents = locked ? "none" : "";
     learningModeToggle.style.opacity = locked ? "0.4" : "";
-    learningModeToggle.title = locked ? "Im Gruppenquiz deaktiviert — sonst gäbe es keine Gruppen-Bestenliste" : "";
+    learningModeToggle.title = locked ? t("group.learningModeLockedTitle") : "";
     if (locked && settings.learningMode) {
         settings.learningMode = false;
         buildSettingsScreen();
@@ -665,7 +665,7 @@ async function renderGroupLeaderBanner() {
         if (!isGroupPlayer) {
             startBtn.style.display = "";
             startBtn.disabled = false;
-            startBtn.textContent = "🚀 Start";
+            startBtn.textContent = t("settings.startButton");
         }
         return;
     }
@@ -673,7 +673,7 @@ async function renderGroupLeaderBanner() {
     document.body.classList.add("leader-mode-active");
     setLeaderLearningModeLock(true);
     updateStandardBackArrowVisibility();
-    groupLeaderBanner.innerHTML = '<div class="glb-head"><div class="glb-title">🧑\u200d🏫 Gruppendaten werden geladen …</div></div>';
+    groupLeaderBanner.innerHTML = '<div class="glb-head"><div class="glb-title">🧑\u200d🏫 ' + t("group.leaderDataLoading") + '</div></div>';
     // Punkt 9: Kein ausgegrauter Start-Button mehr — die Leitung steuert alles über das
     // Freigabe-/Nächste-Runde-Dashboard weiter unten.
     startBtn.style.display = "none";
@@ -701,29 +701,29 @@ async function renderGroupLeaderBanner() {
         if (!isGroupPlayer) {
             startBtn.style.display = "";
             startBtn.disabled = false;
-            startBtn.textContent = "🚀 Start";
+            startBtn.textContent = t("settings.startButton");
         }
         return;
     }
 
     const releaseLabel = status === "laeuft"
-        ? "🔄 Nächste Runde (Runde " + round + ")"
-        : "▶️ Spiel freigeben";
+        ? t("group.nextRoundLabel").replace("{n}", round)
+        : t("group.releaseLabel");
 
     groupLeaderBanner.innerHTML =
         '<div class="glb-head">' +
-            '<div class="glb-title">🧑\u200d🏫 Du leitest ein Gruppenquiz</div>' +
+            '<div class="glb-title">🧑\u200d🏫 ' + t("group.leaderTitle") + '</div>' +
             '<div class="glb-code-row">' +
                 '<div class="glb-code">' + escapeHtml(session.code) + '</div>' +
                 '<div>' +
-                    '<button id="groupShowQrBtn" style="font-size:12.5px;padding:6px 10px;margin:0;background:rgba(255,255,255,0.9);color:var(--color-primary-dark);">📱 QR anzeigen</button>' +
-                    '<div class="glb-code-hint">Einstellungen unten werden live übertragen</div>' +
+                    '<button id="groupShowQrBtn" style="font-size:12.5px;padding:6px 10px;margin:0;background:rgba(255,255,255,0.9);color:var(--color-primary-dark);">' + t("group.showQr") + '</button>' +
+                    '<div class="glb-code-hint">' + t("group.settingsLiveHint") + '</div>' +
                 '</div>' +
             '</div>' +
         '</div>' +
         '<div class="glb-tabs">' +
-            '<button class="glb-tab active" data-glbtab="warteraum" type="button">👥 Warteraum</button>' +
-            '<button class="glb-tab" data-glbtab="ergebnisse" type="button">🏆 Live-Ergebnisse</button>' +
+            '<button class="glb-tab active" data-glbtab="warteraum" type="button">' + t("group.tabWaitroom") + '</button>' +
+            '<button class="glb-tab" data-glbtab="ergebnisse" type="button">' + t("group.tabLiveResults") + '</button>' +
         '</div>' +
         '<div class="glb-tab-panel active" id="glbPanelWarteraum">' +
             '<div id="groupRosterList"></div>' +
@@ -734,7 +734,7 @@ async function renderGroupLeaderBanner() {
         '<div class="glb-actions">' +
             '<button id="groupReleaseBtn">' + releaseLabel + '</button>' +
             '<div id="groupReleaseGateHint"></div>' +
-            '<button id="groupLeaderCloseBtn">🚪 Gruppenspiel beenden</button>' +
+            '<button id="groupLeaderCloseBtn">' + t("group.endGroupButton") + '</button>' +
         '</div>';
 
     document.getElementById("groupShowQrBtn").onclick = function () {
@@ -744,7 +744,7 @@ async function renderGroupLeaderBanner() {
     const releaseBtnEl = document.getElementById("groupReleaseBtn");
     releaseBtnEl.onclick = async function () {
         this.disabled = true;
-        this.textContent = status === "laeuft" ? "Wird gestartet …" : "Wird freigegeben …";
+        this.textContent = status === "laeuft" ? t("group.startingRound") : t("group.releasing");
         if (status === "laeuft") {
             await advanceGroupRound(session, round);
         } else {
@@ -753,7 +753,7 @@ async function renderGroupLeaderBanner() {
         renderGroupLeaderBanner();
     };
     document.getElementById("groupLeaderCloseBtn").onclick = async function () {
-        const sure = confirm("Gruppe wirklich schließen? Alle Mitspieler:innen werden auf ihre eigenen Einstellungen zurückgesetzt.");
+        const sure = confirm(t("group.confirmClose"));
         if (!sure) return;
         this.disabled = true;
         await closeGroup();
@@ -786,7 +786,7 @@ async function renderGroupLeaderBanner() {
         } else {
             releaseBtnEl.disabled = true;
             const secsLeft = Math.ceil((GROUP_NEXT_ROUND_MIN_WAIT_MS - elapsedMs) / 1000);
-            if (gateHintEl) gateHintEl.textContent = "⏳ " + finished + " von " + total + " fertig — oder noch " + secsLeft + " Sek. warten";
+            if (gateHintEl) gateHintEl.textContent = t("group.gateHint").replace("{finished}", finished).replace("{total}", total).replace("{secs}", secsLeft);
         }
     }
     updateReleaseGate();
@@ -824,7 +824,7 @@ async function renderGroupLeaderBanner() {
     if (!isGroupPlayer) {
         startBtn.style.display = "";
         startBtn.disabled = false;
-        startBtn.textContent = "🚀 Start";
+        startBtn.textContent = t("settings.startButton");
     }
   }
 }
@@ -858,15 +858,12 @@ function renderStatsModal() {
     const stats = loadStats();
     const entries = Object.entries(stats);
 
-    const explanation = `<p style="font-size:13px;color:#666;margin-top:0;">
-        Oben siehst du, wie viele Flaggen du insgesamt beantwortet hast und wie hoch deine Trefferquote ist.
-        Darunter stehen die Länder, bei denen du dich am häufigsten vertust — als "X von Y richtig"
-        (Y = wie oft dir das Land gezeigt wurde, X = wie oft davon richtig). Gelistet werden nur Länder,
-        die du mindestens zweimal gesehen hast, damit ein einzelner Zufallstreffer die Auswertung nicht verzerrt.
-    </p>`;
+    const explanation = `<p style="font-size:13px;color:#666;margin-top:0;">${t("stats.explanation")}</p>`;
 
-    if (entries.length === 0) {
-        statsContent.innerHTML = explanation + "<p>Noch keine Daten — spiel ein paar Runden, dann siehst du hier deine Lernstatistik!</p>";
+    const ladderCache = getLadderOwnBestCache();
+
+    if (entries.length === 0 && !(ladderCache && ladderCache.best > 0)) {
+        statsContent.innerHTML = explanation + `<p>${t("stats.noData")}</p>`;
         return;
     }
 
@@ -884,26 +881,34 @@ function renderStatsModal() {
         .sort((a, b) => a.ratio - b.ratio)
         .slice(0, 12);
 
+    const ladderTierIcon = ladderTierIconFor(ladderCache);
+    const ladderProgressValue = ladderCache && ladderCache.best > 0
+        ? `${ladderTierIcon ? (ladderTierIcon + " ") : ""}(${ladderCache.best}/${countries.length} Flaggen)`
+        : "–";
+
     let html = explanation + `
         <div class="stats-row" style="font-weight:bold;border-bottom:2px solid #333;">
-            <div>Insgesamt beantwortet</div><div>${totalSeen} (${accuracy}% richtig)</div>
+            <div>${t("stats.totalAnswered")}</div><div>${totalSeen} (${accuracy}% ${t("stats.correctWord")})</div>
         </div>
         <div class="stats-row" style="font-weight:bold;">
-            <div>🔥 Höchste Siegesserie</div><div>${bestStreak > 0 ? bestStreak : "–"}</div>
+            <div>🔥 ${t("stats.bestStreak")}</div><div>${bestStreak > 0 ? bestStreak : "–"}</div>
+        </div>
+        <div class="stats-row" style="font-weight:bold;">
+            <div>⛰️ ${t("stats.ladderProgress")}</div><div>${ladderProgressValue}</div>
         </div>`;
 
     if (worst.length > 0) {
-        html += `<div style="margin-top:14px;font-weight:bold;">Zum Üben — hier häufen sich Fehler:</div>`;
+        html += `<div style="margin-top:14px;font-weight:bold;">${t("stats.practiceHeading")}</div>`;
         html += worst.map(w => `
             <div class="stats-row">
-                <div class="stats-name">${escapeHtml(w.name)}</div>
-                <div class="stats-ratio">${w.correct} von ${w.seen} richtig</div>
+                <div class="stats-name">${escapeHtml(countryDisplayName(w.name))}</div>
+                <div class="stats-ratio">${w.correct} ${t("stats.of")} ${w.seen} ${t("stats.correctWord")}</div>
             </div>`).join("");
     } else {
         const anyEligible = entries.some(([, v]) => v.seen >= 2);
         html += anyEligible
-            ? `<div style="margin-top:14px;color:#666;">Bisher keine Schwächen erkennbar — alle mehrfach gezeigten Länder wurden immer richtig beantwortet. Stark! 🎉</div>`
-            : `<div style="margin-top:14px;color:#666;">Noch nicht genug Daten für eine Schwachstellen-Auswertung — spiel weiter!</div>`;
+            ? `<div style="margin-top:14px;color:#666;">${t("stats.noWeaknesses")}</div>`
+            : `<div style="margin-top:14px;color:#666;">${t("stats.notEnoughData")}</div>`;
     }
 
     statsContent.innerHTML = html;

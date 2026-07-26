@@ -4,6 +4,7 @@ startBtn.onclick = async function () {
     if (containsBlockedContent(nicknameInput.value)) {
         nicknameInput.value = generateFantasyName();
         localStorage.setItem("flagquiz_nickname", nicknameInput.value);
+        localStorage.setItem(NICKNAME_SOURCE_KEY, "generated");
         renderNicknameDisplay();
     }
 
@@ -12,6 +13,7 @@ startBtn.onclick = async function () {
     if (!rawName) {
         nicknameInput.value = playerName;
         localStorage.setItem("flagquiz_nickname", playerName);
+        localStorage.setItem(NICKNAME_SOURCE_KEY, "generated");
         renderNicknameDisplay();
     }
     nicknameHint.style.display = "none";
@@ -24,7 +26,7 @@ startBtn.onclick = async function () {
     if (!isGroupPlayer) {
         const collision = await checkNameCollision(playerName);
         if (collision) {
-            nicknameHint.textContent = "Name bereits vergeben – bitte wähle einen anderen Namen.";
+            nicknameHint.textContent = t("nickname.collision");
             nicknameHint.style.display = "block";
             return;
         }
@@ -61,7 +63,7 @@ startBtn.onclick = async function () {
     currentStreak = 0;
     mixedBag = [];
     questionPlan = buildQuestionPlan(list);
-    scoreDiv.innerHTML = "Punkte: 0";
+    scoreDiv.innerHTML = t("game.points") + ": 0";
     scoreDiv.style.display = settings.learningMode ? "none" : "block";
 
     updateSettingsSummaryLine();
@@ -75,10 +77,10 @@ startBtn.onclick = async function () {
 
 function updateSettingsSummaryLine() {
     document.getElementById("settingsSummary").innerHTML =
-        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " Flaggen &nbsp;·&nbsp; ✏️ " + modeLabel() +
-        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 Lernmodus" : "") +
-        (settings.proMode ? " &nbsp;·&nbsp; 🎯 Profimodus" : "") +
-        (settings.speedMode ? " &nbsp;·&nbsp; ⚡ Speedmodus" : "");
+        "🌍 " + continentLabel() + " &nbsp;·&nbsp; 🚩 " + maxFlags + " " + t("settings.flags") + " &nbsp;·&nbsp; ✏️ " + modeLabel() +
+        (settings.learningMode ? " &nbsp;·&nbsp; 🎓 " + t("mode.learning") : "") +
+        (settings.proMode ? " &nbsp;·&nbsp; 🎯 " + t("mode.pro") : "") +
+        (settings.speedMode ? " &nbsp;·&nbsp; ⚡ " + t("mode.speed") : "");
 }
 
 // ---------- Reload-Wiederherstellung einer laufenden Entdecker-Runde ----------
@@ -174,7 +176,7 @@ function restoreActiveStandardRound() {
     endScreen.style.display = "none";
     game.style.display = "block";
     updateSettingsSummaryLine();
-    scoreDiv.innerHTML = "Punkte: " + score;
+    scoreDiv.innerHTML = t("game.points") + ": " + score;
     scoreDiv.style.display = settings.learningMode ? "none" : "block";
 
     index = data.index;
@@ -325,7 +327,7 @@ function loadFlag(resumeState) {
     const c = planEntry.country;
 
     if (currentMode === "reverse-mc") {
-        countryNamePrompt.textContent = c.name;
+        countryNamePrompt.textContent = quizCountryNameByIso(c.iso);
     } else {
         const flagUrl = flagImageUrl(c.iso);
         const flagError = document.getElementById("flagError");
@@ -336,16 +338,16 @@ function loadFlag(resumeState) {
         // Unauffälliger Test, ob das Bild tatsächlich lädt (ändert die Anzeige nicht, außer bei Fehler)
         const testImg = new Image();
         testImg.onerror = function () {
-            flagError.textContent = "Flagge konnte nicht geladen werden";
+            flagError.textContent = t("common.flagLoadError");
             flagError.style.display = "flex";
         };
         testImg.src = flagUrl;
     }
 
-    counterDiv.innerHTML = "Flagge " + (index + 1) + " von " + maxFlags;
+    counterDiv.innerHTML = t("game.flagOf").replace("{a}", index + 1).replace("{b}", maxFlags);
     progressBarInner.style.width = (index / maxFlags * 100) + "%";
     pointsDiv.innerHTML = settings.learningMode
-        ? "🎓 Lernmodus — kein Zeitdruck, kein Highscore-Eintrag"
+        ? t("game.learningModeNote")
         : "";
 
     if (currentMode === "mc" || currentMode === "reverse-mc") {
@@ -390,7 +392,7 @@ function loadFlag(resumeState) {
         }
 
         const myToken = ++flagLoadToken;
-        loadingInfo.textContent = "⏳ Flaggen werden geladen…";
+        loadingInfo.textContent = t("game.loadingFlags");
         timeBonusBarInner.style.transition = "none";
         timeBonusBarInner.style.width = "100%";
 
@@ -398,7 +400,7 @@ function loadFlag(resumeState) {
             if (myToken !== flagLoadToken) return; // Frage wurde inzwischen gewechselt oder beantwortet
             loadingInfo.textContent = "";
             if (!result.allLoaded && currentMode === "reverse-mc") {
-                loadingInfo.textContent = "⚠️ Flaggen konnten nicht geladen werden.";
+                loadingInfo.textContent = t("game.flagsLoadError");
             }
             flagStartTime = Date.now();
             if (!settings.learningMode) {
@@ -498,23 +500,25 @@ function buildAnswerOptions(correctCountry, options) {
     if (currentMode === "mc") {
         mcOptionsDiv.innerHTML = "";
         options.forEach(opt => {
+            const label = quizCountryNameByIso(opt.iso);
             const btn = document.createElement("button");
             btn.className = "mc-btn";
-            btn.textContent = opt.name;
-            btn.onclick = () => submitAnswer(opt.name, correctCountry);
+            btn.textContent = label;
+            btn.onclick = () => submitAnswer(label, correctCountry);
             mcOptionsDiv.appendChild(btn);
         });
     } else if (currentMode === "reverse-mc") {
         reverseMcOptionsDiv.innerHTML = "";
         options.forEach(opt => {
+            const label = quizCountryNameByIso(opt.iso);
             const btn = document.createElement("button");
             btn.className = "reverse-mc-btn";
             const flagUrl = flagImageUrl(opt.iso);
             btn.style.backgroundImage = "url('" + flagUrl + "')";
             btn.dataset.flagUrl = flagUrl;
-            btn.dataset.name = opt.name;
-            btn.setAttribute("aria-label", opt.name);
-            btn.onclick = () => submitAnswer(opt.name, correctCountry);
+            btn.dataset.name = label;
+            btn.setAttribute("aria-label", label);
+            btn.onclick = () => submitAnswer(label, correctCountry);
             reverseMcOptionsDiv.appendChild(btn);
         });
     }
@@ -530,9 +534,9 @@ function applyTipVisualEffect(c) {
     if (currentMode === "mc" || currentMode === "reverse-mc") {
         removeWrongOption(c);
         if (tipCount === 1) {
-            tipDiv.innerHTML = "Eine falsche Antwort wurde entfernt.";
+            tipDiv.innerHTML = t("game.tipWrongRemoved1");
         } else if (tipCount === 2) {
-            tipDiv.innerHTML = "Noch eine falsche Antwort wurde entfernt.";
+            tipDiv.innerHTML = t("game.tipWrongRemoved2");
             tipBtn.disabled = true;
         }
     } else {
@@ -540,12 +544,12 @@ function applyTipVisualEffect(c) {
         if (tipCount === 1) {
             if (singleContinent) {
                 const letterCount = c.name.replace(/[^A-Za-zÀ-ÿ]/g, "").length;
-                tipDiv.innerHTML = "Anzahl Buchstaben: " + letterCount;
+                tipDiv.innerHTML = t("game.tipLetterCount") + letterCount;
             } else {
-                tipDiv.innerHTML = "Kontinent: " + c.continent;
+                tipDiv.innerHTML = t("game.tipContinent") + continentDisplayName(c.continent);
             }
         } else if (tipCount === 2) {
-            tipDiv.innerHTML += "<br>Erster Buchstabe: " + c.name.charAt(0);
+            tipDiv.innerHTML += "<br>" + t("game.tipFirstLetter") + c.name.charAt(0);
             tipBtn.disabled = true;
         }
     }
@@ -570,9 +574,10 @@ function removeWrongOption(correctCountry) {
     const container = isReverse ? reverseMcOptionsDiv : mcOptionsDiv;
     const selector = isReverse ? ".reverse-mc-btn:not(:disabled)" : ".mc-btn:not(:disabled)";
     const buttons = Array.from(container.querySelectorAll(selector));
+    const correctLabel = quizCountryNameByIso(correctCountry.iso);
     const wrongButtons = buttons.filter(b => {
         const name = isReverse ? b.dataset.name : b.textContent;
-        return normalize(name) !== normalize(correctCountry.name);
+        return normalize(name) !== normalize(correctLabel);
     });
     if (wrongButtons.length === 0) return;
     const target = wrongButtons[Math.floor(Math.random() * wrongButtons.length)];
@@ -596,7 +601,19 @@ function submitAnswer(userInput, forcedCountry) {
     stopTimeBonusBar();
     const c = forcedCountry || list[index];
     const elapsed = (Date.now() - flagStartTime) / 1000;
-    const result = checkAnswer(userInput, c.name);
+    // Texteingabe: unabhängig von der UI-Sprache sowohl den deutschen als auch den englischen
+    // Ländernamen akzeptieren. Multiple Choice/Umkehr-MC: gegen den aktuell angezeigten (sprach-
+    // abhängigen) Namen prüfen, da genau der auf den Antwort-Buttons steht.
+    let result;
+    if (currentMode === "text") {
+        result = checkAnswer(userInput, c.name);
+        if (!result.correct && c.nameEn) {
+            const resultEn = checkAnswer(userInput, c.nameEn);
+            if (resultEn.correct) result = resultEn;
+        }
+    } else {
+        result = checkAnswer(userInput, quizCountryNameByIso(c.iso));
+    }
 
     if (currentMode === "text") {
         solveBtn.style.display = "none";
@@ -605,10 +622,11 @@ function submitAnswer(userInput, forcedCountry) {
         const isReverse = currentMode === "reverse-mc";
         const container = isReverse ? reverseMcOptionsDiv : mcOptionsDiv;
         const btnSelector = isReverse ? ".reverse-mc-btn" : ".mc-btn";
+        const correctLabel = quizCountryNameByIso(c.iso);
         container.querySelectorAll(btnSelector).forEach(btn => {
             const btnName = isReverse ? btn.dataset.name : btn.textContent;
             btn.disabled = true;
-            if (normalize(btnName) === normalize(c.name)) {
+            if (normalize(btnName) === normalize(correctLabel)) {
                 btn.classList.add("correct");
             } else if (normalize(btnName) === normalize(userInput) && !result.correct) {
                 btn.classList.add("wrong");
@@ -643,31 +661,29 @@ function submitAnswer(userInput, forcedCountry) {
             roundStreakSum += streakBonus;
         }
         emojiDiv.innerHTML = "😀";
-        solutionDiv.innerHTML = settings.learningMode
-            ? (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!")
-            : (result.fuzzy ? "Richtig (kleiner Tippfehler toleriert)!" : "Richtig!");
+        solutionDiv.innerHTML = result.fuzzy ? t("game.correctFuzzy") : t("game.correct");
         if (settings.learningMode) {
             pointsChips.innerHTML = "";
             showFloatingText("✓", currentAnswerAreaEl(), "positive");
         } else {
             let chips = '<span class="result-chip chip-base">⭐ +' + basePoints + '</span>';
             if (bonus > 0) chips += '<span class="result-chip chip-time">⏱️ +' + bonus + '</span>';
-            if (streakBonus > 0) chips += '<span class="result-chip chip-streak">🔥 +' + streakBonus + ' (' + currentStreak + 'er Serie)</span>';
+            if (streakBonus > 0) chips += '<span class="result-chip chip-streak">🔥 +' + streakBonus + ' (' + currentStreak + t("game.streakSuffix") + '</span>';
             pointsChips.innerHTML = chips;
             showFloatingText("+" + (basePoints + bonus + streakBonus), currentAnswerAreaEl(), "positive");
         }
         playCorrectSound();
     } else {
-        wrongAnswers.push({ name: c.name, given: userInput || "(keine Antwort)" });
+        wrongAnswers.push({ name: quizCountryNameByIso(c.iso), given: userInput || t("game.noAnswer") });
         currentStreak = 0; // Falsche Antwort unterbricht die Siegesserie
         emojiDiv.innerHTML = "😢";
-        solutionDiv.innerHTML = "Richtig wäre: " + c.name;
+        solutionDiv.innerHTML = t("game.correctAnswerWas") + quizCountryNameByIso(c.iso);
         pointsChips.innerHTML = "";
         showFloatingText("✗", currentAnswerAreaEl(), "negative");
         playWrongSound();
     }
 
-    scoreDiv.innerHTML = "Punkte: " + score;
+    scoreDiv.innerHTML = t("game.points") + ": " + score;
     nextBtn.style.display = "inline-block";
     document.getElementById("resultCard").classList.add("visible");
 
@@ -734,10 +750,10 @@ function renderRecordBadges(prestigeLevel) {
     if (!container) return;
     let html = "";
     if (prestigeLevel) {
-        html += '<div class="record-badge badge-prestige">💎 Neues Prestige erreicht! (jetzt ' + prestigeLevel + '× ' + score + ' Punkte)</div>';
+        html += '<div class="record-badge badge-prestige">' + t("game.newPrestige").replace("{level}", prestigeLevel).replace("{score}", score) + '</div>';
     }
     if (roundNewBestStreakValue) {
-        html += '<div class="record-badge badge-streak">🔥 Neue persönliche Bestserie: ' + roundNewBestStreakValue + ' in Folge!</div>';
+        html += '<div class="record-badge badge-streak">' + t("game.newBestStreak").replace("{n}", roundNewBestStreakValue) + '</div>';
     }
     container.innerHTML = html;
 }
@@ -754,20 +770,20 @@ async function showEndScreen() {
     document.getElementById("recordBadges").innerHTML = "";
 
     if (settings.learningMode) {
-        finalScoreLine.innerHTML = "🎓 Lernrunde abgeschlossen!";
+        finalScoreLine.innerHTML = t("game.learningRoundDone");
         scoreBreakdownLine.innerHTML = "";
-        highscoreLine.innerHTML = "Im Lernmodus werden keine Punkte gezählt und kein Highscore-Eintrag gespeichert — nur zum Üben.";
+        highscoreLine.innerHTML = t("game.learningNoScoreNote");
     } else if (isGroupPlayer) {
         // Im Gruppenmodus zählt nur die Gruppen-Bestenliste weiter unten — die globale
         // Bestenliste wird hier bewusst weder abgerufen noch angezeigt, um nicht zu verwirren.
-        finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+        finalScoreLine.innerHTML = t("game.scoreReached").replace("{score}", score);
         scoreBreakdownLine.innerHTML = buildScoreBreakdownHtml();
-        highscoreLine.innerHTML = "🚩 Deine Punkte fließen in die Gruppen-Bestenliste weiter unten ein.";
+        highscoreLine.innerHTML = t("game.groupScoreNote");
         renderRecordBadges(null);
     } else {
-        finalScoreLine.innerHTML = "Du hast " + score + " Punkte erreicht!";
+        finalScoreLine.innerHTML = t("game.scoreReached").replace("{score}", score);
         scoreBreakdownLine.innerHTML = buildScoreBreakdownHtml();
-        highscoreLine.innerHTML = "Bestenliste wird aktualisiert …";
+        highscoreLine.innerHTML = t("game.highscoreUpdating");
 
         const rawName = nicknameInput.value.trim();
         const playerName = (!rawName || containsBlockedContent(rawName)) ? generateFantasyName() : rawName;
@@ -816,31 +832,30 @@ async function showEndScreen() {
             savedOnline = await saveTopList(key, list);
             setHighscoreCache(key, list, savedOnline);
         }
-        const onlineNote = savedOnline ? "" : " (nur lokal gespeichert, keine Verbindung zur zentralen Liste)";
+        const onlineNote = savedOnline ? "" : t("common.localOnlyNote");
 
         if (rank === -1) {
-            highscoreLine.innerHTML = "Kein Platz in den Top 50." + onlineNote;
+            highscoreLine.innerHTML = t("game.noTop50") + onlineNote;
         } else if (!didUpdate) {
             const medal = rank === 0 ? "🥇 " : rank === 1 ? "🥈 " : rank === 2 ? "🥉 " : "";
-            highscoreLine.innerHTML = medal + "Dein bisheriger Bestwert (Platz " + (rank + 1) + ", " +
-                list[rank].score + " Punkte) ist bereits mindestens genauso gut — Eintrag bleibt unverändert." + onlineNote;
+            highscoreLine.innerHTML = medal + t("game.previousBestStillBetter").replace("{rank}", rank + 1).replace("{score}", list[rank].score) + onlineNote;
         } else if (!isFreshEntryOrImprovement) {
             // Prestige-Fall: Punktzahl unverändert, aber erneut erreicht
             const medal = rank === 0 ? "🥇 " : rank === 1 ? "🥈 " : rank === 2 ? "🥉 " : "";
-            highscoreLine.innerHTML = medal + "Platz " + (rank + 1) + " mit " + score + " Punkten erneut erreicht!" + onlineNote;
+            highscoreLine.innerHTML = medal + t("game.prestigeAgain").replace("{rank}", rank + 1).replace("{score}", score) + onlineNote;
         } else if (rank === 0) {
-            highscoreLine.innerHTML = '🥇 Neuer Highscore — Platz 1!<span id="newHighscoreBadge">Top!</span>' + onlineNote;
+            highscoreLine.innerHTML = t("game.newHighscore") + '<span id="newHighscoreBadge">' + t("game.newHighscoreBadge") + '</span>' + onlineNote;
         } else if (rank === 1) {
-            highscoreLine.innerHTML = "🥈 Stark! Platz 2 in der Bestenliste erreicht." + onlineNote;
+            highscoreLine.innerHTML = t("game.rank2") + onlineNote;
         } else if (rank === 2) {
-            highscoreLine.innerHTML = "🥉 Platz 3 in der Bestenliste erreicht!" + onlineNote;
+            highscoreLine.innerHTML = t("game.rank3") + onlineNote;
         } else if (rank >= 3) {
-            highscoreLine.innerHTML = "🏅 Platz " + (rank + 1) + " von " + list.length + " in der Bestenliste erreicht!" + onlineNote;
+            highscoreLine.innerHTML = t("game.rankOther").replace("{rank}", rank + 1).replace("{total}", list.length) + onlineNote;
         } else {
             const last = list[list.length - 1];
             highscoreLine.innerHTML = (last
-                ? "Knapp kein Platz in den Top 50 — Platz 50 liegt bei " + last.score + " Punkten."
-                : "Kein Platz in den Top 50.") + onlineNote;
+                ? t("game.closeToTop50").replace("{score}", last.score)
+                : t("game.noTop50")) + onlineNote;
         }
 
         renderRecordBadges(prestigeLeveledUp);
@@ -859,18 +874,18 @@ async function showEndScreen() {
     }
 
     if (wrongAnswers.length === 0) {
-        wrongListTitle.innerHTML = "Alles richtig — stark! 🎉";
+        wrongListTitle.innerHTML = t("game.allCorrect");
         wrongListDiv.innerHTML = "";
     } else {
-        wrongListTitle.innerHTML = "Zum Üben — diese Länder waren falsch:";
+        wrongListTitle.innerHTML = t("game.practiceWrongList");
         wrongListDiv.innerHTML = wrongAnswers
-            .map(w => `<div><strong>${w.name}</strong> — deine Antwort: ${w.given}</div>`)
+            .map(w => `<div><strong>${w.name}</strong> — ${t("game.yourAnswer")}${w.given}</div>`)
             .join("");
     }
 }
 
 endBtn.onclick = function () {
-    const sure = confirm("Möchtest du das Quiz wirklich beenden? Dein aktueller Fortschritt in dieser Runde geht verloren.");
+    const sure = confirm(t("game.confirmEnd"));
     if (!sure) return;
     flagLoadToken++;
     stopTimeBonusBar();
