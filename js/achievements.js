@@ -286,6 +286,10 @@ function renderAchievementsScreen() {
         cardsHtml += entries.map(achievementCardHtml).join("");
     });
 
+    // cachedTierIcon ist in js/init.js deklariert (dort auch aktuell gehalten, siehe
+    // refreshCrownStatus()) -- funktioniert hier nur, weil alle <script>-Tags dieses Projekts
+    // denselben globalen Gültigkeitsbereich teilen UND init.js in index.html vor dem ersten
+    // möglichen Aufruf dieser Funktion (Klick auf "Erfolge") bereits vollständig geladen ist.
     container.innerHTML =
         '<div class="achv-name-preview">' +
             '<div class="hint-small" style="margin-bottom:6px;">' + t("achievements.namePreviewHint") + '</div>' +

@@ -1003,33 +1003,8 @@
         margin-left: 8px;
     }
 
-    /* ---------- Bestenliste als eigener Abschnitt (einklappbar) ---------- */
+    /* ---------- Bestenliste als eigener Abschnitt ---------- */
     #highscoreDisplay { margin: 0; }
-    details.highscore-accordion {
-        max-width: 480px;
-        margin: 16px auto 0 auto;
-        text-align: left;
-        border: 1px solid var(--card-border);
-        border-radius: var(--radius-lg);
-        background: var(--card-bg);
-        overflow: hidden;
-        box-shadow: var(--card-shadow);
-    }
-    details.highscore-accordion summary {
-        list-style: none;
-        cursor: pointer;
-        padding: 16px 18px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-family: var(--font-display);
-        font-weight: var(--weight-heading);
-        color: var(--text-primary);
-        font-size: 15.5px;
-    }
-    details.highscore-accordion summary::-webkit-details-marker { display: none; }
-    details.highscore-accordion summary::marker { content: ""; }
-    details.highscore-accordion[open] .summary-chevron { transform: rotate(180deg); }
     .highscore-card {
         position: relative;
         overflow: hidden;

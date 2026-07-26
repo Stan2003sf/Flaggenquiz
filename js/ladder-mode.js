@@ -44,8 +44,12 @@ let ladderLoadToken = 0;
 
 // Nur für die Testphase (siehe Konzept): Rundenstart ab einem bestimmten Rang statt Rang 1,
 // z. B. über die URL ?ladder_debug=190 — damit lässt sich Game-Over/Sieg schnell durchspielen.
+// Bewusst auf localhost beschränkt (Code-Review-Befund): auf der echten, öffentlich erreichbaren
+// Seite dürfte sonst jede beliebige Person per URL-Parameter nahe Platz 1 der Gipfelsturm-
+// Bestenliste bzw. die Krone faken, ohne die Flaggen tatsächlich zu kennen.
 function ladderDebugStartIndex(total) {
     try {
+        if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return 0;
         const params = new URLSearchParams(location.search);
         const raw = params.get("ladder_debug");
         if (!raw) return 0;
