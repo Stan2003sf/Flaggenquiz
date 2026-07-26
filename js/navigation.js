@@ -20,6 +20,7 @@ function hideAllScreens() {
     document.getElementById("battleEndScreen").style.display = "none";
     document.getElementById("settingsMenuScreen").style.display = "none";
     document.getElementById("statsScreen").style.display = "none";
+    document.getElementById("achievementsScreen").style.display = "none";
     document.getElementById("highscoreHubScreen").style.display = "none";
     document.getElementById("helpScreen").style.display = "none";
     settingsDiv.style.display = "none";

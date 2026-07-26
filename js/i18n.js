@@ -36,6 +36,8 @@ const TRANSLATIONS = {
         "mainMenu.settingsTile.sub": "Ton, Sprache und mehr",
         "mainMenu.stats.title": "Meine Statistik",
         "mainMenu.stats.sub": "Deine persönliche Lernauswertung",
+        "mainMenu.achievements.title": "Erfolge",
+        "mainMenu.achievements.sub": "Titel freischalten und anzeigen",
         "mainMenu.highscoreHub.title": "Bestenliste",
         "mainMenu.highscoreHub.sub": "Alle Ranglisten an einem Ort",
 
@@ -220,6 +222,27 @@ const TRANSLATIONS = {
         "stats.confirmReset": "Deine persönliche Lernstatistik wirklich löschen? Das betrifft nur diesen Browser, nicht die zentrale Bestenliste.",
         "mainMenu.stats.title2": "📊 Meine Statistik",
 
+        "achievements.pageHeading": "🎖️ Erfolge",
+        "achievements.namePreviewHint": "So erscheint dein Name bei anderen Spieler:innen:",
+        "achievements.titleSelectLabel": "Aktiver Titel",
+        "achievements.noTitle": "Kein Titel",
+        "achievements.categoryContinent": "🌍 Kontinent-Erfolge",
+        "achievements.categoryMeta": "🌐 Meta-Erfolg",
+        "achievements.categoryMilestone": "⛰️ Gipfelsturm-Meilensteine",
+        "achievements.categoryStreak": "🔥 Siegesserien",
+        "achievements.unlockedBadge": "✅ Freigeschaltet",
+        "achievements.desc.continentBase": "Jedes Land {continent}s mindestens einmal richtig beantwortet.",
+        "achievements.desc.continentProfi": "Jedes Land {continent}s mindestens einmal im Profimodus richtig beantwortet.",
+        "achievements.desc.continentSpeed": "Jedes Land {continent}s mindestens einmal im Speedmodus richtig beantwortet.",
+        "achievements.desc.continentBoth": "Jedes Land {continent}s mindestens einmal mit Profi- UND Speedmodus gleichzeitig richtig beantwortet.",
+        "achievements.desc.meta": "Alle sechs Kontinent-Erfolge (Basisversion) erreicht.",
+        "achievements.desc.milestone": "Im Gipfelsturm insgesamt {n} unterschiedliche Länder erreicht.",
+        "achievements.desc.streak": "Eine Siegesserie von {n} richtigen Antworten in Folge erreicht.",
+        "achievements.progressCountries": "{current} / {total} Länder",
+        "achievements.progressFlags": "{current} / {total} Flaggen",
+        "achievements.progressStreakLine": "Beste Serie: {current} / {total}",
+        "achievements.scrollToTop": "⬆️ Nach oben",
+
         "group.tileTitle": "Gruppenquiz",
         "group.tileSub": "Leiten oder beitreten",
         "group.entryHeading": "🏫 Gruppenquiz",
@@ -362,6 +385,8 @@ const TRANSLATIONS = {
         "mainMenu.settingsTile.sub": "Sound, language and more",
         "mainMenu.stats.title": "My Stats",
         "mainMenu.stats.sub": "Your personal learning overview",
+        "mainMenu.achievements.title": "Achievements",
+        "mainMenu.achievements.sub": "Unlock and display titles",
         "mainMenu.highscoreHub.title": "Leaderboard",
         "mainMenu.highscoreHub.sub": "All rankings in one place",
 
@@ -546,6 +571,27 @@ const TRANSLATIONS = {
         "stats.confirmReset": "Really delete your personal learning statistics? This only affects this browser, not the shared leaderboard.",
         "mainMenu.stats.title2": "📊 My Stats",
 
+        "achievements.pageHeading": "🎖️ Achievements",
+        "achievements.namePreviewHint": "This is how your name appears to other players:",
+        "achievements.titleSelectLabel": "Active title",
+        "achievements.noTitle": "No title",
+        "achievements.categoryContinent": "🌍 Continent Achievements",
+        "achievements.categoryMeta": "🌐 Meta Achievement",
+        "achievements.categoryMilestone": "⛰️ Summit Climb Milestones",
+        "achievements.categoryStreak": "🔥 Win Streaks",
+        "achievements.unlockedBadge": "✅ Unlocked",
+        "achievements.desc.continentBase": "Answered every country in {continent} correctly at least once.",
+        "achievements.desc.continentProfi": "Answered every country in {continent} correctly at least once in Pro mode.",
+        "achievements.desc.continentSpeed": "Answered every country in {continent} correctly at least once in Speed mode.",
+        "achievements.desc.continentBoth": "Answered every country in {continent} correctly at least once with Pro AND Speed mode active at the same time.",
+        "achievements.desc.meta": "Reached all six continent achievements (base version).",
+        "achievements.desc.milestone": "Reached {n} different countries total in Summit Climb.",
+        "achievements.desc.streak": "Reached a win streak of {n} correct answers in a row.",
+        "achievements.progressCountries": "{current} / {total} countries",
+        "achievements.progressFlags": "{current} / {total} flags",
+        "achievements.progressStreakLine": "Best streak: {current} / {total}",
+        "achievements.scrollToTop": "⬆️ Back to top",
+
         "group.tileTitle": "Group Quiz",
         "group.tileSub": "Host or join",
         "group.entryHeading": "🏫 Group Quiz",
@@ -618,7 +664,7 @@ const TRANSLATIONS = {
         "help.single.explorer": "<strong>🧭 Explorer Mode</strong><br>Here you decide everything yourself: which continents, how many flags, which answer mode. Good for practicing or a relaxed round.",
         "help.single.ladder": "<strong>⛰️ Summit Climb</strong><br>You automatically work through all 197 flags of the world — first the ones you already know well, then the harder ones. You have 5 lives. Every 50 correct answers you get a life back (maximum 5). Complete all 197 flags and you win a crown 👑!",
         "help.multi.group": "<strong>🏫 Group Quiz</strong><br>Ideal for a school class or a group of friends. One person hosts the group and sets the options for everyone — the host doesn't play along. Everyone else joins with a code or QR code. The start button stays locked until the host releases the game. After each round there's a separate leaderboard just for your group — for that round and as an overall score across all rounds.",
-        "help.multi.battle": "<strong>⚔️ 1-on-1 Duel</strong><br>You challenge someone else to a duel. You both get the same flags, each with 5 lives. Beforehand you can secretly slip each other 3 🪤 trap flags — harder flags the other person doesn't expect. Whoever loses all lives first has lost the duel.",
+        "help.multi.battle": "<strong>⚔️ 1vs1 Battle</strong><br>You challenge someone else to a duel. You both get the same flags, each with 5 lives. Beforehand you can secretly slip each other 3 🪤 trap flags — harder flags the other person doesn't expect. Whoever loses all lives first has lost the duel.",
         "help.modes.answerMode": "<strong>Answer mode</strong><br>• <em>Multiple Choice</em>: You see a flag and pick the right name from 4 options.<br>• <em>Reverse Multiple Choice</em>: You see a name and pick the right flag from 4 options.<br>• <em>Type the answer</em> (hard): You see a flag and type the name yourself.<br>• <em>🔀 Mixed</em>: Each question randomly uses one of the three modes.",
         "help.modes.learning": "<strong>🎓 Learning Mode</strong><br>No time pressure, no points. Perfect for relaxed practice.",
         "help.modes.pro": "<strong>🎯 Pro Mode</strong><br>Makes it harder: typos are judged more strictly, and wrong Multiple Choice answers come more often from your chosen continents.",
@@ -721,6 +767,77 @@ function countryDisplayName(deName) {
     return (c && c.nameEn) ? c.nameEn : deName;
 }
 
+// ---------- Erfolgs-/Titel-System: Titeltexte (siehe js/achievements.js für die Freischaltlogik) ----------
+// Jede Basis-ID liefert je Sprache eine männliche ("m"), weibliche ("w") und/oder neutrale ("n")
+// Variante -- geschlechtsneutrale Titel führen nur "n". Die eigentliche ID (z. B. "continent_africa")
+// bleibt unabhängig von Sprache/Variante immer gleich und wird gespeichert/übertragen (Konzept Punkt 1).
+const ACHIEVEMENT_TITLES = {
+    continent_europe: { m: { de: "Herrscher von Europa", en: "Ruler of Europe" }, w: { de: "Herrscherin von Europa", en: "Ruler of Europe" } },
+    continent_africa: { m: { de: "König der Savanne", en: "King of the Savanna" }, w: { de: "Königin der Savanne", en: "Queen of the Savanna" } },
+    continent_asia: { m: { de: "Meister des Ostens", en: "Master of the East" }, w: { de: "Meisterin des Ostens", en: "Mistress of the East" } },
+    continent_northamerica: { m: { de: "Herr der Prärie", en: "Lord of the Prairie" }, w: { de: "Herrin der Prärie", en: "Lady of the Prairie" } },
+    continent_southamerica: { n: { de: "Legende der Anden", en: "Legend of the Andes" } },
+    continent_oceania: { n: { de: "Kapitän der Südsee", en: "Captain of the South Seas" } },
+    meta_world: { m: { de: "Weltenbezwinger", en: "World Conqueror" }, w: { de: "Weltenbezwingerin", en: "World Conqueror" } },
+    milestone_25: { m: { de: "Späher", en: "Scout" }, w: { de: "Späherin", en: "Scout" } },
+    milestone_50: { m: { de: "Entdecker", en: "Explorer" }, w: { de: "Entdeckerin", en: "Explorer" } },
+    milestone_100: { m: { de: "Weltenwanderer", en: "Globetrotter" }, w: { de: "Weltenwanderin", en: "Globetrotter" } },
+    milestone_150: { m: { de: "Kartograph", en: "Cartographer" }, w: { de: "Kartographin", en: "Cartographer" } },
+    milestone_all: { m: { de: "Flaggenkenner", en: "Flag Sage" }, w: { de: "Flaggenkennerin", en: "Flag Sage" } },
+    streak_10: { m: { de: "Serienstarter", en: "Streak Starter" }, w: { de: "Serienstarterin", en: "Streak Starter" } },
+    streak_20: { m: { de: "Serientäter", en: "Streak Master" }, w: { de: "Serientäterin", en: "Streak Master" } },
+    streak_50: { n: { de: "Unaufhaltsam", en: "Unstoppable" } }
+};
+
+// Modus-Modifier (nur Kontinent-Erfolge, siehe Konzept Punkt 3): wird dem Basistitel vorangestellt.
+// Reihenfolge bei beiden aktiven Modi: erst Speed-, dann Profi-Modifier ("Flinker gelehrter …").
+const MODE_MODIFIER_WORDS = {
+    // Kleingeschrieben: der Titel steht (seit Punkt 2/3 des Feedbacks) hinter dem Namen, das
+    // Modifier-Wort ist damit kein Satzanfang mehr, sondern eine Beifügung zum Basistitel.
+    speed: { m: { de: "flinker", en: "swift" }, w: { de: "flinke", en: "swift" }, n: { de: "flinker", en: "swift" } },
+    profi: { m: { de: "gelehrter", en: "scholarly" }, w: { de: "gelehrte", en: "scholarly" }, n: { de: "gelehrter", en: "scholarly" } }
+};
+
+// Löst eine Erfolgs-ID (inkl. optionalem "_profi"/"_speed"/"_profi_speed"-Suffix bei Kontinent-Erfolgen)
+// zusammen mit der gewählten Variante (m/w/n) in den fertigen Anzeigetext auf. Liefert bei
+// unbekannter/fehlender ID den Fallback-Text (Konzept Punkt 1, letzter Absatz).
+function achievementTitleText(id, variant, lang) {
+    const useLang = (lang === "en") ? "en" : "de";
+    if (!id) return useLang === "en" ? "Achievement" : "Erfolg";
+    let baseId = id, hasSpeed = false, hasProfi = false;
+    if (baseId.endsWith("_profi_speed")) { hasSpeed = true; hasProfi = true; baseId = baseId.slice(0, -"_profi_speed".length); }
+    else if (baseId.endsWith("_speed")) { hasSpeed = true; baseId = baseId.slice(0, -"_speed".length); }
+    else if (baseId.endsWith("_profi")) { hasProfi = true; baseId = baseId.slice(0, -"_profi".length); }
+
+    const titleEntry = ACHIEVEMENT_TITLES[baseId];
+    if (!titleEntry) return useLang === "en" ? "Achievement" : "Erfolg";
+    const useVariant = (variant && titleEntry[variant]) ? variant : (titleEntry.n ? "n" : (titleEntry.m ? "m" : "w"));
+    const baseText = (titleEntry[useVariant] && titleEntry[useVariant][useLang]) || (useLang === "en" ? "Achievement" : "Erfolg");
+
+    const modifierParts = [];
+    if (hasSpeed) modifierParts.push(MODE_MODIFIER_WORDS.speed[useVariant] ? MODE_MODIFIER_WORDS.speed[useVariant][useLang] : MODE_MODIFIER_WORDS.speed.n[useLang]);
+    if (hasProfi) modifierParts.push(MODE_MODIFIER_WORDS.profi[useVariant] ? MODE_MODIFIER_WORDS.profi[useVariant][useLang] : MODE_MODIFIER_WORDS.profi.n[useLang]);
+    return modifierParts.length ? (modifierParts.join(" ") + " " + baseText) : baseText;
+}
+
+// Liefert alle Varianten (m/w/n, je nach Definition) einer Erfolgs-ID als Array {variant, text} --
+// für das Titel-Auswahl-Dropdown (js/achievements.js), das bei Erfolgen mit zwei Formen beide
+// einzeln zur Auswahl anbietet (Konzept Punkt 4).
+function achievementTitleVariants(id, lang) {
+    const useLang = (lang === "en") ? "en" : "de";
+    let baseId = id;
+    if (baseId.endsWith("_profi_speed")) baseId = baseId.slice(0, -"_profi_speed".length);
+    else if (baseId.endsWith("_speed")) baseId = baseId.slice(0, -"_speed".length);
+    else if (baseId.endsWith("_profi")) baseId = baseId.slice(0, -"_profi".length);
+    const titleEntry = ACHIEVEMENT_TITLES[baseId];
+    if (!titleEntry) return [];
+    if (titleEntry.n) return [{ variant: "n", text: achievementTitleText(id, "n", useLang) }];
+    const variants = [];
+    if (titleEntry.m) variants.push({ variant: "m", text: achievementTitleText(id, "m", useLang) });
+    if (titleEntry.w) variants.push({ variant: "w", text: achievementTitleText(id, "w", useLang) });
+    return variants;
+}
+
 // Nutzt bewusst die lokalen Flaggenbilder (flags/de.svg, flags/gb.svg) statt der Unicode-Flaggen-
 // Emoji (🇩🇪/🇬🇧): Windows zeigt Flaggen-Emoji-Sequenzen je nach Font/Version oft nur als reinen
 // Buchstaben-Code ("DE"/"GB") statt als echte Flagge an -- die lokalen Bilder sehen dagegen
@@ -761,6 +878,12 @@ function applyTranslations() {
         buildHubLengthButtons();
         buildHubModeButtons();
         updateHubStandardHighscoreDisplay();
+    }
+    // Erfolge-Screen: nur neu rendern, wenn er gerade sichtbar ist (Titeltexte/Modifier-Wörter
+    // sind sprachabhängig).
+    const achievementsScreenEl = document.getElementById("achievementsScreen");
+    if (achievementsScreenEl && achievementsScreenEl.style.display === "block" && typeof renderAchievementsScreen === "function") {
+        renderAchievementsScreen();
     }
     // Gruppenquiz: laufende Leiter-/Mitspieler-Banner ebenfalls neu rendern, falls gerade aktiv.
     if (typeof renderGroupLeaderBanner === "function" && typeof getLeaderSession === "function" && getLeaderSession()) {

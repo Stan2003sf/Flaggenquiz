@@ -161,6 +161,7 @@ async function updateHighscoreDisplay() {
 
     const { list, online } = await fetchTopListCached(key);
     const tierIcons = await getLadderTierDeviceIdMap();
+    const titleTexts = await getPlayerTitleDeviceIdMap();
     const statusLine = online
         ? `<span title="${t("common.onlineTitle")}">${t("common.online")}</span>`
         : `<span title="${t("common.offlineTitle")}">${t("common.offline")}</span>`;
@@ -186,11 +187,12 @@ async function updateHighscoreDisplay() {
         lastRank = rank;
         const prestige = entry.prestige || 0;
         const tierIcon = tierIcons.get(entry.deviceId);
-        const crown = tierIcon ? (tierIcon + ' ') : '';
+        const titleText = titleTexts.get(entry.deviceId);
+        const nameHtml = nameWithTitleHtml(entry.name || t("common.anonymous"), tierIcon, titleText);
         return `
         <div class="hs-row rank-${rank}">
             <div class="hs-medal">${rank <= 3 ? medals[rank - 1] : rank + "."}</div>
-            <div class="hs-row-name">${crown}${escapeHtml(entry.name || t("common.anonymous"))}${prestige > 0 ? ' <span class="hs-prestige" title="' + t("highscore.prestigeTitle") + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
+            <div class="hs-row-name">${nameHtml}${prestige > 0 ? ' <span class="hs-prestige" title="' + t("highscore.prestigeTitle") + prestige + '×">💎' + (prestige > 1 ? ' ×' + prestige : '') + '</span>' : ''}</div>
             <div class="hs-row-score">${entry.score} ${t("highscore.points")}</div>
         </div>`;
     }).join("");

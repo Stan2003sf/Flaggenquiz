@@ -267,6 +267,8 @@ async function updateBattleHighscoreDisplay(targetId) {
     const el = document.getElementById(targetId || "battleHighscoreDisplay");
     el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>' + t("common.loading") + '</div></div>';
     const { list, online } = await fetchTopListCached(BATTLE_HIGHSCORE_KEY);
+    const tierIcons = await getLadderTierDeviceIdMap();
+    const titleTexts = await getPlayerTitleDeviceIdMap();
     const statusLine = online
         ? '<span title="' + t("common.onlineTitle") + '">' + t("common.online") + '</span>'
         : '<span title="' + t("common.offlineTitle") + '">' + t("common.offline") + '</span>';
@@ -279,9 +281,12 @@ async function updateBattleHighscoreDisplay(targetId) {
     const rowsHtml = list.slice(0, 50).map((entry, i) => {
         const rank = (entry.wins === lastWins) ? lastRank : (i + 1);
         lastWins = entry.wins; lastRank = rank;
+        const tierIcon = tierIcons.get(entry.deviceId);
+        const titleText = titleTexts.get(entry.deviceId);
+        const nameHtml = nameWithTitleHtml(entry.name || t("common.anonymous"), tierIcon, titleText);
         return '<div class="hs-row rank-' + rank + '">' +
             '<div class="hs-medal">' + (rank <= 3 ? medals[rank - 1] : rank + ".") + '</div>' +
-            '<div class="hs-row-name">' + escapeHtml(entry.name || t("common.anonymous")) + '</div>' +
+            '<div class="hs-row-name">' + nameHtml + '</div>' +
             '<div class="hs-row-score">' + entry.wins + ' ' + (entry.wins === 1 ? t("battle.wins") : t("battle.winsPlural")) + '</div></div>';
     }).join("");
     el.innerHTML = '<div class="highscore-card"><div class="hs-row-list">' + rowsHtml + '</div><div class="hs-status">' + statusLine + '</div></div>';
@@ -303,6 +308,7 @@ let battleLastData = null;
 let battleHeartbeatTimer = null;
 let battleWatchdogTimer = null;
 let battleTierIcons = new Map(); // wird beim Verbindungsaufbau einmal geladen, siehe startBattleListener
+let battleTitles = new Map(); // dito, für Erfolgs-Titel (js/achievements.js)
 const BATTLE_STALE_WARNING_MS = 12000; // ab hier: dezenter Hinweis "Verbindung könnte unterbrochen sein"
 const BATTLE_STALE_CLAIM_MS = 45000;   // ab hier: aktive Möglichkeit, das Battle für sich zu werten
 
@@ -354,16 +360,33 @@ async function claimBattleWinByDisconnect(code) {
 
 function battleGetMyLives(data) { return battleRole === "A" ? data.livesA : data.livesB; }
 function battleGetOpponentLives(data) { return battleRole === "A" ? data.livesB : data.livesA; }
+// Plain-Text-Variante -- für Stellen, an denen der Name in einen längeren Satz eingebettet wird
+// (Banner, Warnhinweise), dort ist kein HTML/kleinere Schriftgröße für den Titel möglich.
 function battleNameWithCrown(player, fallback) {
     if (!player) return fallback;
     const tierIcon = battleTierIcons.get(player.deviceId);
-    return (tierIcon ? (tierIcon + " ") : "") + player.name;
+    const titleText = battleTitles.get(player.deviceId);
+    return (tierIcon ? (tierIcon + " ") : "") + player.name + (titleText ? (" " + titleText) : "");
+}
+// HTML-Variante (Titel kleiner, siehe .player-title-suffix) -- für die direkten Namens-Labels im
+// Battle-Kopfbereich (#battleOwnName/#battleOpponentName).
+function battleNameWithCrownHtml(player, fallbackText) {
+    if (!player) return escapeHtml(fallbackText);
+    const tierIcon = battleTierIcons.get(player.deviceId);
+    const titleText = battleTitles.get(player.deviceId);
+    return nameWithTitleHtml(player.name, tierIcon, titleText);
 }
 function battleGetMyName(data) {
     return battleRole === "A" ? battleNameWithCrown(data.playerA, t("battle.you")) : battleNameWithCrown(data.playerB, t("battle.you"));
 }
 function battleGetOpponentName(data) {
     return battleRole === "A" ? battleNameWithCrown(data.playerB, t("battle.opponent")) : battleNameWithCrown(data.playerA, t("battle.opponent"));
+}
+function battleGetMyNameHtml(data) {
+    return battleRole === "A" ? battleNameWithCrownHtml(data.playerA, t("battle.you")) : battleNameWithCrownHtml(data.playerB, t("battle.you"));
+}
+function battleGetOpponentNameHtml(data) {
+    return battleRole === "A" ? battleNameWithCrownHtml(data.playerB, t("battle.opponent")) : battleNameWithCrownHtml(data.playerA, t("battle.opponent"));
 }
 
 function battleCurrentFlagFor(data, roundNum) {
@@ -469,6 +492,10 @@ function startBattleListener(code, role) {
     getLadderTierDeviceIdMap().then(map => {
         battleTierIcons = map;
         if (battleLastData) renderBattleFromData(battleLastData); // Namen (Tier-Abzeichen) neu einblenden, falls schon etwas gerendert wurde
+    });
+    getPlayerTitleDeviceIdMap().then(map => {
+        battleTitles = map;
+        if (battleLastData) renderBattleFromData(battleLastData); // Namen (Erfolgs-Titel) neu einblenden, falls schon etwas gerendert wurde
     });
 
     const ref = firestoreDb.collection("battles").doc(code);
@@ -643,8 +670,8 @@ function showBattleGameScreen(data) {
         document.getElementById("battleGameScreen").style.display = "block";
     }
 
-    document.getElementById("battleOwnName").textContent = battleGetMyName(data);
-    document.getElementById("battleOpponentName").textContent = battleGetOpponentName(data);
+    document.getElementById("battleOwnName").innerHTML = battleGetMyNameHtml(data);
+    document.getElementById("battleOpponentName").innerHTML = battleGetOpponentNameHtml(data);
 
     const myLivesNow = battleGetMyLives(data);
     const opponentLivesNow = battleGetOpponentLives(data);

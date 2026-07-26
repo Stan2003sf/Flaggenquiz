@@ -396,6 +396,7 @@ async function updateLadderHighscoreDisplay(targetEl) {
     const el = targetEl || ladderHighscoreDisplayEl;
     el.innerHTML = '<div class="highscore-card hs-empty"><span class="trophy">🏆</span><div>' + t("common.loading") + '</div></div>';
     const { list, online } = await fetchTopListCached(LADDER_HIGHSCORE_KEY);
+    const titleTexts = await getPlayerTitleDeviceIdMap();
     const statusLine = online
         ? '<span title="' + t("common.onlineTitle") + '">' + t("common.online") + '</span>'
         : '<span title="' + t("common.offlineTitle") + '">' + t("common.offline") + '</span>';
@@ -413,10 +414,11 @@ async function updateLadderHighscoreDisplay(targetEl) {
         const rank = (entry.best === lastBest) ? lastRank : (i + 1);
         lastBest = entry.best; lastRank = rank;
         const tierIcon = ladderTierIconFor(entry);
-        const tier = tierIcon ? (tierIcon + ' ') : '';
+        const titleText = titleTexts.get(entry.deviceId);
+        const nameHtml = nameWithTitleHtml(entry.name || t("common.anonymous"), tierIcon, titleText);
         return '<div class="hs-row rank-' + rank + '">' +
             '<div class="hs-medal">' + (rank <= 3 ? medals[rank - 1] : rank + ".") + '</div>' +
-            '<div class="hs-row-name">' + tier + escapeHtml(entry.name || t("common.anonymous")) + '</div>' +
+            '<div class="hs-row-name">' + nameHtml + '</div>' +
             '<div class="hs-row-score">' + entry.best + ' / 197</div></div>';
     }).join("");
     el.innerHTML =

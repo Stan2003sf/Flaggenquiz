@@ -634,7 +634,7 @@ function submitAnswer(userInput, forcedCountry) {
         });
     }
     tipBtn.disabled = true;
-    recordAnswerStat(c.name, result.correct);
+    recordAnswerStat(c.name, result.correct, settings.proMode, settings.speedMode);
     if (!settings.learningMode) incrementFlagStat(c.iso, result.correct);
 
     if (result.correct) {
