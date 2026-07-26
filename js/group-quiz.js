@@ -898,7 +898,7 @@ function renderStatsModal() {
 
     const ladderTierIcon = ladderTierIconFor(ladderCache);
     const ladderProgressValue = ladderCache && ladderCache.best > 0
-        ? `${ladderTierIcon ? (ladderTierIcon + " ") : ""}(${ladderCache.best}/${countries.length} Flaggen)`
+        ? `${ladderTierIcon ? (ladderTierIcon + " ") : ""}(${ladderCache.best}/${countries.length} ${t("settings.flags")})`
         : "–";
 
     let html = explanation + `

@@ -879,7 +879,7 @@ async function showEndScreen() {
     } else {
         wrongListTitle.innerHTML = t("game.practiceWrongList");
         wrongListDiv.innerHTML = wrongAnswers
-            .map(w => `<div><strong>${w.name}</strong> — ${t("game.yourAnswer")}${w.given}</div>`)
+            .map(w => `<div><strong>${escapeHtml(w.name)}</strong> — ${t("game.yourAnswer")}${escapeHtml(w.given)}</div>`)
             .join("");
     }
 }

@@ -3,7 +3,7 @@
 // Version vom Server geladen. Der Cache wird nur genutzt, wenn das Netzwerk nicht erreichbar ist.
 // (Vorherige Version nutzte "Cache First" - dadurch kamen Updates immer erst mit Verzögerung an.)
 
-const CACHE_NAME = "flaggenquiz-cache-v19";
+const CACHE_NAME = "flaggenquiz-cache-v20";
 const APP_SHELL = [
     "./index.html",
     "./manifest.json",
@@ -22,6 +22,7 @@ const APP_SHELL = [
     "./js/group-quiz.js",
     "./js/standard-game.js",
     "./js/ladder-mode.js",
+    "./js/achievements.js",
     "./js/battle-mode.js",
     "./js/highscore-hub.js",
     "./js/init.js"
@@ -44,13 +45,6 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-    const url = new URL(event.request.url);
-
-    // Flaggenbilder von flagcdn.com immer normal aus dem Netz laden, nicht über den Service Worker
-    if (url.hostname.includes("flagcdn.com")) {
-        return;
-    }
-
     // App-Hülle: IMMER zuerst versuchen, die aktuelle Version aus dem Netz zu laden.
     // Nur bei echtem Verbindungsfehler (offline) wird auf den letzten gecachten Stand zurückgegriffen.
     event.respondWith(

@@ -580,6 +580,11 @@ function showBattleContinentScreen(data) {
         Array.from(btnContainer.children).forEach(b => b.disabled = true);
         return;
     }
+    // Muss explizit zurückgesetzt werden: dieselben DOM-Elemente werden ohne Seiten-Reload für
+    // JEDES neue Battle wiederverwendet. Ohne dieses Reset blieb der Hinweis samt Namen des
+    // VORHERIGEN Gegners sichtbar, falls man in einem früheren Battle bereits selbst gewählt
+    // hatte, bevor man im neuen Battle überhaupt bestätigt hat (siehe Nutzer-Fehlerbericht).
+    waitNote.style.display = "none";
 
     if (btnContainer.children.length === 0) {
         battleSelectedContinents = [];
@@ -631,6 +636,9 @@ function showBattlePoisonScreen(data) {
         Array.from(grid.children).forEach(el => el.style.pointerEvents = "none");
         return;
     }
+    // Siehe Kommentar in showBattleContinentScreen: ohne diesen Reset blieb der Warte-Hinweis
+    // (inkl. Name) eines vorherigen Battles sichtbar, bevor im neuen Battle selbst bestätigt wurde.
+    waitNote.style.display = "none";
 
     if (grid.children.length === 0) {
         battleSelectedPoison = [];
@@ -929,17 +937,4 @@ document.getElementById("battleEndRestartBtn").onclick = function () { goToMulti
 document.getElementById("forfeitFromBattleContinent").onclick = () => forfeitBattle();
 document.getElementById("forfeitFromBattlePoison").onclick = () => forfeitBattle();
 document.getElementById("forfeitFromBattleGame").onclick = () => forfeitBattle();
-
-// Automatischer Beitritt über den Battle-QR-Code-Link (?battle=CODE in der URL)
-(function checkBattleUrlParam() {
-    const params = new URLSearchParams(location.search);
-    const code = params.get("battle");
-    if (code) {
-        goToBattleEntryScreen();
-        document.getElementById("battleJoinInputRow").style.display = "block";
-        document.getElementById("battleCodeInput").value = code.toUpperCase();
-        document.getElementById("battleJoinConfirmBtn").click();
-        history.replaceState({}, "", location.pathname);
-    }
-})();
 

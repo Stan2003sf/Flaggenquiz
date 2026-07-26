@@ -138,13 +138,10 @@ function specialModeIconLabel() {
 async function updateHighscoreDisplay() {
     // Im Gruppenquiz zählt nur die Gruppen-Bestenliste — die globale Bestenliste wird
     // hier weder angezeigt noch abgerufen (spart unnötige Firestore-Anfragen).
-    const highscoreAccordionWrap = document.getElementById("highscoreAccordionWrap");
     if (isGroupPlayer || getLeaderSession()) {
-        if (highscoreAccordionWrap) highscoreAccordionWrap.style.display = "none";
         highscoreDisplay.innerHTML = "";
         return;
     }
-    if (highscoreAccordionWrap) highscoreAccordionWrap.style.display = "";
 
     const key = highscoreKey();
     const modeLabelText = modeLabel();

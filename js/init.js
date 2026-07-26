@@ -447,6 +447,22 @@ groupHighscoreModal.onclick = function (e) {
     }
 })();
 
+// Automatischer Beitritt über den Battle-QR-Code-Link (?battle=CODE in der URL). Muss NACH dem
+// Setzen von nicknameInput.value (siehe oben) laufen -- lag früher als sofort ausgeführte Funktion
+// in js/battle-mode.js, also VOR dieser Zuweisung, wodurch joinBattleByCode() den Namen noch leer
+// vorfand und einen zufälligen Fantasienamen statt des echten gespeicherten Namens eintrug.
+(function checkBattleUrlParam() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("battle");
+    if (code) {
+        goToBattleEntryScreen();
+        document.getElementById("battleJoinInputRow").style.display = "block";
+        document.getElementById("battleCodeInput").value = code.toUpperCase();
+        document.getElementById("battleJoinConfirmBtn").click();
+        history.replaceState({}, "", location.pathname);
+    }
+})();
+
 // ---------- i18n: gespeicherte Sprache auf alle Ebene-0/Hauptmenü/Einstellungen-Texte anwenden ----------
 // Bewusst ganz am Ende von init.js (nach allem anderen Setup), damit alle beteiligten Elemente
 // und Funktionen (renderNicknameDisplay, updateMuteButton) garantiert schon existieren.
