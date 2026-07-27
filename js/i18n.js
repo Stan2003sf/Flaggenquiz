@@ -200,6 +200,10 @@ const TRANSLATIONS = {
         "battle.you": "Du",
         "battle.opponent": "Gegner",
         "battle.chosenOf3": " / 3 gewählt",
+        "battle.continentsChosenNote": "Es wurde {continents} gewählt. Bitte wähle 3 Fallen-Flaggen.",
+        "battle.suddenDeathAnnounceTitle": "⚔️ Sudden Death!",
+        "battle.suddenDeathAnnounceSub": "Ihr verliert jetzt beide automatisch 1 Leben.",
+        "battle.go": "Los!",
 
         "hub.heading": "🏆 Bestenliste",
         "hub.tabStandard": "🧭 Entdecker-Modus",
@@ -241,6 +245,9 @@ const TRANSLATIONS = {
         "achievements.progressCountries": "{current} / {total} Länder",
         "achievements.progressFlags": "{current} / {total} Flaggen",
         "achievements.progressStreakLine": "Beste Serie: {current} / {total}",
+        "achievements.categoryBattle": "⚔️ Battle-Erfolge",
+        "achievements.desc.battle": "Insgesamt {n} Battles gewonnen.",
+        "achievements.progressWins": "{current} / {total} Siege",
         "achievements.scrollToTop": "⬆️ Nach oben",
 
         "group.tileTitle": "Gruppenquiz",
@@ -549,6 +556,10 @@ const TRANSLATIONS = {
         "battle.you": "You",
         "battle.opponent": "Opponent",
         "battle.chosenOf3": " / 3 chosen",
+        "battle.continentsChosenNote": "Chosen continent: {continents}. Please choose 3 trap flags.",
+        "battle.suddenDeathAnnounceTitle": "⚔️ Sudden Death!",
+        "battle.suddenDeathAnnounceSub": "You both automatically lose 1 life now.",
+        "battle.go": "Go!",
 
         "hub.heading": "🏆 Leaderboard",
         "hub.tabStandard": "🧭 Explorer Mode",
@@ -590,6 +601,9 @@ const TRANSLATIONS = {
         "achievements.progressCountries": "{current} / {total} countries",
         "achievements.progressFlags": "{current} / {total} flags",
         "achievements.progressStreakLine": "Best streak: {current} / {total}",
+        "achievements.categoryBattle": "⚔️ Battle Achievements",
+        "achievements.desc.battle": "Won {n} battles in total.",
+        "achievements.progressWins": "{current} / {total} wins",
         "achievements.scrollToTop": "⬆️ Back to top",
 
         "group.tileTitle": "Group Quiz",
@@ -786,7 +800,11 @@ const ACHIEVEMENT_TITLES = {
     milestone_all: { m: { de: "Flaggenkenner", en: "Flag Sage" }, w: { de: "Flaggenkennerin", en: "Flag Sage" } },
     streak_10: { m: { de: "Serienstarter", en: "Streak Starter" }, w: { de: "Serienstarterin", en: "Streak Starter" } },
     streak_20: { m: { de: "Serientäter", en: "Streak Master" }, w: { de: "Serientäterin", en: "Streak Master" } },
-    streak_50: { n: { de: "Unaufhaltsam", en: "Unstoppable" } }
+    streak_50: { n: { de: "Unaufhaltsam", en: "Unstoppable" } },
+    battle_10: { n: { de: "ist kampfbereit", en: "is battle-ready" } },
+    battle_25: { n: { de: "ist zielsicher", en: "is unerring" } },
+    battle_50: { n: { de: "ist unbezwingbar", en: "is unbeatable" } },
+    battle_100: { n: { de: "ist legendär", en: "is legendary" } }
 };
 
 // Modus-Modifier (nur Kontinent-Erfolge, siehe Konzept Punkt 3): wird dem Basistitel vorangestellt.

@@ -18,20 +18,6 @@ startBtn.onclick = async function () {
     }
     nicknameHint.style.display = "none";
 
-    // Namens-Kollisionsprüfung: derselbe Name bereits unter einer ANDEREN Geräte-ID vergeben?
-    // Im Gruppenquiz entfällt das komplett, da dort keine globale Bestenliste verwendet wird.
-    // Für alle anderen Fälle greift dies meist auf den Cache zurück (siehe checkNameCollision),
-    // wurde der Name schon beim Verlassen des Namensfelds geprüft, ist es hier normalerweise
-    // sofort fertig statt spürbar zu laden.
-    if (!isGroupPlayer) {
-        const collision = await checkNameCollision(playerName);
-        if (collision) {
-            nicknameHint.textContent = t("nickname.collision");
-            nicknameHint.style.display = "block";
-            return;
-        }
-    }
-
     // Gruppenquiz: sobald tatsächlich gestartet wird, diese Runde als "gespielt" markieren,
     // damit der Start-Button gesperrt bleibt, bis die Gruppenleitung die nächste Runde freigibt.
     if (isGroupPlayer) {

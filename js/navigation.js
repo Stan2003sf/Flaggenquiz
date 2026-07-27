@@ -17,6 +17,7 @@ function hideAllScreens() {
     document.getElementById("battleContinentScreen").style.display = "none";
     document.getElementById("battlePoisonScreen").style.display = "none";
     document.getElementById("battleGameScreen").style.display = "none";
+    document.getElementById("battleIntroScreen").style.display = "none";
     document.getElementById("battleEndScreen").style.display = "none";
     document.getElementById("settingsMenuScreen").style.display = "none";
     document.getElementById("statsScreen").style.display = "none";

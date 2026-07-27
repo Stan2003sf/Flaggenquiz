@@ -18,6 +18,11 @@ const CONTINENT_ACHIEVEMENT_IDS = Object.keys(ACHIEVEMENT_CONTINENT_MAP);
 
 const LADDER_MILESTONE_THRESHOLDS = [25, 50, 100, 150]; // "milestone_all" kommt dynamisch dazu (countries.length)
 const STREAK_THRESHOLDS = [10, 20, 50];
+const BATTLE_WIN_THRESHOLDS = [10, 25, 50, 100];
+
+// Eigene Icons, bewusst verschieden von MILESTONE_ICONS/CONTINENT_ICONS (kein 👑/⚔️ -- Letzteres
+// ist bereits das generelle Battle-Icon in Überschrift/Tabs/Create-Button, siehe js/i18n.js).
+const BATTLE_ACHIEVEMENT_ICONS = { battle_10: "🥊", battle_25: "🏹", battle_50: "🛡️", battle_100: "🏵️" };
 
 // Abzeichen, das der/die Spieler:in beim jeweiligen Meilenstein erhält -- 50/100/150 sind dieselben
 // Icons wie das bestehende Gipfelsturm-Tier-System (LADDER_TIER_ICONS, js/ladder-mode.js), "all"
@@ -39,6 +44,7 @@ function buildAchievementDefs() {
     LADDER_MILESTONE_THRESHOLDS.forEach(n => defs.push({ id: "milestone_" + n, category: "milestone", threshold: n }));
     defs.push({ id: "milestone_all", category: "milestone", threshold: (typeof countries !== "undefined" ? countries.length : 197) });
     STREAK_THRESHOLDS.forEach(n => defs.push({ id: "streak_" + n, category: "streak", threshold: n }));
+    BATTLE_WIN_THRESHOLDS.forEach(n => defs.push({ id: "battle_" + n, category: "battle", threshold: n }));
     return defs;
 }
 
@@ -66,6 +72,7 @@ function computeAchievementStatus() {
     const defs = buildAchievementDefs();
     const ladderBest = (getLadderOwnBestCache() && getLadderOwnBestCache().best) || 0;
     const bestStreak = getBestStreak();
+    const ownBattleWins = (typeof getOwnBattleWins === "function") ? getOwnBattleWins() : 0;
     const continentBaseUnlocked = {};
 
     const results = defs.map(def => {
@@ -77,6 +84,8 @@ function computeAchievementStatus() {
             progress = { current: Math.min(ladderBest, def.threshold), total: def.threshold };
         } else if (def.category === "streak") {
             progress = { current: Math.min(bestStreak, def.threshold), total: def.threshold };
+        } else if (def.category === "battle") {
+            progress = { current: Math.min(ownBattleWins, def.threshold), total: def.threshold };
         }
         return { def: def, progress: progress, unlocked: progress.total > 0 && progress.current >= progress.total };
     });
@@ -200,6 +209,7 @@ function achievementCategoryLabel(category) {
     if (category === "continent") return t("achievements.categoryContinent");
     if (category === "meta") return t("achievements.categoryMeta");
     if (category === "milestone") return t("achievements.categoryMilestone");
+    if (category === "battle") return t("achievements.categoryBattle");
     return t("achievements.categoryStreak");
 }
 
@@ -215,6 +225,7 @@ function achievementDescription(entry) {
     }
     if (def.category === "meta") return t("achievements.desc.meta");
     if (def.category === "milestone") return t("achievements.desc.milestone").replace("{n}", def.threshold);
+    if (def.category === "battle") return t("achievements.desc.battle").replace("{n}", def.threshold);
     return t("achievements.desc.streak").replace("{n}", def.threshold);
 }
 
@@ -222,6 +233,9 @@ function achievementProgressLine(entry) {
     const p = entry.progress;
     if (entry.def.category === "streak") {
         return t("achievements.progressStreakLine").replace("{current}", p.current).replace("{total}", p.total);
+    }
+    if (entry.def.category === "battle") {
+        return t("achievements.progressWins").replace("{current}", p.current).replace("{total}", p.total);
     }
     const key = entry.def.category === "milestone" ? "achievements.progressFlags" : "achievements.progressCountries";
     return t(key).replace("{current}", p.current).replace("{total}", p.total);
@@ -235,6 +249,7 @@ function achievementCardHtml(entry) {
     // Gipfelsturm-Meilensteine das jeweils erhaltene Abzeichen (MILESTONE_ICONS oben).
     const icon = entry.def.category === "continent" ? (CONTINENT_ICONS[entry.def.continent] || "🌐")
         : entry.def.category === "milestone" ? (MILESTONE_ICONS[entry.def.id] || "")
+        : entry.def.category === "battle" ? (BATTLE_ACHIEVEMENT_ICONS[entry.def.id] || "")
         : "";
     const iconPrefix = icon ? (icon + " ") : "";
     return '<div class="achv-card' + (entry.unlocked ? ' achv-unlocked' : '') + '">' +
@@ -277,7 +292,7 @@ function renderAchievementsScreen() {
     const name = nicknameInput.value.trim() || t("nicknameFallback");
     const previewTitle = active ? achievementTitleText(active.id, active.variant, currentLang) : "";
 
-    const categories = ["continent", "meta", "milestone", "streak"];
+    const categories = ["continent", "meta", "milestone", "streak", "battle"];
     let cardsHtml = "";
     categories.forEach(cat => {
         const entries = statusList.filter(e => e.def.category === cat);

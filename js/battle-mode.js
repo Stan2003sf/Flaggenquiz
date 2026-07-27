@@ -5,6 +5,18 @@ const BATTLE_HIGHSCORE_KEY = "flagquiz_battle_bestenliste";
 const BATTLE_EXPIRY_HOURS = 3;
 const BATTLE_MAX_LIVES = 5; // Schritt 5: 5 statt 3 Leben pro Spieler:in
 
+// Eigener, rein lokaler Sieg-Zähler für das Erfolgssystem (js/achievements.js) -- bewusst NICHT aus
+// BATTLE_HIGHSCORE_KEY abgeleitet, da diese Liste auf die Top 50 gekappt ist (recordBattleWin()):
+// Geräte außerhalb der Top 50 würden ihren Sieg-Fortschritt sonst beim nächsten Speichern verlieren.
+// Analoges Muster wie LADDER_OWN_BEST_CACHE_KEY in js/ladder-mode.js (dort ebenfalls rein lokal).
+const BATTLE_OWN_WINS_KEY = "flagquiz_battle_own_wins";
+function getOwnBattleWins() {
+    try { return parseInt(localStorage.getItem(BATTLE_OWN_WINS_KEY), 10) || 0; } catch (e) { return 0; }
+}
+function incrementOwnBattleWins() {
+    try { localStorage.setItem(BATTLE_OWN_WINS_KEY, String(getOwnBattleWins() + 1)); } catch (e) { /* ignorieren */ }
+}
+
 function getBattleSession() {
     try { const raw = localStorage.getItem(BATTLE_SESSION_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
@@ -128,6 +140,22 @@ async function tryResolveBattlePool(code) {
     } catch (e) { console.warn("Kontinent-Pool konnte nicht aufgelöst werden.", e); }
 }
 
+// Liefert die zu Rundenbeginn NICHT gewählten Kontinent(e) (aus continents3, abzüglich data.pool) --
+// das ist seit dem Feedback-Punkt "Fallen-Flaggen aus fremdem Kontinent" die Quelle für die Fallen-
+// Flaggen: Sie sollen aus unbekanntem Terrain kommen, nicht aus dem ohnehin gespielten Kontinent.
+// continents3 hat immer 3 Elemente, data.pool höchstens 2 (siehe tryResolveBattlePool) -- die
+// Restmenge ist daher rechnerisch immer mit mindestens 1 Kontinent belegt, nie leer.
+function battleLeftoverContinents(data) {
+    return data.continents3.filter(c => !data.pool.includes(c));
+}
+
+// Baut den Anzeigetext für 1-2 Kontinente ("Afrika" bzw. "Afrika und Europa"), analog zum Muster
+// in js/standard-settings.js (buildContinentSummary).
+function battleContinentListLabel(list) {
+    if (list.length === 1) return continentDisplayName(list[0]);
+    return list.slice(0, -1).map(continentDisplayName).join(", ") + " " + t("settings.continentAnd") + " " + continentDisplayName(list[list.length - 1]);
+}
+
 // ---------- Battle: Fallen-Flaggen & Rundenaufbau (Konzept Punkte 3-4) ----------
 
 async function submitBattlePoison(code, role, isos) {
@@ -193,6 +221,10 @@ async function tryResolveBattleStart(code) {
             const data = snap.data();
             if (!data || data.sequenceA || !data.poisonChoiceA || !data.poisonChoiceB || !data.pool) return;
             const poolCountries = countries.filter(c => data.pool.includes(c.continent));
+            // Fallen-Flaggen (Länder UND Distraktoren) kommen bewusst aus dem/den NICHT gewählten
+            // Kontinent(en), nicht aus dem gespielten Pool (siehe battleLeftoverContinents) --
+            // unbekanntes Terrain, das die Falle wirklich unerwartet macht.
+            const leftoverCountries = countries.filter(c => battleLeftoverContinents(data).includes(c.continent));
             const isoToCountry = iso => countries.find(c => c.iso === iso);
             const poisonForA = data.poisonChoiceB.map(isoToCountry); // B's Wahl trifft A
             const poisonForB = data.poisonChoiceA.map(isoToCountry); // A's Wahl trifft B
@@ -213,8 +245,11 @@ async function tryResolveBattleStart(code) {
             // Nur die je 3 Fallen-Flaggen-Runden brauchen wirklich getrennte Optionen, da dort auch
             // die richtige Flagge selbst zwischen A und B unterschiedlich ist.
             const baseOptions = buildBattleOptionsForSequence(base, poolCountries);
-            const poisonOptionsForA = buildBattleOptionsForSequence(poisonForA, poolCountries);
-            const poisonOptionsForB = buildBattleOptionsForSequence(poisonForB, poolCountries);
+            // Distraktoren für die Fallen-Runden ebenfalls aus dem fremden Kontinent (leftoverCountries),
+            // nicht aus poolCountries -- sonst wäre die einzige "fremd aussehende" Flagge unter drei
+            // Distraktoren aus dem gespielten Kontinent optisch sofort als Falle erkennbar.
+            const poisonOptionsForA = buildBattleOptionsForSequence(poisonForA, leftoverCountries);
+            const poisonOptionsForB = buildBattleOptionsForSequence(poisonForB, leftoverCountries);
             const optionsA = battleBuildIndividualOptions(baseOptions, poisonOptionsForA, poisonPositions);
             const optionsB = battleBuildIndividualOptions(baseOptions, poisonOptionsForB, poisonPositions);
             const suddenDeathOptions = buildBattleOptionsForSequence(suddenDeathSequence, poolCountries);
@@ -259,6 +294,23 @@ async function tryResolveBattleRound(code, roundNum) {
             if (!rd.answerB.correct) livesB--;
             const updates = {};
             updates["rounds." + roundNum + ".resolved"] = true;
+
+            // Sudden-Death-Beschleuniger (Konzept-Feedback Punkt 1A): Beim Übergang Runde 12 -> 13
+            // verlieren beide automatisch 1 Leben zusätzlich zur normalen Antwort-Wertung, danach
+            // alle weiteren 5 Sudden-Death-Runden nochmal je 1 (wird beim Auflösen von Runde 17/22/27
+            // angewendet, sichtbar wird der reduzierte Lebensstand dann ab Runde 18/23/28 -- die
+            // 5er-Zählung startet bewusst NACH dem Start-Verlust neu). Nur anwenden, wenn das Duell
+            // nicht schon durch die normale Rundenwertung entschieden ist.
+            if (livesA > 0 && livesB > 0) {
+                const sdRoundIndex = roundNum - 12; // 1 bei Runde 13, 2 bei Runde 14, ...
+                const entersSuddenDeath = roundNum === 12;
+                const hitsFiveRhythm = sdRoundIndex > 0 && sdRoundIndex % 5 === 0;
+                if (entersSuddenDeath || hitsFiveRhythm) {
+                    livesA--;
+                    livesB--;
+                }
+            }
+
             updates.livesA = livesA;
             updates.livesB = livesB;
             if (livesA <= 0 || livesB <= 0) {
@@ -291,6 +343,7 @@ async function recordBattleWin() {
     list = list.slice(0, 50);
     const saved = await saveTopList(BATTLE_HIGHSCORE_KEY, list);
     setHighscoreCache(BATTLE_HIGHSCORE_KEY, list, saved);
+    incrementOwnBattleWins(); // unabhängig vom Top-50-Cap, siehe Kommentar oben
 }
 
 async function updateBattleHighscoreDisplay(targetId) {
@@ -339,6 +392,13 @@ let battleHeartbeatTimer = null;
 let battleWatchdogTimer = null;
 let battleTierIcons = new Map(); // wird beim Verbindungsaufbau einmal geladen, siehe startBattleListener
 let battleTitles = new Map(); // dito, für Erfolgs-Titel (js/achievements.js)
+// 3-2-1-Los-Countdown + Sudden-Death-Ankündigung (Konzept-Feedback Punkte 1A/1D): battleIntroPlayedFor
+// verhindert ein erneutes Abspielen bei jedem Snapshot-Update (z. B. Herzschlag alle 5s), solange
+// dieselbe Runde noch aktuell ist. battleIntroGeneration steigt bei stopBattleListener und bricht
+// eine noch laufende Sequenz sauber ab (z. B. bei Battle-Abbruch mitten im Countdown).
+let battleIntroPlayedFor = null;
+let battleIntroActive = false;
+let battleIntroGeneration = 0;
 const BATTLE_STALE_WARNING_MS = 12000; // ab hier: dezenter Hinweis "Verbindung könnte unterbrochen sein"
 const BATTLE_STALE_CLAIM_MS = 45000;   // ab hier: aktive Möglichkeit, das Battle für sich zu werten
 
@@ -510,8 +570,51 @@ function stopBattleListener() {
     battleLastData = null;
     battleLastKnownMyLives = null;
     battleLastKnownOpponentLives = null;
+    battleIntroPlayedFor = null;
+    battleIntroActive = false;
+    battleIntroGeneration++; // bricht eine evtl. noch laufende Intro-Sequenz sauber ab
     const banner = document.getElementById("battleConnectionBanner");
     if (banner) banner.style.display = "none";
+}
+
+// Vollbild-Zwischensequenz vor der ersten Runde und vor Sudden Death (Konzept-Feedback Punkte 1A/1D):
+// bei Sudden Death zuerst eine kurze Ankündigung ("Sudden Death! Beide verlieren 1 Leben"), danach in
+// beiden Fällen ein 3-2-1-Los-Countdown. Rein clientseitig, kein Server-Sync nötig -- ein paar hundert
+// Millisekunden Versatz zwischen den Geräten sind für diesen Effekt unerheblich.
+function playBattleIntro(isSuddenDeath, onDone) {
+    const myGeneration = battleIntroGeneration;
+    hideAllScreens();
+    setChromeVisible(false);
+    const screen = document.getElementById("battleIntroScreen");
+    const content = document.getElementById("battleIntroContent");
+    screen.style.display = "flex";
+
+    function runCountdown() {
+        if (myGeneration !== battleIntroGeneration) return; // Battle inzwischen verlassen/beendet
+        const steps = ["3", "2", "1", t("battle.go")];
+        let i = 0;
+        (function step() {
+            if (myGeneration !== battleIntroGeneration) return;
+            if (i >= steps.length) {
+                screen.style.display = "none";
+                onDone();
+                return;
+            }
+            content.innerHTML = '<div id="battleIntroNumber">' + steps[i] + '</div>';
+            i++;
+            setTimeout(step, 1000);
+        })();
+    }
+
+    if (isSuddenDeath) {
+        content.innerHTML =
+            '<div class="battle-sd-announce-emoji">⚔️</div>' +
+            '<div id="battleIntroLabel">' + t("battle.suddenDeathAnnounceTitle") + '</div>' +
+            '<div id="battleIntroLabel">' + t("battle.suddenDeathAnnounceSub") + '</div>';
+        setTimeout(runCountdown, 1800);
+    } else {
+        runCountdown();
+    }
 }
 
 function startBattleListener(code, role) {
@@ -578,6 +681,23 @@ function renderBattleFromData(data) {
         return;
     }
     if (data.status === "laeuft" || data.status === "suddendeath") {
+        // 3-2-1-Los-Countdown vor Runde 1, bzw. Sudden-Death-Ankündigung + Countdown vor Runde 13
+        // (siehe playBattleIntro). introKey bindet die Sequenz an genau diese Runde -- ein Reload
+        // während einer späteren Runde löst sie NICHT erneut aus, ein erneutes Snapshot-Update
+        // während derselben Runde (z. B. Herzschlag) auch nicht (battleIntroPlayedFor-Guard).
+        const introKey = (data.status === "laeuft" && data.currentRound === 1) ? (battleCode + ":start")
+            : (data.status === "suddendeath" && data.currentRound === 13) ? (battleCode + ":sd")
+            : null;
+        if (introKey && battleIntroPlayedFor !== introKey && !battleIntroActive) {
+            battleIntroActive = true;
+            battleIntroPlayedFor = introKey;
+            playBattleIntro(data.status === "suddendeath", () => {
+                battleIntroActive = false;
+                if (battleLastData) renderBattleFromData(battleLastData);
+            });
+            return;
+        }
+        if (battleIntroActive) return;
         const rd = data.rounds && data.rounds[data.currentRound];
         if (rd && rd.answerA && rd.answerB && !rd.resolved) tryResolveBattleRound(battleCode, data.currentRound);
         showBattleGameScreen(data);
@@ -659,6 +779,12 @@ function showBattlePoisonScreen(data) {
     const grid = document.getElementById("battlePoisonGrid");
     const counterEl = document.getElementById("battlePoisonCounter");
 
+    // Kenntlich machen, welche(r) Kontinent(e) für diese Runde gewählt wurde(n) (Konzept-Feedback
+    // Punkt 1C) -- die Fallen-Flaggen selbst kommen bewusst aus dem jeweils ANDEREN Kontinent
+    // (siehe battleLeftoverContinents), das wird hier bewusst nicht nochmal extra erklärt.
+    const continentNote = document.getElementById("battlePoisonContinentNote");
+    if (continentNote) continentNote.textContent = t("battle.continentsChosenNote").replace("{continents}", battleContinentListLabel(data.pool));
+
     if (myChoice) {
         waitNote.style.display = "block";
         waitNote.textContent = t("battle.waitingFor").replace("{name}", battleGetOpponentName(data));
@@ -672,8 +798,10 @@ function showBattlePoisonScreen(data) {
 
     if (grid.children.length === 0) {
         battleSelectedPoison = [];
-        const poolCountries = countries.filter(c => data.pool.includes(c.continent));
-        poolCountries.forEach(c => {
+        // Auswahl kommt aus dem/den NICHT gewählten Kontinent(en), nicht aus data.pool (siehe
+        // battleLeftoverContinents) -- die Fallen-Flaggen sollen unbekanntes Terrain sein.
+        const leftoverCountries = countries.filter(c => battleLeftoverContinents(data).includes(c.continent));
+        leftoverCountries.forEach(c => {
             const tile = document.createElement("div");
             tile.className = "battle-poison-tile";
             tile.innerHTML = '<img src="' + flagImageUrl(c.iso) + '" alt=""><div>' + escapeHtml(c.name) + '</div>';
@@ -751,7 +879,7 @@ function showBattleGameScreen(data) {
         battleLastRenderedRound = roundNum;
         battleLocalAnswered = false;
         clearInterval(battleCountdownTimer);
-        document.getElementById("battleTimerRow").style.display = "none";
+        document.getElementById("battleTimerRow").classList.remove("timer-active");
         document.getElementById("battleWaitingForOpponentNote").textContent = "";
 
         const giftBanner = document.getElementById("battleGiftBanner");
@@ -813,7 +941,7 @@ function onBattleAnswerClick(givenIso, correctIso) {
     battleLocalAnswered = true;
     clearInterval(battleCountdownTimer);
     battleCountdownTimer = null;
-    document.getElementById("battleTimerRow").style.display = "none";
+    document.getElementById("battleTimerRow").classList.remove("timer-active");
     Array.from(document.getElementById("battleMcOptions").querySelectorAll(".mc-btn")).forEach(b => {
         b.disabled = true;
         if (b.dataset.iso === correctIso) b.classList.add("correct");
@@ -832,7 +960,7 @@ function onBattleAnswerClick(givenIso, correctIso) {
 function startBattleCountdown(correctIso) {
     const timerRow = document.getElementById("battleTimerRow");
     const timerInner = document.getElementById("battleTimerBarInner");
-    timerRow.style.display = "block";
+    timerRow.classList.add("timer-active");
     timerInner.style.transition = "none";
     timerInner.style.width = "100%";
     requestAnimationFrame(() => {

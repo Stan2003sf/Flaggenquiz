@@ -99,7 +99,7 @@
     }
 
     #settings, #game, #endScreen, #mainMenu, #singlePlayerMenu, #multiPlayerMenu, #groupEntryScreen, #ladderPlaceholder, #ladderGame, #ladderEndScreen, #ladderMilestoneScreen,
-    #battleEntryScreen, #battleContinentScreen, #battlePoisonScreen, #battleGameScreen, #battleEndScreen,
+    #battleEntryScreen, #battleContinentScreen, #battlePoisonScreen, #battleGameScreen, #battleEndScreen, #battleIntroScreen,
     #settingsMenuScreen, #statsScreen, #achievementsScreen, #highscoreHubScreen, #helpScreen {
         display: none;
         max-width: 480px;
@@ -300,6 +300,9 @@
         padding: 10px;
         text-align: center;
     }
+    /* Platz für die Fortschrittsbalken-Zeile wird immer reserviert (Konzept-Feedback Punkt 1E) --
+       nur die Füllung wird ein-/ausgeblendet (Klasse .timer-active), damit die Antwortbuttons
+       darunter nie verrutschen, wenn der Timer für den Gegner erscheint. */
     #battleTimerBarOuter {
         width: 100%;
         height: 8px;
@@ -307,14 +310,62 @@
         border-radius: 4px;
         overflow: hidden;
         margin-bottom: 10px;
+        opacity: 0;
+        transition: opacity .15s ease;
     }
+    #battleTimerRow.timer-active #battleTimerBarOuter { opacity: 1; }
     #battleTimerBarInner {
         height: 100%;
         width: 100%;
         background: var(--color-danger);
         transition: width linear;
     }
-    #battleMcOptions .mc-btn { width: 100%; }
+    /* Battle-Antwortbuttons etwas größer als Standard (Konzept-Feedback Punkt 1F) -- leichter zu
+       treffen in der Hektik des Duells. Skaliert an denselben Breakpoints wie die Basis .mc-btn
+       weiter unten mit, damit auf kleinen/niedrigen Bildschirmen kein Überlauf entsteht. */
+    #battleMcOptions .mc-btn { width: 100%; padding: 17px; font-size: 17.5px; }
+    .battle-continent-note {
+        background: var(--gradient-brand-soft);
+        border-radius: var(--radius-md);
+        padding: 8px 12px;
+        font-weight: var(--weight-heading);
+        color: var(--color-primary-dark);
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    /* ---------- 1vs1 Battle: Start-/Sudden-Death-Countdown ---------- */
+    /* JS setzt display:flex zum Anzeigen (siehe playBattleIntro) -- align-items/justify-content
+       hier deklariert, damit die große Zahl wirklich MITTIG auf einer sonst leeren Seite steht,
+       nicht nur linksbündig oben (reines text-align auf #battleIntroContent reicht dafür nicht). */
+    #battleIntroScreen {
+        align-items: center;
+        justify-content: center;
+        min-height: 60vh;
+    }
+    #battleIntroContent {
+        text-align: center;
+        padding: 20px;
+    }
+    #battleIntroNumber {
+        font-family: var(--font-display);
+        font-weight: var(--weight-heading);
+        font-size: 96px;
+        color: var(--color-primary);
+        animation: battleIntroPop 0.5s ease;
+    }
+    #battleIntroLabel {
+        font-family: var(--font-display);
+        font-weight: var(--weight-heading);
+        font-size: 20px;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+    }
+    .battle-sd-announce-emoji { font-size: 46px; margin-bottom: 8px; }
+    @keyframes battleIntroPop {
+        0% { transform: scale(0.4); opacity: 0; }
+        60% { transform: scale(1.15); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
     #battleWaitingForOpponentNote {
         margin-top: 10px;
         font-size: 13.5px;
@@ -1373,6 +1424,7 @@
         #score { font-size: 19px; }
         #solution { font-size: 19px; }
         .mc-btn { padding: 14px; font-size: 16px; }
+        #battleMcOptions .mc-btn { padding: 16px; font-size: 16.5px; }
 
         /* ---- Spielfläche kompakter: kein Scrollen während des Spiels ---- */
         #gameHeader { margin-bottom: 3px; }
@@ -1437,6 +1489,7 @@
         #emoji { height: 22px; font-size: 20px; margin-top: 2px; }
         #solution { margin-top: 2px; font-size: 16px; }
         .mc-btn { padding: 6px; margin: 2px 0; }
+        #battleMcOptions .mc-btn { padding: 8px; margin: 2px 0; }
     }
 
     /* Touch-Geräte: keine Hover-Effekte, dafür etwas mehr Tap-Fläche */

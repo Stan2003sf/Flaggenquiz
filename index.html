@@ -341,6 +341,7 @@
 <div id="battlePoisonScreen">
     <div class="back-arrow-row"><button class="back-arrow-btn" id="forfeitFromBattlePoison" type="button" data-i18n="battle.leave">🚪 Battle verlassen</button></div>
     <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:24px 20px;box-shadow:var(--card-shadow);border:1px solid var(--card-border);">
+        <div id="battlePoisonContinentNote" class="battle-continent-note"></div>
         <h3 data-i18n="battle.poisonChooseHeading" style="margin:0 0 6px 0;">🪤 Wähle 3 Fallen-Flaggen für deinen Gegner</h3>
         <p class="hint-small" data-i18n="battle.poisonSecretHint" style="margin-bottom:10px;">Diese Flaggen bekommt dein Gegner untergemischt — deine Wahl bleibt geheim.</p>
         <div id="battlePoisonCounter" style="font-weight:var(--weight-heading);margin-bottom:8px;"></div>
@@ -367,9 +368,14 @@
     <div style="text-align:right;margin-bottom:6px;"><button class="back-arrow-btn" id="forfeitFromBattleGame" type="button" data-i18n="battle.leaveShort" style="font-size:12px;padding:4px 8px;">🚪 verlassen</button></div>
     <div id="battleGiftBanner" style="display:none;"></div>
     <div id="battleFlag"><div id="battleFlagError"></div></div>
-    <div id="battleTimerRow" style="display:none;"><div id="battleTimerBarOuter"><div id="battleTimerBarInner"></div></div></div>
+    <div id="battleTimerRow"><div id="battleTimerBarOuter"><div id="battleTimerBarInner"></div></div></div>
     <div id="battleMcOptions"></div>
     <div id="battleWaitingForOpponentNote"></div>
+</div>
+
+<!-- ================= 1vs1 Battle — 3-2-1-Los-Countdown / Sudden-Death-Ankündigung ================= -->
+<div id="battleIntroScreen">
+    <div id="battleIntroContent"></div>
 </div>
 
 <!-- ================= 1vs1 Battle — Rundenende ================= -->
