@@ -276,11 +276,20 @@ document.getElementById("backFromStats").onclick = () => goToMainMenu();
 document.getElementById("tileAchievements").onclick = () => goToAchievementsScreen();
 document.getElementById("backFromAchievements").onclick = () => goToMainMenu();
 
+// Beim allerersten Start nach Einführung der Erfolgs-Benachrichtigung den aktuellen Stand still
+// übernehmen, damit nicht sämtliche längst erfüllten Erfolge auf einmal gemeldet werden; danach
+// nur noch den "Neu"-Punkt auf der Kachel aus dem gespeicherten Zustand wiederherstellen.
+seedSeenAchievementsIfMissing();
+renderAchievementsNewDot();
+
 statsResetBtn.onclick = function () {
     const sure = confirm(t("stats.confirmReset"));
     if (!sure) return;
     localStorage.removeItem(STATS_KEY);
     localStorage.removeItem(BEST_STREAK_KEY);
+    // Die davon abhängigen Erfolge fallen mit weg -- also auch den Meldungs-Stand löschen, damit
+    // ihr erneutes Erspielen wieder als neuer Erfolg gemeldet wird (siehe js/achievements.js).
+    clearSeenAchievementIds();
     renderStatsModal();
 };
 

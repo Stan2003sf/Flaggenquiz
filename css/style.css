@@ -267,14 +267,53 @@
         color: var(--text-secondary);
         text-align: center;
     }
+    /* Fallen-Runde: bewusst eigene Warnoptik statt der sonst überall genutzten weichen Marken-
+       Verlaufsfläche -- als "Achtung, das ist die Falle deines Gegners!" muss der Hinweis sich
+       klar von den übrigen Info-Kästen abheben. Der kurze Puls holt den Blick zusätzlich. */
     #battleGiftBanner {
-        background: var(--gradient-brand-soft);
+        background: linear-gradient(135deg, #FFF1DC 0%, #FFE2E0 100%);
+        border: 2px solid var(--color-accent);
         border-radius: var(--radius-md);
-        padding: 8px 12px;
+        padding: 9px 12px;
         font-weight: var(--weight-heading);
-        color: var(--color-primary-dark);
+        color: #8A4200;
         margin-bottom: 8px;
         text-align: center;
+        animation: battle-gift-pulse 1.1s ease-in-out 3;
+    }
+    @keyframes battle-gift-pulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.45); }
+        50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(255, 152, 0, 0); }
+    }
+
+    /* Revanche-Bereich im Battle-Endbildschirm (siehe renderBattleRematchBox in js/battle-mode.js) */
+    #battleRematchBox {
+        margin: 16px auto 4px auto;
+        max-width: 380px;
+        text-align: center;
+    }
+    #battleRematchBtn {
+        width: 100%;
+        background: var(--gradient-brand);
+        color: #fff;
+    }
+    #battleRematchBtn:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+    .battle-rematch-note {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        padding: 9px 12px;
+        border-radius: var(--radius-md);
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        margin-bottom: 8px;
+    }
+    .battle-rematch-note-active {
+        border-color: var(--color-primary);
+        color: var(--color-primary-dark);
+        font-weight: var(--weight-heading);
     }
     #battleFlag {
         width: min(300px, 85vw);
@@ -1234,6 +1273,161 @@
         color: var(--text-muted);
         text-align: right;
     }
+    /* ---------- Erfolge: aufklappbare Detail-Liste (welche Länder/Kontinente fehlen noch) ---------- */
+    .achv-detail-toggle {
+        margin-top: 8px;
+        background: none;
+        border: none;
+        padding: 4px 0;
+        font-family: var(--font-family);
+        font-size: 12.5px;
+        font-weight: var(--weight-heading);
+        color: var(--color-primary);
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+    }
+    .achv-detail-body {
+        margin-top: 6px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--card-border);
+    }
+    .achv-detail-label {
+        font-size: 11.5px;
+        font-weight: var(--weight-heading);
+        margin: 8px 0 6px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .achv-detail-label:first-child { margin-top: 0; }
+    .achv-detail-label-open { color: #C2601C; }
+    .achv-detail-label-done { color: #0E8FA6; }
+    .achv-detail-alldone {
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        margin: 4px 0 2px 0;
+    }
+    .achv-country-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    .achv-country-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        line-height: 1.3;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        color: var(--text-primary);
+        background: #fff;
+    }
+    /* Noch offene Länder bewusst OHNE Flaggenbild: die Flagge ist ja gerade das, was noch fehlt. */
+    .achv-chip-open {
+        border-style: dashed;
+        border-color: #E6C3A2;
+        background: #FFF7F0;
+        color: #8A4E17;
+    }
+    .achv-chip-done img {
+        width: 20px;
+        height: 14px;
+        object-fit: cover;
+        border-radius: 2px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        flex-shrink: 0;
+    }
+    .achv-continent-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .achv-continent-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        padding: 7px 10px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--card-border);
+        background: #fff;
+    }
+    .achv-continent-row-name { font-weight: var(--weight-heading); }
+    .achv-continent-row-state {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .achv-row-open {
+        border-style: dashed;
+        border-color: #E6C3A2;
+        background: #FFF7F0;
+    }
+    .achv-row-open .achv-continent-row-state { color: #8A4E17; }
+    .achv-row-done { border-color: var(--color-primary); }
+
+    /* ---------- Erfolge: roter Punkt auf der Hauptmenü-Kachel bei ungesehenem Erfolg ---------- */
+    .menu-tile.has-new-dot { position: relative; }
+    .menu-tile.has-new-dot::after {
+        content: "";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #E04B2F;
+        box-shadow: 0 0 0 3px rgba(224, 75, 47, 0.22);
+        animation: achv-dot-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes achv-dot-pulse {
+        0%, 100% { box-shadow: 0 0 0 3px rgba(224, 75, 47, 0.22); }
+        50% { box-shadow: 0 0 0 6px rgba(224, 75, 47, 0.08); }
+    }
+
+    /* ---------- Erfolge: Einblendung bei neu freigeschaltetem Erfolg (siehe js/utils.js) ---------- */
+    .achv-toast {
+        position: fixed;
+        top: 14px;
+        left: 50%;
+        transform: translate(-50%, -140%);
+        z-index: 9999;
+        width: min(360px, calc(100vw - 28px));
+        box-sizing: border-box;
+        padding: 12px 16px;
+        border-radius: var(--radius-lg);
+        background: var(--gradient-brand);
+        color: #fff;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+        text-align: center;
+        opacity: 0;
+        transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.4), opacity 0.38s ease;
+        pointer-events: none;
+    }
+    .achv-toast.achv-toast-in {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+    .achv-toast-head {
+        font-size: 12px;
+        font-weight: var(--weight-heading);
+        letter-spacing: 0.3px;
+        opacity: 0.92;
+    }
+    .achv-toast-name {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: var(--weight-heading);
+        margin: 3px 0 2px 0;
+    }
+    .achv-toast-sub {
+        font-size: 11.5px;
+        opacity: 0.85;
+    }
+
     .achv-scroll-top-row {
         text-align: center;
         margin-top: 18px;

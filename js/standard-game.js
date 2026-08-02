@@ -868,6 +868,10 @@ async function showEndScreen() {
             .map(w => `<div><strong>${escapeHtml(w.name)}</strong> — ${t("game.yourAnswer")}${escapeHtml(w.given)}</div>`)
             .join("");
     }
+
+    // Erst ganz am Ende prüfen, ob diese Runde einen Erfolg freigeschaltet hat (Kontinent-Erfolge,
+    // Meta-Erfolg, Siegesserien) -- siehe checkForNewAchievements in js/achievements.js.
+    checkForNewAchievements();
 }
 
 endBtn.onclick = function () {

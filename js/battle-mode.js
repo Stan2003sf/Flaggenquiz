@@ -10,6 +10,19 @@ const BATTLE_MAX_LIVES = 5; // Schritt 5: 5 statt 3 Leben pro Spieler:in
 // Geräte außerhalb der Top 50 würden ihren Sieg-Fortschritt sonst beim nächsten Speichern verlieren.
 // Analoges Muster wie LADDER_OWN_BEST_CACHE_KEY in js/ladder-mode.js (dort ebenfalls rein lokal).
 const BATTLE_OWN_WINS_KEY = "flagquiz_battle_own_wins";
+
+// Zuletzt in die Bestenliste übertragenes Ergebnis als "code:matchNumber". Muss einen Browser-Reload
+// überstehen: seit der Revanche-Funktion bleibt die Battle-Sitzung auch auf dem Endbildschirm
+// bestehen (siehe showBattleEndScreen), ein Reload dort baut den Endbildschirm also erneut auf --
+// ohne diesen Merker würde derselbe Sieg dabei ein zweites Mal gezählt. Ein einzelner Wert reicht:
+// man kann immer nur in genau einem Battle gleichzeitig sein.
+const BATTLE_RECORDED_RESULT_KEY = "flagquiz_battle_gewertet";
+function loadRecordedBattleResultKey() {
+    try { return localStorage.getItem(BATTLE_RECORDED_RESULT_KEY); } catch (e) { return null; }
+}
+function saveRecordedBattleResultKey(key) {
+    try { localStorage.setItem(BATTLE_RECORDED_RESULT_KEY, key); } catch (e) { /* ignorieren */ }
+}
 function getOwnBattleWins() {
     try { return parseInt(localStorage.getItem(BATTLE_OWN_WINS_KEY), 10) || 0; } catch (e) { return 0; }
 }
@@ -74,7 +87,13 @@ async function createBattle() {
             livesA: BATTLE_MAX_LIVES, livesB: BATTLE_MAX_LIVES,
             currentRound: 0,
             rounds: {},
-            winner: null
+            winner: null,
+            // Revanche-Felder (siehe tryResolveBattleRematch): matchNumber zählt hoch, sobald beide
+            // ein weiteres Match wollen; leftA/leftB merken, wer den Endbildschirm verlassen hat,
+            // damit der/die andere nicht ins Leere wartet.
+            matchNumber: 1,
+            rematchA: false, rematchB: false,
+            leftA: false, leftB: false
         });
     } catch (e) {
         console.warn("Battle konnte nicht erstellt werden.", e);
@@ -325,6 +344,55 @@ async function tryResolveBattleRound(code, roundNum) {
     } catch (e) { console.warn("Battle-Runde konnte nicht aufgelöst werden.", e); }
 }
 
+// ---------- Battle: Revanche ("Noch ein Match") ----------
+// Bewusst dasselbe Battle-Dokument (gleicher Code) statt eines neuen: beide Spieler:innen sind
+// bereits verbunden, ein erneuter Beitritt per Code/QR wäre unnötiger Umweg. Erst wenn BEIDE den
+// Wunsch gesendet haben, wird das Dokument auf einen frischen Match-Zustand zurückgesetzt.
+async function requestBattleRematch(code, role) {
+    if (!firestoreDb) return;
+    const ref = firestoreDb.collection("battles").doc(code);
+    const field = role === "A" ? "rematchA" : "rematchB";
+    try { await ref.update({ [field]: true }); } catch (e) { console.warn("Revanche-Wunsch konnte nicht gesendet werden.", e); }
+    tryResolveBattleRematch(code);
+}
+
+async function tryResolveBattleRematch(code) {
+    if (!firestoreDb) return;
+    const ref = firestoreDb.collection("battles").doc(code);
+    try {
+        await firestoreDb.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const data = snap.data();
+            if (!data || data.status !== "beendet") return;
+            if (!data.rematchA || !data.rematchB) return;
+            if (data.leftA || data.leftB) return; // jemand ist inzwischen weg -> kein Neustart
+            tx.update(ref, {
+                // Zählt hoch und ist damit der Auslöser, an dem alle Clients einen Match-Wechsel
+                // erkennen (siehe renderBattleFromData / resetBattleRoundState).
+                matchNumber: (data.matchNumber || 1) + 1,
+                status: "kontinentwahl",
+                // Kontinente werden für jedes Match neu gewürfelt -- sonst spielt man dieselben
+                // drei zur Auswahl stehenden Kontinente immer wieder.
+                continents3: shuffle(continents).slice(0, 3),
+                continentChoiceA: null, continentChoiceB: null,
+                pool: null,
+                poisonChoiceA: null, poisonChoiceB: null,
+                sequenceA: null, sequenceB: null,
+                optionsA: null, optionsB: null,
+                suddenDeathSequence: null, suddenDeathOptions: null,
+                livesA: BATTLE_MAX_LIVES, livesB: BATTLE_MAX_LIVES,
+                currentRound: 0,
+                rounds: {},
+                winner: null,
+                rematchA: false, rematchB: false,
+                // Ablaufzeitpunkt mitverlängern, sonst könnte das Aufräumen abgelaufener Battles
+                // (cleanupExpiredBattles) das laufende zweite Match wegräumen.
+                expiresAt: firebase.firestore.Timestamp.fromMillis(Date.now() + BATTLE_EXPIRY_HOURS * 3600 * 1000)
+            });
+        });
+    } catch (e) { console.warn("Revanche konnte nicht gestartet werden.", e); }
+}
+
 // ---------- Battle: Bestenliste (nur Anzahl gewonnener Battles, Konzept Punkt 8) ----------
 
 async function recordBattleWin() {
@@ -402,6 +470,18 @@ let battleIntroGeneration = 0;
 const BATTLE_STALE_WARNING_MS = 12000; // ab hier: dezenter Hinweis "Verbindung könnte unterbrochen sein"
 const BATTLE_STALE_CLAIM_MS = 45000;   // ab hier: aktive Möglichkeit, das Battle für sich zu werten
 
+// ---------- Revanche-/Match-Zustand (siehe tryResolveBattleRematch) ----------
+let battleCurrentMatchNumber = null;   // erkennt den Wechsel auf ein neues Match im selben Dokument
+let battleEndRenderedFor = null;       // "code:matchNumber" -- Endbildschirm je Match nur einmal aufbauen
+let battleResultRecordedFor = null;    // "code:matchNumber" -- Sieg je Match nur EINMAL in die Bestenliste
+let battleResultSaving = false;        // solange true: Revanche-Knopf bleibt gesperrt
+
+// Zeitpunkt, seit dem beide Fallen-Flaggen-Wahlen vorliegen, der Rundenstart aber noch nicht
+// aufgelöst wurde. Grundlage für den sichtbaren Hinweis, falls tryResolveBattleStart scheitert --
+// die Funktion meldet Fehler bisher nur per console.warn, das Battle bliebe sonst stumm hängen.
+let battleStartWaitingSince = null;
+const BATTLE_START_STUCK_MS = 10000;
+
 // Zeigt/versteckt das schwebende Verbindungs-Warnbanner anhand des zuletzt bekannten
 // Herzschlag-Zeitstempels des Gegners (siehe Konzept-Offener-Punkt "Verbindungsabbruch").
 function updateBattleConnectionWarning(data) {
@@ -443,7 +523,10 @@ async function claimBattleWinByDisconnect(code) {
             if (!data || data.status === "beendet") return;
             const oppLastSeen = battleRole === "A" ? data.lastSeenB : data.lastSeenA;
             if (!oppLastSeen || (Date.now() - oppLastSeen) < BATTLE_STALE_CLAIM_MS) return;
-            tx.update(ref, { status: "beendet", winner: battleRole });
+            // Gegner gilt als weg -> auch das "verlassen"-Flag setzen, damit auf dem Endbildschirm
+            // gleich "Gegner hat das Duell verlassen" steht statt eines Revanche-Knopfs ins Leere.
+            const oppLeftField = battleRole === "A" ? "leftB" : "leftA";
+            tx.update(ref, { status: "beendet", winner: battleRole, [oppLeftField]: true });
         });
     } catch (e) { console.warn("Sieg wegen Verbindungsabbruch konnte nicht gewertet werden.", e); }
 }
@@ -573,8 +656,41 @@ function stopBattleListener() {
     battleIntroPlayedFor = null;
     battleIntroActive = false;
     battleIntroGeneration++; // bricht eine evtl. noch laufende Intro-Sequenz sauber ab
+    battleCurrentMatchNumber = null;
+    battleEndRenderedFor = null;
+    battleResultRecordedFor = null;
+    battleResultSaving = false;
+    battleStartWaitingSince = null;
     const banner = document.getElementById("battleConnectionBanner");
     if (banner) banner.style.display = "none";
+}
+
+// Setzt allen Zustand zurück, der an EIN Match gebunden ist -- wird beim Wechsel auf ein neues
+// Match im selben Battle-Dokument aufgerufen (Revanche, siehe tryResolveBattleRematch). Ohne diesen
+// Reset würden im zweiten Match u. a. die Kontinent-Kacheln und Fallen-Flaggen-Auswahl des ersten
+// Matches stehen bleiben (beide Bildschirme bauen ihren Inhalt nur auf, wenn er noch leer ist) und
+// der 3-2-1-Countdown gar nicht mehr abspielen.
+function resetBattleRoundState() {
+    battleLastRenderedRound = -1;
+    battleLocalAnswered = false;
+    clearInterval(battleCountdownTimer); battleCountdownTimer = null;
+    battleLastKnownMyLives = null;
+    battleLastKnownOpponentLives = null;
+    battleSelectedContinents = [];
+    battleSelectedPoison = [];
+    battleStartWaitingSince = null;
+    battleIntroPlayedFor = null;
+    battleIntroActive = false;
+    battleEndRenderedFor = null;
+
+    const contBtns = document.getElementById("battleContinentButtons");
+    if (contBtns) contBtns.innerHTML = "";
+    const poisonGrid = document.getElementById("battlePoisonGrid");
+    if (poisonGrid) poisonGrid.innerHTML = "";
+    const timerRow = document.getElementById("battleTimerRow");
+    if (timerRow) timerRow.classList.remove("timer-active");
+    const giftBanner = document.getElementById("battleGiftBanner");
+    if (giftBanner) giftBanner.style.display = "none";
 }
 
 // Vollbild-Zwischensequenz vor der ersten Runde und vor Sudden Death (Konzept-Feedback Punkte 1A/1D):
@@ -634,8 +750,13 @@ function startBattleListener(code, role) {
     const ref = firestoreDb.collection("battles").doc(code);
     battleUnsub = ref.onSnapshot((snap) => {
         if (!snap.exists) {
+            // Nach einem beendeten Match bleiben wir mit dem Endbildschirm verbunden (Revanche).
+            // Löscht der Gegner dann das Dokument oder räumt es ab, ist das kein Fehlerfall mehr --
+            // dann einfach still die Revanche-Möglichkeit zurücknehmen statt eine Warnung zu zeigen.
+            const wasEnded = battleLastData && battleLastData.status === "beendet";
             stopBattleListener();
             clearBattleSession();
+            if (wasEnded) { renderBattleOpponentLeftNote(); return; }
             alert(t("battle.notExistsAnymore"));
             goToMultiPlayerMenu();
             return;
@@ -652,13 +773,25 @@ function startBattleListener(code, role) {
         ref.update({ [myField]: Date.now() }).catch(() => {});
     }, 5000);
 
-    // Watchdog: regelmäßig prüfen, ob der Gegner seit längerem keinen Herzschlag mehr gesendet hat.
+    // Watchdog: regelmäßig prüfen, ob der Gegner seit längerem keinen Herzschlag mehr gesendet hat
+    // bzw. ob der Rundenstart ungewöhnlich lange hängt.
     battleWatchdogTimer = setInterval(() => {
-        if (battleLastData) updateBattleConnectionWarning(battleLastData);
+        if (battleLastData) {
+            updateBattleConnectionWarning(battleLastData);
+            renderBattlePoisonWaitNote(battleLastData);
+        }
     }, 3000);
 }
 
 function renderBattleFromData(data) {
+    // Match-Wechsel (Revanche) erkennen: alles an EIN Match gebundene zurücksetzen, bevor
+    // irgendein Bildschirm mit den neuen Daten aufgebaut wird.
+    const matchNumber = data.matchNumber || 1;
+    if (battleCurrentMatchNumber !== matchNumber) {
+        battleCurrentMatchNumber = matchNumber;
+        resetBattleRoundState();
+    }
+
     if (data.status === "warten_spielerB") {
         // Reload-sicher: Bildschirm samt Code/QR erneut aufbauen, falls er (z. B. nach einem
         // Browser-Reload während der Wartephase) noch nicht sichtbar ist.
@@ -676,17 +809,25 @@ function renderBattleFromData(data) {
         return;
     }
     if (data.status === "giftwahl") {
-        if (data.poisonChoiceA && data.poisonChoiceB && !data.sequenceA) tryResolveBattleStart(battleCode);
+        if (data.poisonChoiceA && data.poisonChoiceB && !data.sequenceA) {
+            if (battleStartWaitingSince === null) battleStartWaitingSince = Date.now();
+            tryResolveBattleStart(battleCode);
+        } else {
+            battleStartWaitingSince = null;
+        }
         showBattlePoisonScreen(data);
         return;
     }
     if (data.status === "laeuft" || data.status === "suddendeath") {
+        battleStartWaitingSince = null;
         // 3-2-1-Los-Countdown vor Runde 1, bzw. Sudden-Death-Ankündigung + Countdown vor Runde 13
-        // (siehe playBattleIntro). introKey bindet die Sequenz an genau diese Runde -- ein Reload
-        // während einer späteren Runde löst sie NICHT erneut aus, ein erneutes Snapshot-Update
-        // während derselben Runde (z. B. Herzschlag) auch nicht (battleIntroPlayedFor-Guard).
-        const introKey = (data.status === "laeuft" && data.currentRound === 1) ? (battleCode + ":start")
-            : (data.status === "suddendeath" && data.currentRound === 13) ? (battleCode + ":sd")
+        // (siehe playBattleIntro). introKey bindet die Sequenz an genau diese Runde UND an das
+        // laufende Match -- ein Reload während einer späteren Runde löst sie NICHT erneut aus, ein
+        // erneutes Snapshot-Update während derselben Runde (z. B. Herzschlag) auch nicht
+        // (battleIntroPlayedFor-Guard). Ohne matchNumber im Schlüssel bliebe der Countdown bei
+        // einer Revanche im selben Battle-Dokument aus.
+        const introKey = (data.status === "laeuft" && data.currentRound === 1) ? (battleCode + ":" + matchNumber + ":start")
+            : (data.status === "suddendeath" && data.currentRound === 13) ? (battleCode + ":" + matchNumber + ":sd")
             : null;
         if (introKey && battleIntroPlayedFor !== introKey && !battleIntroActive) {
             battleIntroActive = true;
@@ -765,6 +906,36 @@ function showBattleContinentScreen(data) {
     };
 }
 
+// Warte-Hinweis im Fallen-Flaggen-Bildschirm: normalerweise "Warte auf {Name} …". Dauert der
+// Rundenstart aber ungewöhnlich lange (siehe BATTLE_START_STUCK_MS), wird daraus ein sichtbarer
+// Hinweis samt Wiederholen-Knopf. Hintergrund: tryResolveBattleStart() meldet Fehler nur per
+// console.warn -- scheitert die Transaktion, bliebe das Battle sonst ohne jede Rückmeldung in
+// diesem Bildschirm stehen (genau dieser Fehlerfall ist hier schon einmal aufgetreten).
+function renderBattlePoisonWaitNote(data) {
+    const screen = document.getElementById("battlePoisonScreen");
+    const waitNote = document.getElementById("battlePoisonWaitNote");
+    if (!screen || !waitNote || screen.style.display !== "block") return;
+    const myChoice = battleRole === "A" ? data.poisonChoiceA : data.poisonChoiceB;
+    if (!myChoice) return;
+
+    const stuck = battleStartWaitingSince !== null && (Date.now() - battleStartWaitingSince) >= BATTLE_START_STUCK_MS;
+    waitNote.style.display = "block";
+    if (!stuck) {
+        waitNote.textContent = t("battle.waitingFor").replace("{name}", battleGetOpponentName(data));
+        return;
+    }
+    // Nur einmal aufbauen -- der Watchdog ruft alle 3 s hierher, ein Neuaufbau würde den evtl.
+    // schon gedrückten Wiederholen-Knopf jedes Mal wieder freischalten.
+    if (document.getElementById("battleStartRetryBtn")) return;
+    waitNote.innerHTML = escapeHtml(t("battle.startStuck")) +
+        '<br><button type="button" id="battleStartRetryBtn" style="margin-top:8px;">' + escapeHtml(t("battle.startRetry")) + '</button>';
+    document.getElementById("battleStartRetryBtn").onclick = function () {
+        this.disabled = true;
+        battleStartWaitingSince = Date.now();
+        tryResolveBattleStart(battleCode);
+    };
+}
+
 function showBattlePoisonScreen(data) {
     if (document.getElementById("battlePoisonScreen").style.display !== "block") {
         hideAllScreens();
@@ -786,8 +957,7 @@ function showBattlePoisonScreen(data) {
     if (continentNote) continentNote.textContent = t("battle.continentsChosenNote").replace("{continents}", battleContinentListLabel(data.pool));
 
     if (myChoice) {
-        waitNote.style.display = "block";
-        waitNote.textContent = t("battle.waitingFor").replace("{name}", battleGetOpponentName(data));
+        renderBattlePoisonWaitNote(data);
         submitBtn.style.display = "none";
         Array.from(grid.children).forEach(el => el.style.pointerEvents = "none");
         return;
@@ -873,22 +1043,28 @@ function showBattleGameScreen(data) {
         roundNum <= 12 ? t("battle.round").replace("{n}", roundNum) : t("battle.suddenDeathRound").replace("{n}", roundNum - 12);
 
     const myFlag = battleCurrentFlagFor(data, roundNum);
-    if (!myFlag) return;
+    // Antwortoptionen werden gemeinsam mit der Sequenz in EINER Transaktion geschrieben
+    // (tryResolveBattleStart) -- fehlen sie, ist das Dokument noch nicht vollständig. Früher wurde
+    // an dieser Stelle ersatzweise lokal gewürfelt; das führte zu unterschiedlichen Antwort-
+    // möglichkeiten bei beiden Spieler:innen, ohne dass es jemand bemerkt hätte. Lieber kurz warten.
+    const options = battleCurrentOptionsFor(data, roundNum);
+    if (!myFlag || !options) {
+        document.getElementById("battleMcOptions").innerHTML = "";
+        document.getElementById("battleWaitingForOpponentNote").textContent = t("battle.preparingRound");
+        battleLastRenderedRound = -1; // beim nächsten Snapshot erneut versuchen
+        return;
+    }
 
     if (roundNum !== battleLastRenderedRound) {
         battleLastRenderedRound = roundNum;
         battleLocalAnswered = false;
+        // Muss auch auf null gesetzt werden: die Prüfung "!battleCountdownTimer" weiter unten würde
+        // einen stehengebliebenen Zeitgeber-Verweis sonst als "läuft schon" deuten und den
+        // Countdown der neuen Runde gar nicht erst starten.
         clearInterval(battleCountdownTimer);
+        battleCountdownTimer = null;
         document.getElementById("battleTimerRow").classList.remove("timer-active");
         document.getElementById("battleWaitingForOpponentNote").textContent = "";
-
-        const giftBanner = document.getElementById("battleGiftBanner");
-        if (myFlag.isPoison) {
-            giftBanner.style.display = "block";
-            giftBanner.textContent = t("battle.trapFrom").replace("{name}", battleGetOpponentName(data));
-        } else {
-            giftBanner.style.display = "none";
-        }
 
         const flagUrl = flagImageUrl(myFlag.iso);
         const flagErrorEl = document.getElementById("battleFlagError");
@@ -901,18 +1077,8 @@ function showBattleGameScreen(data) {
         };
         testImg.src = flagUrl;
 
-        // Serverseitig vorberechnete Optionen nutzen, damit beide Spieler:innen bei derselben Runde
-        // exakt dieselben Antwortmöglichkeiten sehen. Fallback (lokale Zufallsauswahl) nur für
-        // Battle-Dokumente von vor diesem Fix, die noch keine vorberechneten Optionen haben.
-        const precomputed = battleCurrentOptionsFor(data, roundNum);
-        let options;
-        if (precomputed) {
-            options = precomputed;
-        } else {
-            const poolCountries = countries.filter(c => data.pool.includes(c.continent));
-            const distractors = shuffle(poolCountries.filter(c => c.iso !== myFlag.iso)).slice(0, 3);
-            options = shuffle([{ name: myFlag.name, iso: myFlag.iso }, ...distractors]);
-        }
+        // Ausschließlich die serverseitig vorberechneten Optionen nutzen (siehe oben), damit beide
+        // Spieler:innen bei derselben Runde exakt dieselben Antwortmöglichkeiten sehen.
         const optsDiv = document.getElementById("battleMcOptions");
         optsDiv.innerHTML = "";
         options.forEach(opt => {
@@ -923,6 +1089,19 @@ function showBattleGameScreen(data) {
             btn.onclick = () => onBattleAnswerClick(opt.iso, myFlag.iso);
             optsDiv.appendChild(btn);
         });
+    }
+
+    // Fallen-Hinweis bewusst AUSSERHALB des Runden-Blocks: Tier-Abzeichen und Erfolgs-Titel des
+    // Gegners werden asynchron nachgeladen (siehe startBattleListener) und lösen danach ein
+    // erneutes Rendern aus -- stünde der Hinweis im Runden-Block, bliebe der Name darin veraltet.
+    // Hinweis zur Spielmechanik: die Fallen sitzen bei A und B an derselben Position im Block,
+    // beide bekommen die Falle des jeweils anderen also in derselben Runde.
+    const giftBanner = document.getElementById("battleGiftBanner");
+    if (myFlag.isPoison) {
+        giftBanner.style.display = "block";
+        giftBanner.textContent = t("battle.trapFrom").replace("{name}", battleGetOpponentName(data));
+    } else {
+        giftBanner.style.display = "none";
     }
 
     const rd = (data.rounds && data.rounds[roundNum]) || {};
@@ -977,23 +1156,111 @@ function startBattleCountdown(correctIso) {
     }, 3000);
 }
 
+// WICHTIG: Der Firestore-Listener läuft hier bewusst WEITER (früher wurde er an dieser Stelle
+// beendet und die Sitzung gelöscht) -- nur so kann der Revanche-Wunsch des Gegners überhaupt
+// ankommen. Beendet wird erst beim Verlassen des Endbildschirms (siehe leaveBattleAfterEnd).
+// Dadurch kann diese Funktion pro Match mehrfach aufgerufen werden (jeder Herzschlag des Gegners
+// erzeugt ein Snapshot-Update) -- Aufbau und Sieg-Wertung sind deshalb je Match abgesichert.
 async function showBattleEndScreen(data) {
-    stopBattleListener();
-    hideAllScreens();
-    setChromeVisible(true);
-    setNicknameCardVisible(false);
-    document.getElementById("battleEndScreen").style.display = "block";
-
-    const el = document.getElementById("battleEndContent");
-    if (data.winner === "unentschieden") {
-        el.innerHTML = '<div class="battle-end-emoji">🤝</div><h2>' + t("battle.drawTitle") + '</h2><p>' + t("battle.drawSub") + '</p>';
-    } else if (data.winner === battleRole) {
-        el.innerHTML = '<div class="battle-end-emoji">🏆</div><h2>' + t("battle.winTitle") + '</h2><p>' + t("battle.winSub") + '</p>';
-        await recordBattleWin();
-    } else {
-        el.innerHTML = '<div class="battle-end-emoji">💔</div><h2>' + t("battle.loseTitle") + '</h2><p>' + t("battle.loseSub") + '</p>';
+    clearInterval(battleCountdownTimer);
+    battleCountdownTimer = null;
+    if (document.getElementById("battleEndScreen").style.display !== "block") {
+        hideAllScreens();
+        setChromeVisible(true);
+        setNicknameCardVisible(false);
+        document.getElementById("battleEndScreen").style.display = "block";
     }
+
+    const matchKey = battleCode + ":" + (data.matchNumber || 1);
+    if (battleEndRenderedFor !== matchKey) {
+        battleEndRenderedFor = matchKey;
+        const el = document.getElementById("battleEndContent");
+        if (data.winner === "unentschieden") {
+            el.innerHTML = '<div class="battle-end-emoji">🤝</div><h2>' + t("battle.drawTitle") + '</h2><p>' + t("battle.drawSub") + '</p>';
+        } else if (data.winner === battleRole) {
+            el.innerHTML = '<div class="battle-end-emoji">🏆</div><h2>' + t("battle.winTitle") + '</h2><p>' + t("battle.winSub") + '</p>';
+        } else {
+            el.innerHTML = '<div class="battle-end-emoji">💔</div><h2>' + t("battle.loseTitle") + '</h2><p>' + t("battle.loseSub") + '</p>';
+        }
+    }
+
+    // Sieg genau EINMAL je Match in die Bestenliste übertragen. Beide Merker werden synchron VOR dem
+    // await gesetzt -- ohne das würde jedes weitere Snapshot-Update, das eintrifft, während
+    // recordBattleWin() noch läuft, denselben Sieg ein zweites Mal zählen. Der zusätzliche
+    // localStorage-Merker deckt den Reload auf dem Endbildschirm ab (siehe oben).
+    const needsRecording = data.winner === battleRole
+        && battleResultRecordedFor !== matchKey
+        && loadRecordedBattleResultKey() !== matchKey;
+    if (needsRecording) {
+        battleResultRecordedFor = matchKey;
+        saveRecordedBattleResultKey(matchKey);
+        battleResultSaving = true;
+    }
+    renderBattleRematchBox(data);
+    if (needsRecording) {
+        await recordBattleWin();
+        battleResultSaving = false;
+        checkForNewAchievements(); // Battle-Erfolge hängen genau an diesem Sieg-Zähler
+        if (battleLastData) renderBattleRematchBox(battleLastData);
+    }
+}
+
+// Revanche-Bereich unter dem Ergebnis: Knopf, Warte-Hinweis oder "Gegner hat das Duell verlassen".
+function renderBattleRematchBox(data) {
+    const box = document.getElementById("battleRematchBox");
+    if (!box) return;
+    const myLeft = battleRole === "A" ? data.leftA : data.leftB;
+    const oppLeft = battleRole === "A" ? data.leftB : data.leftA;
+    const myWish = battleRole === "A" ? data.rematchA : data.rematchB;
+    const oppWish = battleRole === "A" ? data.rematchB : data.rematchA;
+
+    if (oppLeft) { renderBattleOpponentLeftNote(); return; }
+    if (myLeft) { box.innerHTML = ""; return; }
+
+    let html = "";
+    if (oppWish && !myWish) {
+        html += '<div class="battle-rematch-note battle-rematch-note-active">' +
+            escapeHtml(t("battle.rematchOpponentWants").replace("{name}", battleGetOpponentName(data))) + '</div>';
+    }
+    if (myWish) {
+        html += '<div class="battle-rematch-note">' + escapeHtml(t("battle.waitingFor").replace("{name}", battleGetOpponentName(data))) + '</div>';
+    } else if (battleResultSaving) {
+        // Erst freigeben, wenn der Sieg wirklich in der Bestenliste steht -- sonst könnte ein sehr
+        // schneller Neustart das Ergebnis überholen.
+        html += '<button type="button" id="battleRematchBtn" disabled>' + escapeHtml(t("battle.savingResult")) + '</button>';
+    } else {
+        html += '<button type="button" id="battleRematchBtn">' + escapeHtml(t("battle.rematchButton")) + '</button>';
+    }
+    box.innerHTML = html;
+
+    const btn = document.getElementById("battleRematchBtn");
+    if (btn && !btn.disabled) {
+        btn.onclick = function () {
+            this.disabled = true;
+            requestBattleRematch(battleCode, battleRole);
+        };
+    }
+}
+
+function renderBattleOpponentLeftNote() {
+    const box = document.getElementById("battleRematchBox");
+    if (!box) return;
+    box.innerHTML = '<div class="battle-rematch-note">' + escapeHtml(t("battle.opponentLeft")) + '</div>';
+}
+
+// Verlassen des Endbildschirms: erst die Verbindung sauber beenden, dann das "verlassen"-Flag
+// setzen, damit der Gegner nicht vergeblich auf eine Revanche wartet.
+function leaveBattleAfterEnd() {
+    const code = battleCode, role = battleRole;
+    stopBattleListener();
     clearBattleSession();
+    goToMultiPlayerMenu();
+    if (code && role && firestoreDb) {
+        const updates = {};
+        updates[role === "A" ? "leftA" : "leftB"] = true;
+        updates[role === "A" ? "rematchA" : "rematchB"] = false;
+        firestoreDb.collection("battles").doc(code).update(updates).catch(() => { /* Battle evtl. schon weg */ });
+    }
 }
 
 // ---------- Battle: Bildschirm-Navigation & Buttons ----------
@@ -1034,7 +1301,11 @@ async function forfeitBattle() {
     if (!sure) return;
     const opponentRole = battleRole === "A" ? "B" : "A";
     try {
-        await firestoreDb.collection("battles").doc(battleCode).update({ status: "beendet", winner: opponentRole });
+        // Auch das eigene "verlassen"-Flag setzen: der Gegner landet dadurch mit dem Hinweis
+        // "Gegner hat das Duell verlassen" im Endbildschirm statt mit einem Revanche-Knopf,
+        // auf den nie jemand antworten wird.
+        const myLeftField = battleRole === "A" ? "leftA" : "leftB";
+        await firestoreDb.collection("battles").doc(battleCode).update({ status: "beendet", winner: opponentRole, [myLeftField]: true });
     } catch (e) { console.warn("Battle konnte nicht sauber verlassen werden.", e); }
     stopBattleListener();
     clearBattleSession();
@@ -1091,7 +1362,7 @@ document.getElementById("battleJoinConfirmBtn").onclick = async function () {
 };
 document.getElementById("battleCodeInput").addEventListener("input", function () { this.value = this.value.toUpperCase(); });
 
-document.getElementById("battleEndRestartBtn").onclick = function () { goToMultiPlayerMenu(); };
+document.getElementById("battleEndRestartBtn").onclick = function () { leaveBattleAfterEnd(); };
 document.getElementById("forfeitFromBattleContinent").onclick = () => forfeitBattle();
 document.getElementById("forfeitFromBattlePoison").onclick = () => forfeitBattle();
 document.getElementById("forfeitFromBattleGame").onclick = () => forfeitBattle();

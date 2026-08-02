@@ -51,18 +51,24 @@ function buildAchievementDefs() {
 // Zählt, wie viele Länder eines Kontinents das jeweilige Kriterium erfüllen (Basis: mind. 1x
 // richtig; Profi/Speed/Beide: das jeweilige Flag mind. 1x gesetzt, siehe recordAnswerStat in
 // js/group-quiz.js). Nutzt den DEUTSCHEN Ländernamen als Schlüssel, wie STATS_KEY es tut.
+// Liefert neben den reinen Zahlen auch die beiden Länderlisten selbst (done/open) -- die
+// Detail-Aufklappansicht der Erfolgs-Karten (siehe achievementContinentDetailHtml) baut darauf auf,
+// damit die Zuordnung "welches Land fehlt noch" exakt demselben Kriterium folgt wie der Fortschritt.
 function countContinentProgress(continent, modifier, stats) {
     const contCountries = countries.filter(c => c.continent === continent);
-    let current = 0;
+    const done = [], open = [];
     contCountries.forEach(c => {
         const s = stats[c.name];
-        if (!s) return;
-        if (modifier === null) { if (s.correct >= 1) current++; }
-        else if (modifier === "profi") { if (s.correctProfi) current++; }
-        else if (modifier === "speed") { if (s.correctSpeed) current++; }
-        else if (modifier === "both") { if (s.correctProfi && s.correctSpeed) current++; }
+        let ok = false;
+        if (s) {
+            if (modifier === null) ok = s.correct >= 1;
+            else if (modifier === "profi") ok = !!s.correctProfi;
+            else if (modifier === "speed") ok = !!s.correctSpeed;
+            else if (modifier === "both") ok = !!(s.correctProfi && s.correctSpeed);
+        }
+        (ok ? done : open).push(c);
     });
-    return { current: current, total: contCountries.length };
+    return { current: done.length, total: contCountries.length, done: done, open: open };
 }
 
 // Berechnet Freischalt-Status + Fortschritt für JEDE Erfolgs-Definition. Reihenfolge entspricht
@@ -93,6 +99,19 @@ function computeAchievementStatus() {
     // Meta-Erfolg erst nachträglich auswerten, da er von allen Kontinent-Basis-Ergebnissen abhängt.
     const metaEntry = results.find(r => r.def.id === "meta_world");
     if (metaEntry) {
+        // continentDetails hält zusätzlich den Reststand JE Kontinent fest ("noch 12 von 54") --
+        // die Aufklappansicht des Meta-Erfolgs zeigt damit nicht nur, WELCHE Kontinente fehlen,
+        // sondern auch, wie weit sie jeweils schon sind (siehe achievementMetaDetailHtml).
+        metaEntry.continentDetails = CONTINENT_ACHIEVEMENT_IDS.map(id => {
+            const base = results.find(r => r.def.id === id);
+            return {
+                id: id,
+                continent: ACHIEVEMENT_CONTINENT_MAP[id],
+                current: base ? base.progress.current : 0,
+                total: base ? base.progress.total : 0,
+                unlocked: !!continentBaseUnlocked[id]
+            };
+        });
         const unlockedCount = CONTINENT_ACHIEVEMENT_IDS.filter(id => continentBaseUnlocked[id]).length;
         metaEntry.progress = { current: unlockedCount, total: CONTINENT_ACHIEVEMENT_IDS.length };
         metaEntry.unlocked = unlockedCount >= CONTINENT_ACHIEVEMENT_IDS.length;
@@ -237,26 +256,139 @@ function achievementProgressLine(entry) {
     if (entry.def.category === "battle") {
         return t("achievements.progressWins").replace("{current}", p.current).replace("{total}", p.total);
     }
-    const key = entry.def.category === "milestone" ? "achievements.progressFlags" : "achievements.progressCountries";
+    // Der Meta-Erfolg zählt KONTINENTE, nicht Länder -- vorher fiel er in den Länder-Zweig und zeigte
+    // dadurch fälschlich "3 / 6 Länder" statt "3 / 6 Kontinente".
+    const key = entry.def.category === "meta" ? "achievements.progressContinents"
+        : entry.def.category === "milestone" ? "achievements.progressFlags"
+        : "achievements.progressCountries";
     return t(key).replace("{current}", p.current).replace("{total}", p.total);
 }
 
-function achievementCardHtml(entry) {
+// Emoji der Erfolgs-Karte: Kontinent-Erfolge zeigen das Kontinent-Emoji (CONTINENT_ICONS,
+// js/standard-settings.js), Gipfelsturm-Meilensteine das jeweils erhaltene Abzeichen
+// (MILESTONE_ICONS oben), Battle-Erfolge ihr eigenes Icon. Meta/Serien bewusst ohne Emoji.
+function achievementIcon(def) {
+    if (def.category === "continent") return CONTINENT_ICONS[def.continent] || "🌐";
+    if (def.category === "milestone") return MILESTONE_ICONS[def.id] || "";
+    if (def.category === "battle") return BATTLE_ACHIEVEMENT_ICONS[def.id] || "";
+    return "";
+}
+
+// Voller Anzeigename eines Erfolgs (alle Titel-Varianten mit "/" verbunden, wie auf der Karte) --
+// wird auch von der Freischalt-Benachrichtigung genutzt (siehe checkForNewAchievements).
+function achievementDisplayName(entry) {
     const variants = achievementTitleVariants(entry.def.id, currentLang);
-    const titleText = variants.length ? variants.map(v => v.text).join(" / ") : "";
+    return variants.length ? variants.map(v => v.text).join(" / ") : "";
+}
+
+// ---------- Aufklappbare Detail-Liste (welche Länder/Kontinente fehlen noch) ----------
+
+// Nur Kontinent- und Meta-Erfolge haben eine sinnvolle "was fehlt noch"-Liste. Gipfelsturm-
+// Meilensteine, Siegesserien und Battle-Siege sind reine Zählstände ohne Einzelposten.
+function achievementHasDetail(def) {
+    return def.category === "continent" || def.category === "meta";
+}
+
+// Merkt sich, welche Karten gerade aufgeklappt sind (nur zur Laufzeit, bewusst nicht gespeichert).
+const achievementsExpanded = new Set();
+
+// Alphabetisch nach dem ANZEIGENAMEN sortieren, nicht nach dem deutschen Datensatz-Namen --
+// sonst stimmt die Reihenfolge in der englischen Oberfläche nicht.
+function sortCountriesByDisplayName(list) {
+    const locale = currentLang === "en" ? "en" : "de";
+    return list.slice().sort((a, b) => quizCountryNameByIso(a.iso).localeCompare(quizCountryNameByIso(b.iso), locale));
+}
+
+// withFlag=false für noch offene Länder: deren Flagge hat man ja noch gar nicht (richtig) gesehen --
+// sie hier zu zeigen würde den Erfolg vorwegnehmen.
+function achievementCountryChipsHtml(list, withFlag) {
+    const chips = sortCountriesByDisplayName(list).map(c => {
+        const label = escapeHtml(quizCountryNameByIso(c.iso));
+        if (!withFlag) return '<span class="achv-country-chip achv-chip-open">' + label + '</span>';
+        return '<span class="achv-country-chip achv-chip-done">' +
+            '<img src="' + flagImageUrl(c.iso) + '" alt="" loading="lazy">' + label + '</span>';
+    }).join("");
+    return '<div class="achv-country-chips">' + chips + '</div>';
+}
+
+function achievementContinentDetailHtml(entry) {
+    const p = entry.progress;
+    const open = p.open || [], done = p.done || [];
+    let html = "";
+    if (open.length) {
+        html += '<div class="achv-detail-label achv-detail-label-open">' + escapeHtml(t("achievements.detailOpenLabel").replace("{n}", open.length)) + '</div>';
+        html += achievementCountryChipsHtml(open, false);
+    } else {
+        html += '<div class="achv-detail-alldone">' + escapeHtml(t("achievements.detailAllDone")) + '</div>';
+    }
+    if (done.length) {
+        html += '<div class="achv-detail-label achv-detail-label-done">' + escapeHtml(t("achievements.detailDoneLabel").replace("{n}", done.length)) + '</div>';
+        html += achievementCountryChipsHtml(done, true);
+    } else {
+        html += '<div class="achv-detail-alldone">' + escapeHtml(t("achievements.detailNoneDone")) + '</div>';
+    }
+    return html;
+}
+
+function achievementMetaDetailHtml(entry) {
+    const details = entry.continentDetails || [];
+    const locale = currentLang === "en" ? "en" : "de";
+    const byName = arr => arr.slice().sort((a, b) => continentDisplayName(a.continent).localeCompare(continentDisplayName(b.continent), locale));
+    const open = byName(details.filter(d => !d.unlocked));
+    const done = byName(details.filter(d => d.unlocked));
+    const rowHtml = d => {
+        const state = d.unlocked
+            ? t("achievements.detailContinentDone").replace("{total}", d.total)
+            : t("achievements.detailContinentRemaining").replace("{n}", d.total - d.current).replace("{total}", d.total);
+        return '<div class="achv-continent-row' + (d.unlocked ? ' achv-row-done' : ' achv-row-open') + '">' +
+            '<span class="achv-continent-row-name">' + (CONTINENT_ICONS[d.continent] || "🌐") + ' ' + escapeHtml(continentDisplayName(d.continent)) + '</span>' +
+            '<span class="achv-continent-row-state">' + escapeHtml(state) + '</span></div>';
+    };
+    let html = "";
+    if (open.length) {
+        html += '<div class="achv-detail-label achv-detail-label-open">' + escapeHtml(t("achievements.detailOpenLabel").replace("{n}", open.length)) + '</div>';
+        html += '<div class="achv-continent-rows">' + open.map(rowHtml).join("") + '</div>';
+    } else {
+        html += '<div class="achv-detail-alldone">' + escapeHtml(t("achievements.detailAllContinentsDone")) + '</div>';
+    }
+    if (done.length) {
+        html += '<div class="achv-detail-label achv-detail-label-done">' + escapeHtml(t("achievements.detailDoneLabel").replace("{n}", done.length)) + '</div>';
+        html += '<div class="achv-continent-rows">' + done.map(rowHtml).join("") + '</div>';
+    }
+    return html;
+}
+
+function achievementDetailHtml(entry) {
+    if (entry.def.category === "meta") return achievementMetaDetailHtml(entry);
+    return achievementContinentDetailHtml(entry);
+}
+
+function achievementCardHtml(entry) {
+    const titleText = achievementDisplayName(entry);
     const pct = entry.progress.total > 0 ? Math.min(100, Math.round((entry.progress.current / entry.progress.total) * 100)) : 0;
-    // Kontinent-Erfolge zeigen das Kontinent-Emoji (CONTINENT_ICONS, js/standard-settings.js),
-    // Gipfelsturm-Meilensteine das jeweils erhaltene Abzeichen (MILESTONE_ICONS oben).
-    const icon = entry.def.category === "continent" ? (CONTINENT_ICONS[entry.def.continent] || "🌐")
-        : entry.def.category === "milestone" ? (MILESTONE_ICONS[entry.def.id] || "")
-        : entry.def.category === "battle" ? (BATTLE_ACHIEVEMENT_ICONS[entry.def.id] || "")
-        : "";
+    const icon = achievementIcon(entry.def);
     const iconPrefix = icon ? (icon + " ") : "";
+
+    // Detailinhalt wird NUR im aufgeklappten Zustand erzeugt: über alle 24 Kontinent-Karten hinweg
+    // kämen sonst mehrere hundert Flaggenbilder auf einmal ins DOM.
+    let detailHtml = "";
+    if (achievementHasDetail(entry.def)) {
+        const isOpen = achievementsExpanded.has(entry.def.id);
+        detailHtml =
+            '<button type="button" class="achv-detail-toggle" data-achv-toggle="' + entry.def.id + '">' +
+                escapeHtml(isOpen ? t("achievements.detailHide") : t("achievements.detailShow")) +
+            '</button>' +
+            '<div class="achv-detail-body" data-achv-body="' + entry.def.id + '"' + (isOpen ? '' : ' style="display:none;"') + '>' +
+                (isOpen ? achievementDetailHtml(entry) : '') +
+            '</div>';
+    }
+
     return '<div class="achv-card' + (entry.unlocked ? ' achv-unlocked' : '') + '">' +
         '<div class="achv-card-title">' + iconPrefix + escapeHtml(titleText) + (entry.unlocked ? ' <span class="achv-badge">' + t("achievements.unlockedBadge") + '</span>' : '') + '</div>' +
         '<div class="achv-card-desc">' + escapeHtml(achievementDescription(entry)) + '</div>' +
         '<div class="achv-progress-outer"><div class="achv-progress-inner" style="width:' + pct + '%;"></div></div>' +
         '<div class="achv-card-progress-line">' + escapeHtml(achievementProgressLine(entry)) + '</div>' +
+        detailHtml +
         '</div>';
 }
 
@@ -333,11 +465,100 @@ function renderAchievementsScreen() {
     document.getElementById("achievementsScrollTopBtn").onclick = function () {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
+
+    // Auf-/Zuklappen bewusst OHNE kompletten Neuaufbau des Bildschirms: sonst würden beim Öffnen
+    // einer Karte alle bereits geladenen Flaggenbilder der anderen Karten kurz neu aufflackern.
+    Array.from(container.querySelectorAll("[data-achv-toggle]")).forEach(btn => {
+        btn.onclick = function () {
+            const id = btn.getAttribute("data-achv-toggle");
+            const entry = statusList.find(e => e.def.id === id);
+            const body = container.querySelector('[data-achv-body="' + id + '"]');
+            if (!entry || !body) return;
+            const nowOpen = !achievementsExpanded.has(id);
+            if (nowOpen) achievementsExpanded.add(id); else achievementsExpanded.delete(id);
+            body.innerHTML = nowOpen ? achievementDetailHtml(entry) : "";
+            body.style.display = nowOpen ? "block" : "none";
+            btn.textContent = nowOpen ? t("achievements.detailHide") : t("achievements.detailShow");
+        };
+    });
 }
 
 function goToAchievementsScreen() {
     hideAllScreens();
     setChromeVisible(true);
+    setAchievementsNewFlag(false); // "Neu"-Punkt auf der Kachel verschwindet, sobald man hier war
     renderAchievementsScreen();
     document.getElementById("achievementsScreen").style.display = "block";
+}
+
+// ---------- Benachrichtigung bei neu freigeschalteten Erfolgen ----------
+// computeAchievementStatus() rechnet bei jedem Aufruf frisch aus den Rohdaten -- es gibt also von
+// sich aus kein "das war vorher schon freigeschaltet"-Wissen. Dafür merken wir uns hier den zuletzt
+// bekannten Stand der freigeschalteten IDs und vergleichen bei den Rundenenden dagegen.
+const ACHIEVEMENTS_SEEN_KEY = "flagquiz_erfolge_gesehen";
+const ACHIEVEMENTS_NEW_FLAG_KEY = "flagquiz_erfolge_neu";
+
+// null = noch nie befüllt (wichtig zu unterscheiden von [] = befüllt, aber nichts freigeschaltet).
+function loadSeenAchievementIds() {
+    try {
+        const raw = localStorage.getItem(ACHIEVEMENTS_SEEN_KEY);
+        if (raw === null) return null;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+function saveSeenAchievementIds(ids) {
+    try { localStorage.setItem(ACHIEVEMENTS_SEEN_KEY, JSON.stringify(ids)); } catch (e) { /* ignorieren */ }
+}
+// Wird beim "Statistik zurücksetzen" mit aufgerufen (siehe js/init.js): die Erfolge selbst fallen
+// dadurch weg, also soll ihr erneutes Erspielen auch wieder gemeldet werden.
+function clearSeenAchievementIds() {
+    try {
+        localStorage.removeItem(ACHIEVEMENTS_SEEN_KEY);
+        localStorage.removeItem(ACHIEVEMENTS_NEW_FLAG_KEY);
+    } catch (e) { /* ignorieren */ }
+    renderAchievementsNewDot();
+}
+
+// Einmalige stille Erst-Befüllung beim App-Start: ohne sie würden Bestandsspieler:innen beim ersten
+// Rundenende nach diesem Update auf einen Schlag ALLE längst erfüllten Erfolge gemeldet bekommen.
+function seedSeenAchievementsIfMissing() {
+    if (loadSeenAchievementIds() !== null) return;
+    saveSeenAchievementIds(computeAchievementStatus().filter(e => e.unlocked).map(e => e.def.id));
+}
+
+function setAchievementsNewFlag(on) {
+    try {
+        if (on) localStorage.setItem(ACHIEVEMENTS_NEW_FLAG_KEY, "1");
+        else localStorage.removeItem(ACHIEVEMENTS_NEW_FLAG_KEY);
+    } catch (e) { /* ignorieren */ }
+    renderAchievementsNewDot();
+}
+
+// Roter Punkt auf der Erfolge-Kachel im Hauptmenü -- fängt den Fall ab, dass die Einblendung am
+// Rundenende übersehen wurde.
+function renderAchievementsNewDot() {
+    const tile = document.getElementById("tileAchievements");
+    if (!tile) return;
+    let on = false;
+    try { on = localStorage.getItem(ACHIEVEMENTS_NEW_FLAG_KEY) === "1"; } catch (e) { /* ignorieren */ }
+    tile.classList.toggle("has-new-dot", on);
+}
+
+// Wird an den Rundenenden aufgerufen (Entdecker-Modus, Gipfelsturm, Battle -- siehe dort). Meldet
+// jeden Erfolg genau einmal und gibt die neu freigeschalteten Einträge zurück.
+function checkForNewAchievements() {
+    const seen = loadSeenAchievementIds();
+    const unlockedNow = computeAchievementStatus().filter(e => e.unlocked);
+    const unlockedIds = unlockedNow.map(e => e.def.id);
+    saveSeenAchievementIds(unlockedIds);
+    if (seen === null) return []; // erster Aufruf überhaupt: nur merken, nichts melden
+    const fresh = unlockedNow.filter(e => seen.indexOf(e.def.id) === -1);
+    if (!fresh.length) return [];
+    setAchievementsNewFlag(true);
+    fresh.forEach(entry => {
+        const icon = achievementIcon(entry.def);
+        showAchievementToast((icon ? icon + " " : "") + achievementDisplayName(entry));
+    });
+    return fresh;
 }

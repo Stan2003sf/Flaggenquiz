@@ -247,3 +247,50 @@ function playStreakMilestoneSound(level) {
     setTimeout(() => playTone(freq * 1.35, 0.18, "triangle"), 90);
 }
 
+// Kleine aufsteigende Fanfare für einen neu freigeschalteten Erfolg -- bewusst länger und "runder"
+// als der Serien-Ton, damit sich ein Erfolg deutlich seltener/größer anfühlt. Läuft wie alle Töne
+// über playTone und respektiert damit automatisch den Stummschalt-Knopf.
+function playAchievementUnlockedSound() {
+    playTone(660, 0.16, "triangle");
+    setTimeout(() => playTone(880, 0.16, "triangle"), 130);
+    setTimeout(() => playTone(1320, 0.32, "triangle"), 260);
+}
+
+// ---------- Einblendung bei neu freigeschaltetem Erfolg ----------
+// Wird von checkForNewAchievements() in js/achievements.js aufgerufen. Bewusst als frei schwebende
+// Einblendung statt als fester Kasten in einem Endbildschirm: so funktioniert sie unverändert im
+// Entdecker-Modus, im Gipfelsturm UND im Battle, ohne dass jeder dieser Bildschirme einen eigenen
+// Anzeigebereich braucht. Mehrere gleichzeitig freigeschaltete Erfolge laufen über eine
+// Warteschlange nacheinander durch, statt sich zu überlagern.
+let achievementToastQueue = [];
+let achievementToastRunning = false;
+const ACHIEVEMENT_TOAST_VISIBLE_MS = 4000;
+
+function showAchievementToast(nameText) {
+    achievementToastQueue.push(nameText);
+    if (!achievementToastRunning) runNextAchievementToast();
+}
+
+function runNextAchievementToast() {
+    if (!achievementToastQueue.length) { achievementToastRunning = false; return; }
+    achievementToastRunning = true;
+    const nameText = achievementToastQueue.shift();
+
+    const el = document.createElement("div");
+    el.className = "achv-toast";
+    el.innerHTML =
+        '<div class="achv-toast-head">' + escapeHtml(t("achievements.toastTitle")) + '</div>' +
+        '<div class="achv-toast-name">' + escapeHtml(nameText) + '</div>' +
+        '<div class="achv-toast-sub">' + escapeHtml(t("achievements.toastSub")) + '</div>';
+    document.body.appendChild(el);
+    // Einblenden erst im nächsten Frame anstoßen, damit der Startzustand der CSS-Animation
+    // überhaupt gerendert wurde (sonst springt die Einblendung ohne Übergang ins Bild).
+    requestAnimationFrame(() => el.classList.add("achv-toast-in"));
+    playAchievementUnlockedSound();
+
+    setTimeout(() => {
+        el.classList.remove("achv-toast-in");
+        setTimeout(() => { el.remove(); runNextAchievementToast(); }, 400);
+    }, ACHIEVEMENT_TOAST_VISIBLE_MS);
+}
+

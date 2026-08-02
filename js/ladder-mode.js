@@ -394,6 +394,10 @@ async function endLadderRound(won) {
     refreshCrownStatus(); // Tier-Abzeichen ggf. gerade neu erhalten -> Ebene-0-Anzeige sofort aktualisieren
 
     if (won) spawnLadderConfetti();
+
+    // Nach saveLadderOwnBestCache aufrufen: die Gipfelsturm-Meilensteine lesen genau diesen
+    // Bestwert (siehe computeAchievementStatus in js/achievements.js).
+    checkForNewAchievements();
 }
 
 async function updateLadderHighscoreDisplay(targetEl) {
