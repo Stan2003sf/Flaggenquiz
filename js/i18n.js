@@ -380,8 +380,6 @@ const TRANSLATIONS = {
         "singlePlayerMenu.explorer.sub": "Kontinent, Länge, Modus frei wählbar",
         "singlePlayerMenu.ladder.title": "Gipfelsturm",
         "singlePlayerMenu.ladder.sub": "Alle 197 Flaggen, von bekannt nach unbekannt",
-        "singlePlayerMenu.comingSoon.title": "Ein neuer Modus kommt demnächst",
-        "singlePlayerMenu.comingSoon.sub": "Du musst dich leider noch etwas gedulden",
 
         "ladderPlaceholder.heading": "⛰️ Gipfelsturm",
         "ladderPlaceholder.description": "Du durchläufst alle 197 Flaggen, sortiert von bekannt nach unbekannt. 5 Leben, Multiple Choice — keine Kontinent- oder Modus-Auswahl.",
@@ -755,8 +753,6 @@ const TRANSLATIONS = {
         "singlePlayerMenu.explorer.sub": "Continent, length, mode — your choice",
         "singlePlayerMenu.ladder.title": "Summit Climb",
         "singlePlayerMenu.ladder.sub": "All 197 flags, from well-known to obscure",
-        "singlePlayerMenu.comingSoon.title": "A new mode is coming soon",
-        "singlePlayerMenu.comingSoon.sub": "You'll have to wait a little longer",
 
         "ladderPlaceholder.heading": "⛰️ Summit Climb",
         "ladderPlaceholder.description": "You'll work through all 197 flags, sorted from well-known to obscure. 5 lives, Multiple Choice — no continent or mode selection.",
