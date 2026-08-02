@@ -5,6 +5,28 @@ const BATTLE_HIGHSCORE_KEY = "flagquiz_battle_bestenliste";
 const BATTLE_EXPIRY_HOURS = 3;
 const BATTLE_MAX_LIVES = 5; // Schritt 5: 5 statt 3 Leben pro Spieler:in
 
+// ---------- Rundenaufbau eines Duells ----------
+// 14 normale Runden, danach beginnt Sudden Death (also ab Runde 15).
+// Aufbau: 4er-Block | Zwischenrunde | 4er-Block | Zwischenrunde | 4er-Block
+//         1  2  3  4 |     5      | 6  7  8  9 |     10     | 11 12 13 14
+// In jedem 4er-Block sitzt genau EINE Fallen-Flagge an zufälliger Position. Die beiden festen
+// Zwischenrunden (Index 4 und 9) können NIE eine Falle enthalten -- ohne sie könnte Block 1 seine
+// Falle ans Ende und Block 2 sie direkt an den Anfang legen, sodass zwei Fallen unmittelbar
+// aufeinander folgen. Mit dem Puffer liegt zwischen zwei Fallen immer mindestens eine normale Runde.
+const BATTLE_TOTAL_ROUNDS = 14;
+const BATTLE_POISON_BLOCK_STARTS = [0, 5, 10]; // 0-basierte Startindizes der drei Fallen-Blöcke
+const BATTLE_POISON_COUNT = BATTLE_POISON_BLOCK_STARTS.length;
+const BATTLE_NORMAL_FLAG_COUNT = BATTLE_TOTAL_ROUNDS - BATTLE_POISON_COUNT; // 11 Flaggen aus dem Pool
+
+// Liefert zu einer Positionswahl (eine je Block) die 0-basierten Rundenindizes der drei Fallen.
+// Beide Spieler:innen bekommen dieselben positions (siehe tryResolveBattleStart) und damit exakt
+// dieselben Fallen-Runden -- nur die Flagge darin unterscheidet sich.
+function battlePoisonIndexByRound(positions) {
+    const map = {};
+    BATTLE_POISON_BLOCK_STARTS.forEach((start, i) => { map[start + positions[i]] = i; });
+    return map;
+}
+
 // Eigener, rein lokaler Sieg-Zähler für das Erfolgssystem (js/achievements.js) -- bewusst NICHT aus
 // BATTLE_HIGHSCORE_KEY abgeleitet, da diese Liste auf die Top 50 gekappt ist (recordBattleWin()):
 // Geräte außerhalb der Top 50 würden ihren Sieg-Fortschritt sonst beim nächsten Speichern verlieren.
@@ -183,23 +205,32 @@ async function submitBattlePoison(code, role, isos) {
     try { await ref.update({ [field]: isos }); } catch (e) { console.warn("Fallen-Flaggen-Wahl konnte nicht gesendet werden.", e); }
 }
 
-// Streut 1 Fallen-Flagge pro Block (4er-Block) an zufälliger Position ein (Konzept Punkt 4).
-// positions (eine Position je Block) wird EINMAL für beide Spieler:innen gemeinsam gewürfelt und
-// hier nur noch angewendet — würde jede Sequenz ihre eigene Zufallsposition würfeln, käme die
-// Fallen-Flagge bei A und B in unterschiedlichen Runden an (Bug, siehe tryResolveBattleStart).
+// Baut die vollständige 14-Runden-Sequenz: an den drei Fallen-Runden (siehe
+// battlePoisonIndexByRound) steht die jeweilige Fallen-Flagge, alle übrigen 11 Runden werden der
+// Reihe nach aus baseSequence befüllt. Die Fallen liegen dadurch immer in Runde 2-4, 6-9 und 11-14
+// (Runde 1 ist bewusst ausgenommen, siehe tryResolveBattleStart), Runde 5 und 10 sind fallenfrei.
+// positions wird EINMAL für beide Spieler:innen gemeinsam gewürfelt und hier nur noch angewendet —
+// würde jede Sequenz ihre eigene Zufallsposition würfeln, käme die Fallen-Flagge bei A und B in
+// unterschiedlichen Runden an (Bug, siehe tryResolveBattleStart). Weil die Fallen-Runden für beide
+// identisch sind, landen auch die 11 normalen Flaggen bei beiden in exakt derselben Runde.
 function battleBuildIndividualSequence(baseSequence, poisonCountries, positions) {
-    const blocks = [baseSequence.slice(0, 4), baseSequence.slice(4, 8), baseSequence.slice(8, 12)];
+    const poisonByRound = battlePoisonIndexByRound(positions);
     const seq = [];
-    blocks.forEach((block, i) => {
-        const pos = positions[i];
-        const modified = block.map(c => ({ name: c.name, iso: c.iso, isPoison: false }));
-        modified[pos] = { name: poisonCountries[i].name, iso: poisonCountries[i].iso, isPoison: true };
-        seq.push(...modified);
-    });
+    let next = 0;
+    for (let r = 0; r < BATTLE_TOTAL_ROUNDS; r++) {
+        if (poisonByRound[r] !== undefined) {
+            const p = poisonCountries[poisonByRound[r]];
+            seq.push({ name: p.name, iso: p.iso, isPoison: true });
+        } else {
+            const c = baseSequence[next++];
+            seq.push({ name: c.name, iso: c.iso, isPoison: false });
+        }
+    }
     return seq;
 }
 
-// Berechnet für eine Flaggen-Sequenz (12 Runden bzw. Sudden-Death-Liste) pro Runde vorab die
+// Berechnet für eine Flaggen-Liste (normale Flaggen, Fallen-Flaggen oder Sudden-Death-Liste) je
+// Eintrag vorab die
 // fertig gemischten Antwortoptionen (richtige Flagge + 3 zufällige Distraktoren aus dem Pool).
 // Wird EINMAL serverseitig in der Transaktion berechnet und in Firestore abgelegt, damit beide
 // Spieler:innen für dieselbe Runde exakt dieselben Optionen sehen (siehe tryResolveBattleStart) —
@@ -216,19 +247,19 @@ function buildBattleOptionsForSequence(sequence, poolCountries) {
     });
 }
 
-// Streut die Fallen-Flaggen-Optionen an dieselben Block-Positionen wie battleBuildIndividualSequence
-// (siehe dort) -- WICHTIG: baseOptions ist für A und B identisch (siehe tryResolveBattleStart), damit
-// beide bei den 9 "normalen" Runden garantiert exakt dieselben 4 Antwortmöglichkeiten sehen. Nur bei
-// den je 3 Fallen-Flaggen-Runden (unterschiedliche richtige Flagge je Spieler:in) werden eigene,
-// vorab separat berechnete Optionen eingesetzt.
+// Verteilt die Antwortoptionen exakt nach demselben Muster wie battleBuildIndividualSequence
+// (siehe dort), damit Optionen und Flaggen Runde für Runde zueinander passen -- WICHTIG:
+// baseOptions ist für A und B identisch (siehe tryResolveBattleStart), damit beide bei den 11
+// "normalen" Runden garantiert exakt dieselben 4 Antwortmöglichkeiten sehen. Nur bei den je 3
+// Fallen-Flaggen-Runden (unterschiedliche richtige Flagge je Spieler:in) werden eigene, vorab
+// separat berechnete Optionen eingesetzt.
 function battleBuildIndividualOptions(baseOptions, poisonOptions, positions) {
-    const blocks = [baseOptions.slice(0, 4), baseOptions.slice(4, 8), baseOptions.slice(8, 12)];
+    const poisonByRound = battlePoisonIndexByRound(positions);
     const result = [];
-    blocks.forEach((block, i) => {
-        const modified = block.slice();
-        modified[positions[i]] = poisonOptions[i];
-        result.push(...modified);
-    });
+    let next = 0;
+    for (let r = 0; r < BATTLE_TOTAL_ROUNDS; r++) {
+        result.push(poisonByRound[r] !== undefined ? poisonOptions[poisonByRound[r]] : baseOptions[next++]);
+    }
     return result;
 }
 
@@ -247,10 +278,27 @@ async function tryResolveBattleStart(code) {
             const isoToCountry = iso => countries.find(c => c.iso === iso);
             const poisonForA = data.poisonChoiceB.map(isoToCountry); // B's Wahl trifft A
             const poisonForB = data.poisonChoiceA.map(isoToCountry); // A's Wahl trifft B
-            const base = shuffle(poolCountries).slice(0, 12);
-            // Eine gemeinsame Einfüge-Position je Block, statt je Sequenz einzeln zu würfeln —
-            // sonst käme die Fallen-Flagge bei A und B in unterschiedlichen Runden an.
-            const poisonPositions = [0, 1, 2].map(() => Math.floor(Math.random() * 4));
+            // Nur die 11 NICHT-Fallen-Flaggen aus dem Pool ziehen, nicht alle 14 Runden: ein Pool
+            // kann aus einem einzigen Kontinent bestehen, und der kleinste (Südamerika) hat nur 12
+            // Länder -- 14 verschiedene gäbe es dort gar nicht. Die restlichen 3 Runden sind ohnehin
+            // Fallen-Flaggen aus dem fremden Kontinent.
+            let base = shuffle(poolCountries).slice(0, BATTLE_NORMAL_FLAG_COUNT);
+            // Sicherheitsnetz, falls der Länderbestand einmal schrumpft: lieber eine Flagge doppelt
+            // als eine undefinierte Runde. Greift beim aktuellen Datenbestand nie (12 >= 11).
+            while (base.length < BATTLE_NORMAL_FLAG_COUNT && poolCountries.length > 0) {
+                base = base.concat(shuffle(poolCountries).slice(0, BATTLE_NORMAL_FLAG_COUNT - base.length));
+            }
+            // Eine gemeinsame Zufallsposition je 4er-Block, statt je Sequenz einzeln zu würfeln —
+            // sonst käme die Fallen-Flagge bei A und B in unterschiedlichen Runden an. Der ERSTE
+            // Block würfelt bewusst nur Position 1-3 (also Runde 2-4): eine Falle direkt in der
+            // allerersten Runde kam zu unvermittelt, bevor man überhaupt im Duell angekommen ist.
+            // Block 2 und 3 bleiben voll zufällig (Runde 6-9 bzw. 11-14) -- feste Fallen-Runden
+            // wären nach wenigen Duellen vorhersehbar.
+            const poisonPositions = [
+                1 + Math.floor(Math.random() * 3),
+                Math.floor(Math.random() * 4),
+                Math.floor(Math.random() * 4)
+            ];
             const sequenceA = battleBuildIndividualSequence(base, poisonForA, poisonPositions);
             const sequenceB = battleBuildIndividualSequence(base, poisonForB, poisonPositions);
             const suddenDeathSequence = shuffle(poolCountries).slice(0, Math.min(30, poolCountries.length))
@@ -314,15 +362,16 @@ async function tryResolveBattleRound(code, roundNum) {
             const updates = {};
             updates["rounds." + roundNum + ".resolved"] = true;
 
-            // Sudden-Death-Beschleuniger (Konzept-Feedback Punkt 1A): Beim Übergang Runde 12 -> 13
-            // verlieren beide automatisch 1 Leben zusätzlich zur normalen Antwort-Wertung, danach
-            // alle weiteren 5 Sudden-Death-Runden nochmal je 1 (wird beim Auflösen von Runde 17/22/27
-            // angewendet, sichtbar wird der reduzierte Lebensstand dann ab Runde 18/23/28 -- die
-            // 5er-Zählung startet bewusst NACH dem Start-Verlust neu). Nur anwenden, wenn das Duell
-            // nicht schon durch die normale Rundenwertung entschieden ist.
+            // Sudden-Death-Beschleuniger (Konzept-Feedback Punkt 1A): Beim Übergang von der letzten
+            // normalen Runde (14) in die erste Sudden-Death-Runde (15) verlieren beide automatisch
+            // 1 Leben zusätzlich zur normalen Antwort-Wertung, danach alle weiteren 5 Sudden-Death-
+            // Runden nochmal je 1 (wird beim Auflösen von Runde 19/24/29 angewendet, sichtbar wird
+            // der reduzierte Lebensstand dann ab Runde 20/25/30 -- die 5er-Zählung startet bewusst
+            // NACH dem Start-Verlust neu). Nur anwenden, wenn das Duell nicht schon durch die
+            // normale Rundenwertung entschieden ist.
             if (livesA > 0 && livesB > 0) {
-                const sdRoundIndex = roundNum - 12; // 1 bei Runde 13, 2 bei Runde 14, ...
-                const entersSuddenDeath = roundNum === 12;
+                const sdRoundIndex = roundNum - BATTLE_TOTAL_ROUNDS; // 1 bei Runde 15, 2 bei Runde 16, ...
+                const entersSuddenDeath = roundNum === BATTLE_TOTAL_ROUNDS;
                 const hitsFiveRhythm = sdRoundIndex > 0 && sdRoundIndex % 5 === 0;
                 if (entersSuddenDeath || hitsFiveRhythm) {
                     livesA--;
@@ -337,7 +386,7 @@ async function tryResolveBattleRound(code, roundNum) {
                 updates.winner = (livesA <= 0 && livesB <= 0) ? "unentschieden" : (livesA <= 0 ? "B" : "A");
             } else {
                 updates.currentRound = roundNum + 1;
-                if (roundNum >= 12) updates.status = "suddendeath";
+                if (roundNum >= BATTLE_TOTAL_ROUNDS) updates.status = "suddendeath";
             }
             tx.update(ref, updates);
         });
@@ -564,10 +613,10 @@ function battleGetOpponentNameHtml(data) {
 
 function battleCurrentFlagFor(data, roundNum) {
     const seq = battleRole === "A" ? data.sequenceA : data.sequenceB;
-    if (roundNum <= 12) return seq && seq[roundNum - 1];
+    if (roundNum <= BATTLE_TOTAL_ROUNDS) return seq && seq[roundNum - 1];
     const sd = data.suddenDeathSequence || [];
     if (sd.length === 0) return null;
-    return sd[(roundNum - 13) % sd.length];
+    return sd[(roundNum - BATTLE_TOTAL_ROUNDS - 1) % sd.length];
 }
 
 // Liefert die vorberechneten, für beide Spieler:innen bei dieser Runde identischen Antwortoptionen
@@ -575,12 +624,12 @@ function battleCurrentFlagFor(data, roundNum) {
 // noch keine vorberechneten Optionen enthält — der Aufruf fällt dann auf die alte, lokale
 // Zufallsauswahl zurück (siehe showBattleGameScreen).
 function battleCurrentOptionsFor(data, roundNum) {
-    if (roundNum <= 12) {
+    if (roundNum <= BATTLE_TOTAL_ROUNDS) {
         const opts = battleRole === "A" ? data.optionsA : data.optionsB;
         if (opts && opts[roundNum - 1]) return opts[roundNum - 1].opts;
     } else {
         const sdOpts = data.suddenDeathOptions || [];
-        if (sdOpts.length > 0) return sdOpts[(roundNum - 13) % sdOpts.length].opts;
+        if (sdOpts.length > 0) return sdOpts[(roundNum - BATTLE_TOTAL_ROUNDS - 1) % sdOpts.length].opts;
     }
     return null;
 }
@@ -827,7 +876,7 @@ function renderBattleFromData(data) {
         // (battleIntroPlayedFor-Guard). Ohne matchNumber im Schlüssel bliebe der Countdown bei
         // einer Revanche im selben Battle-Dokument aus.
         const introKey = (data.status === "laeuft" && data.currentRound === 1) ? (battleCode + ":" + matchNumber + ":start")
-            : (data.status === "suddendeath" && data.currentRound === 13) ? (battleCode + ":" + matchNumber + ":sd")
+            : (data.status === "suddendeath" && data.currentRound === BATTLE_TOTAL_ROUNDS + 1) ? (battleCode + ":" + matchNumber + ":sd")
             : null;
         if (introKey && battleIntroPlayedFor !== introKey && !battleIntroActive) {
             battleIntroActive = true;
@@ -1040,7 +1089,9 @@ function showBattleGameScreen(data) {
 
     const roundNum = data.currentRound;
     document.getElementById("battleRoundLabel").textContent =
-        roundNum <= 12 ? t("battle.round").replace("{n}", roundNum) : t("battle.suddenDeathRound").replace("{n}", roundNum - 12);
+        roundNum <= BATTLE_TOTAL_ROUNDS
+            ? t("battle.round").replace("{n}", roundNum).replace("{total}", BATTLE_TOTAL_ROUNDS)
+            : t("battle.suddenDeathRound").replace("{n}", roundNum - BATTLE_TOTAL_ROUNDS);
 
     const myFlag = battleCurrentFlagFor(data, roundNum);
     // Antwortoptionen werden gemeinsam mit der Sequenz in EINER Transaktion geschrieben
