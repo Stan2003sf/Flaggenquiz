@@ -65,6 +65,34 @@
         margin: 0;
     }
 
+    /* ---------- Hintergrundbild, ausschließlich auf Ebene 0 (Hauptmenü) ----------
+       Die Klasse setzt/entfernt goToMainMenu() bzw. hideAllScreens() (js/navigation.js) -- alle
+       übrigen Bildschirme behalten bewusst den ruhigen Verlauf, damit dort nichts von Inhalten
+       oder laufenden Runden ablenkt.
+       Der Seitenverlauf (bg-page) bleibt als ZWEITE Ebene darunter liegen: Sollte die SVG-Datei
+       einmal fehlen oder noch laden, ist der Hintergrund trotzdem eingefärbt statt weiß.
+       Die Pfade sind relativ zu DIESER Datei (css/), die Bilder liegen im Projektstamm.
+       Mobil-Variante als Standard (hochkant, Kugel unten), Desktop-Variante ab 700px Breite. */
+    body.main-menu-bg {
+        background-image: url("../bg-mobile.svg"), var(--bg-page);
+        background-size: cover, cover;
+        background-position: center center, center center;
+        background-repeat: no-repeat, no-repeat;
+        background-attachment: fixed, fixed;
+    }
+    @media (min-width: 700px) {
+        body.main-menu-bg {
+            background-image: url("../bg-desktop.svg"), var(--bg-page);
+        }
+    }
+    /* Sehr flache Fenster (z. B. Handy quer): die Desktop-Variante passt dort besser als die
+       hochkant aufgebaute, auch wenn das Fenster schmaler als 700px ist. */
+    @media (max-width: 699px) and (orientation: landscape) {
+        body.main-menu-bg {
+            background-image: url("../bg-desktop.svg"), var(--bg-page);
+        }
+    }
+
     #titleBlock {
         display: flex;
         flex-direction: column;

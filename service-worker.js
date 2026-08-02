@@ -3,13 +3,15 @@
 // Version vom Server geladen. Der Cache wird nur genutzt, wenn das Netzwerk nicht erreichbar ist.
 // (Vorherige Version nutzte "Cache First" - dadurch kamen Updates immer erst mit Verzögerung an.)
 
-const CACHE_NAME = "flaggenquiz-cache-v20";
+const CACHE_NAME = "flaggenquiz-cache-v21";
 const APP_SHELL = [
     "./index.html",
     "./manifest.json",
     "./icon192.png",
     "./icon512.png",
     "./appletouchicon.png",
+    "./bg-desktop.svg",
+    "./bg-mobile.svg",
     "./css/style.css",
     "./js/firebase-init.js",
     "./js/i18n.js",

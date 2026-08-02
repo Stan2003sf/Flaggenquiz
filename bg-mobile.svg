@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.25" y2="1">
+      <stop offset="0%" stop-color="#E3F3FB"/>
+      <stop offset="45%" stop-color="#ECF8F6"/>
+      <stop offset="100%" stop-color="#E6F4EE"/>
+    </linearGradient>
+    <radialGradient id="ocean" cx="0.36" cy="0.3" r="0.85">
+      <stop offset="0%" stop-color="#5FB6E8"/>
+      <stop offset="55%" stop-color="#2C8FD4"/>
+      <stop offset="100%" stop-color="#0D47A1"/>
+    </radialGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#4CC47E"/>
+      <stop offset="100%" stop-color="#1B7A43"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.3" cy="0.24" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="60%" stop-color="#2C8FD4" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#2C8FD4" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Ruhezone hochkant: das Kachelmenü nimmt am Handy fast die ganze Höhe ein -->
+    <linearGradient id="veil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#F4FAFC" stop-opacity="0.30"/>
+      <stop offset="18%" stop-color="#F5FAFC" stop-opacity="0.80"/>
+      <stop offset="62%" stop-color="#F5FAFC" stop-opacity="0.86"/>
+      <stop offset="88%" stop-color="#F3F9FA" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#F3F9FA" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <clipPath id="globeClipM"><circle cx="0" cy="0" r="420"/></clipPath>
+    <g id="pennantM"><path d="M -28 0 L 28 0 L 0 58 Z"/></g>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#sky)"/>
+
+  <!-- ============ Erdkugel unten, angeschnitten ============ -->
+  <g transform="translate(560 1620)">
+    <circle cx="0" cy="0" r="620" fill="url(#halo)"/>
+    <circle cx="0" cy="0" r="420" fill="url(#ocean)"/>
+    <g clip-path="url(#globeClipM)">
+      <g fill="url(#land)" opacity="0.95">
+        <path d="M -320 -250 C -260 -300 -160 -300 -120 -250 C -100 -210 -140 -180 -150 -140
+                 C -160 -100 -190 -70 -215 -90 C -240 -110 -250 -150 -280 -165
+                 C -310 -180 -340 -210 -320 -250 Z"/>
+        <path d="M -200 -30 C -160 -45 -130 -15 -140 30 C -148 75 -170 120 -180 175
+                 C -188 220 -205 245 -220 225 C -232 205 -222 165 -228 120
+                 C -235 70 -240 10 -200 -30 Z"/>
+        <path d="M -10 -60 C 60 -85 140 -70 165 -20 C 185 25 150 70 130 110
+                 C 110 150 95 200 70 225 C 45 248 20 225 15 190
+                 C 8 140 -15 100 -30 55 C -45 10 -50 -40 -10 -60 Z"/>
+        <path d="M -25 -200 C 30 -225 100 -220 120 -185 C 135 -155 105 -135 80 -120
+                 C 50 -100 10 -95 -15 -110 C -40 -125 -50 -175 -25 -200 Z"/>
+        <path d="M 130 -230 C 200 -270 300 -255 335 -200 C 360 -160 330 -120 290 -100
+                 C 245 -78 195 -95 165 -125 C 140 -150 110 -195 130 -230 Z"/>
+        <path d="M 250 100 C 300 80 340 105 335 145 C 330 180 290 195 260 180
+                 C 232 166 225 120 250 100 Z"/>
+      </g>
+      <g fill="none" stroke="#EAF6FB" stroke-opacity="0.32" stroke-width="2.5">
+        <ellipse cx="0" cy="0" rx="420" ry="420"/>
+        <ellipse cx="0" cy="0" rx="300" ry="420"/>
+        <ellipse cx="0" cy="0" rx="160" ry="420"/>
+        <line x1="0" y1="-420" x2="0" y2="420"/>
+        <ellipse cx="0" cy="-280" rx="313" ry="34"/>
+        <ellipse cx="0" cy="-150" rx="392" ry="44"/>
+        <ellipse cx="0" cy="0" rx="420" ry="50"/>
+        <ellipse cx="0" cy="150" rx="392" ry="44"/>
+        <ellipse cx="0" cy="280" rx="313" ry="34"/>
+      </g>
+      <circle cx="0" cy="0" r="420" fill="url(#shine)"/>
+    </g>
+    <circle cx="0" cy="0" r="420" fill="none" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="4"/>
+  </g>
+
+  <!-- ============ Wimpelgirlande oben ============ -->
+  <g opacity="0.9">
+    <path d="M -30 120 Q 300 250 560 190 T 1110 132" fill="none" stroke="#0D47A1" stroke-opacity="0.35" stroke-width="4"/>
+    <g stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2">
+      <g transform="translate(60 148) rotate(12)"  fill="#E5453C"><use href="#pennantM"/></g>
+      <g transform="translate(185 186) rotate(8)"  fill="#F5C542"><use href="#pennantM"/></g>
+      <g transform="translate(310 214) rotate(4)"  fill="#2C8FD4"><use href="#pennantM"/></g>
+      <g transform="translate(435 232) rotate(1)"  fill="#26A65B"><use href="#pennantM"/></g>
+      <g transform="translate(560 236) rotate(-2)" fill="#FF9800"><use href="#pennantM"/></g>
+      <g transform="translate(685 226) rotate(-5)" fill="#8E5AC8"><use href="#pennantM"/></g>
+      <g transform="translate(810 204) rotate(-6)" fill="#E5453C"><use href="#pennantM"/></g>
+      <g transform="translate(935 174) rotate(-6)" fill="#2C8FD4"><use href="#pennantM"/></g>
+      <g transform="translate(1055 146) rotate(-5)" fill="#F5C542"><use href="#pennantM"/></g>
+    </g>
+  </g>
+
+  <!-- ============ Schwebende Flaggen ============ -->
+  <g stroke="#0D47A1" stroke-opacity="0.14" stroke-width="2">
+    <g transform="translate(78 560) rotate(-9)">
+      <rect x="0" y="0" width="126" height="84" rx="7" fill="#FFFFFF"/>
+      <rect x="0" y="0" width="42" height="84" fill="#2C8FD4"/>
+      <rect x="84" y="0" width="42" height="84" fill="#E5453C"/>
+    </g>
+    <g transform="translate(860 700) rotate(7)">
+      <rect x="0" y="0" width="126" height="84" rx="7" fill="#2C8FD4"/>
+      <rect x="0" y="34" width="126" height="17" fill="#FFFFFF"/>
+      <rect x="38" y="0" width="17" height="84" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(120 1090) rotate(6)">
+      <rect x="0" y="0" width="126" height="84" rx="7" fill="#FFFFFF"/>
+      <rect x="0" y="0" width="126" height="28" fill="#26A65B"/>
+      <rect x="0" y="56" width="126" height="28" fill="#FF9800"/>
+    </g>
+    <g transform="translate(838 1180) rotate(-6)">
+      <rect x="0" y="0" width="126" height="84" rx="7" fill="#FFFFFF"/>
+      <circle cx="63" cy="42" r="25" fill="#E5453C"/>
+    </g>
+    <g transform="translate(430 400) rotate(4)">
+      <rect x="0" y="0" width="126" height="84" rx="7" fill="#0D47A1"/>
+      <path d="M 63 19 L 71 38 L 92 38 L 75 51 L 82 71 L 63 58 L 44 71 L 51 51 L 34 38 L 55 38 Z" fill="#F5C542"/>
+    </g>
+  </g>
+
+  <g fill="#FFFFFF" opacity="0.75">
+    <circle cx="300" cy="330" r="4"/><circle cx="820" cy="430" r="3"/>
+    <circle cx="200" cy="820" r="3"/><circle cx="940" cy="960" r="4"/>
+    <circle cx="560" cy="640" r="3"/><circle cx="700" cy="1320" r="4"/>
+    <circle cx="160" cy="1400" r="3"/><circle cx="980" cy="240" r="3"/>
+  </g>
+
+  <rect width="1080" height="1920" fill="url(#veil)"/>
+</svg>

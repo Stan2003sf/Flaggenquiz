@@ -5,6 +5,10 @@
 let originMenu = "single";
 
 function hideAllScreens() {
+    // Hintergrundbild gehört ausschließlich zu Ebene 0 -- goToMainMenu() setzt die Klasse gleich
+    // danach wieder. Da JEDE Bildschirmnavigation über hideAllScreens() läuft, reicht dieser eine
+    // Ort zum Entfernen (siehe css/style.css, body.main-menu-bg).
+    document.body.classList.remove("main-menu-bg");
     mainMenu.style.display = "none";
     singlePlayerMenu.style.display = "none";
     multiPlayerMenu.style.display = "none";
@@ -55,6 +59,7 @@ function goToMainMenu() {
     hideAllScreens();
     setChromeVisible(true);
     setNicknameCardVisible(true); // Namens-Card erscheint ausschließlich auf Ebene 0
+    document.body.classList.add("main-menu-bg"); // Hintergrundbild nur hier, siehe hideAllScreens()
     mainMenu.style.display = "block";
 }
 
